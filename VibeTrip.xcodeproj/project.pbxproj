@@ -6,6 +6,12 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		F59BA9B42F6681BE00F9AAB0 /* KakaoSDKAuth in Frameworks */ = {isa = PBXBuildFile; productRef = F59BA9B32F6681BE00F9AAB0 /* KakaoSDKAuth */; };
+		F59BA9B62F6681BE00F9AAB0 /* KakaoSDKCommon in Frameworks */ = {isa = PBXBuildFile; productRef = F59BA9B52F6681BE00F9AAB0 /* KakaoSDKCommon */; };
+		F59BA9B82F6681BE00F9AAB0 /* KakaoSDKUser in Frameworks */ = {isa = PBXBuildFile; productRef = F59BA9B72F6681BE00F9AAB0 /* KakaoSDKUser */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXContainerItemProxy section */
 		F5D0105D2F52015D0007B939 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -29,9 +35,22 @@
 		F5D010662F52015D0007B939 /* VibeTripUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = VibeTripUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		F59BA9BA2F668A3000F9AAB0 /* Exceptions for "VibeTrip" folder in "VibeTrip" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = F5D0104E2F52015C0007B939 /* VibeTrip */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		F5D010512F52015D0007B939 /* VibeTrip */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				F59BA9BA2F668A3000F9AAB0 /* Exceptions for "VibeTrip" folder in "VibeTrip" target */,
+			);
 			path = VibeTrip;
 			sourceTree = "<group>";
 		};
@@ -52,6 +71,9 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				F59BA9B62F6681BE00F9AAB0 /* KakaoSDKCommon in Frameworks */,
+				F59BA9B42F6681BE00F9AAB0 /* KakaoSDKAuth in Frameworks */,
+				F59BA9B82F6681BE00F9AAB0 /* KakaoSDKUser in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -112,6 +134,9 @@
 			);
 			name = VibeTrip;
 			packageProductDependencies = (
+				F59BA9B32F6681BE00F9AAB0 /* KakaoSDKAuth */,
+				F59BA9B52F6681BE00F9AAB0 /* KakaoSDKCommon */,
+				F59BA9B72F6681BE00F9AAB0 /* KakaoSDKUser */,
 			);
 			productName = VibeTrip;
 			productReference = F5D0104F2F52015D0007B939 /* VibeTrip.app */;
@@ -195,6 +220,9 @@
 			);
 			mainGroup = F5D010462F52015C0007B939;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				F59BA9B22F6681BE00F9AAB0 /* XCRemoteSwiftPackageReference "kakao-ios-sdk" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = F5D010502F52015D0007B939 /* Products */;
 			projectDirPath = "";
@@ -402,6 +430,7 @@
 				DEVELOPMENT_TEAM = 52AU86437A;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = VibeTrip/Info.plist;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -434,6 +463,7 @@
 				DEVELOPMENT_TEAM = 52AU86437A;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = VibeTrip/Info.plist;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -580,6 +610,35 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		F59BA9B22F6681BE00F9AAB0 /* XCRemoteSwiftPackageReference "kakao-ios-sdk" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/kakao/kakao-ios-sdk";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.27.2;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		F59BA9B32F6681BE00F9AAB0 /* KakaoSDKAuth */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = F59BA9B22F6681BE00F9AAB0 /* XCRemoteSwiftPackageReference "kakao-ios-sdk" */;
+			productName = KakaoSDKAuth;
+		};
+		F59BA9B52F6681BE00F9AAB0 /* KakaoSDKCommon */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = F59BA9B22F6681BE00F9AAB0 /* XCRemoteSwiftPackageReference "kakao-ios-sdk" */;
+			productName = KakaoSDKCommon;
+		};
+		F59BA9B72F6681BE00F9AAB0 /* KakaoSDKUser */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = F59BA9B22F6681BE00F9AAB0 /* XCRemoteSwiftPackageReference "kakao-ios-sdk" */;
+			productName = KakaoSDKUser;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = F5D010472F52015C0007B939 /* Project object */;
 }
