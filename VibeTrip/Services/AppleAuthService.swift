@@ -79,10 +79,9 @@ extension AppleAuthService: ASAuthorizationControllerPresentationContextProvidin
     
     // Apple 로그인 시트를 표시할 윈도우 지정
     func presentationAnchor(for controller: ASAuthorizationController) -> ASPresentationAnchor {
-        guard let scene = UIApplication.shared.connectedScenes.first as? UIWindowScene,
-              let window = scene.windows.first else {
+        guard let scene = UIApplication.shared.connectedScenes.first as? UIWindowScene else {
             return UIWindow()
         }
-        return window
+        return scene.windows.first ?? UIWindow(windowScene: scene)
     }
 }
