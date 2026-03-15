@@ -74,14 +74,19 @@ final class LoginViewModel: ObservableObject {
             switch provider {
             case .kakao:
                 token = try await kakaoAuthService.login()
+                print("카카오 accessToken: \(token)")
             case .apple:
                 token = try await appleAuthService.login()
+                print("애플 identityToken: \(token)")
             }
             
             // 2. 디바이스 ID 추출
             let deviceId = UIDevice.current.identifierForVendor?.uuidString ?? ""
             
+            print("deviceId: \(deviceId)")
+
             // 3. 백엔드 JWT 요청
+            print("백엔드 요청. provider: \(provider.rawValue)")
             let authToken = try await backendAuthService.authenticate(
                 token: token,
                 provider: provider,
@@ -90,7 +95,7 @@ final class LoginViewModel: ObservableObject {
             
             // 4. JWT 저장
             // TODO: Keychain 저장으로 변경
-            print("로그인 성공. userId: \(authToken.userId)")
+            print("로그인 성공. userId: \(authToken.userId), accessToken: \(authToken.accessToken)")
             
             // 5. 화면 전환 트리거
             isLoggedIn = true
