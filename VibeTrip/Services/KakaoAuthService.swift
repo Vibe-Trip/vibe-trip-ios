@@ -11,6 +11,7 @@
 // 사용자가 취소 시: LoginError.cancelled throw
 
 import Foundation
+import KakaoSDKCommon
 import KakaoSDKAuth
 import KakaoSDKUser
 
@@ -38,8 +39,9 @@ final class KakaoAuthService: KakaoAuthServiceProtocol {
     private func handle(oauthToken: OAuthToken?, error: Error?) -> Result<String, Error> {
         if let error = error {
             // 사용자가 취소
-            if (error as NSError).domain == "KakaoSDKError",
-               (error as NSError).code == 302 {
+            if let sdkError = error as? SdkError,
+               sdkError.isClientFailed,
+               sdkError.getClientError().reason == .Cancelled {
                 return .failure(LoginError.cancelled)
             }
             return .failure(LoginError.providerError)
