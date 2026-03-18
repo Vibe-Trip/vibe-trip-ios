@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import AuthenticationServices
 
 struct LoginView: View {
     
@@ -163,46 +164,35 @@ struct LoginView: View {
     private var buttonArea: some View {
         VStack(spacing: 12) {
             // Kakao Login Button
-            loginButton(
-                icon: "message.fill",
-                title: "카카오로 시작하기",
-                foreground: .black,
-                background: Color(red: 1.0, green: 0.898, blue: 0.0)
-            ) { viewModel.loginWithKakao() }
-            
+            Button { viewModel.loginWithKakao() } label: {
+                HStack(spacing: 6) {
+                    Image("KaKaoLogo")
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: 15, height: 15)
+                    Text("카카오로 계속하기")
+                        .font(.system(size: 18, weight: .semibold))
+                }
+                .foregroundColor(.black.opacity(0.85))
+                .frame(maxWidth: .infinity)
+                .frame(height: 48)
+                .background(Color(red: 254/255, green: 229/255, blue: 0))
+                .cornerRadius(8)
+            }
+
             // Apple Login Button
-            loginButton(
-                icon: "apple.logo",
-                title: "Apple로 시작하기",
-                foreground: .white,
-                background: .black
-            ) { viewModel.loginWithApple() }
+            SignInWithAppleButton(.continue) { request in
+                request.requestedScopes = [.fullName, .email]
+            } onCompletion: { result in
+                viewModel.handleAppleCompletion(result)
+            }
+            .signInWithAppleButtonStyle(.black)
+            .frame(height: 48)
+            .frame(maxWidth: .infinity)
+            .cornerRadius(8)
         }
         .padding(.horizontal, 20)
         .disabled(viewModel.isLoading)  // 로딩 중 전체 버튼 비활성화
-    }
-    
-    // MARK: - Login Button Helper
-    private func loginButton(
-        icon: String,
-        title: String,
-        foreground: Color,
-        background: Color,
-        action: @escaping () -> Void
-    ) -> some View {
-        Button(action: action) {
-            HStack(spacing: 8) {
-                Image(systemName: icon)
-                    .font(.system(size: 18))
-                Text(title)
-                    .font(.system(size: 17, weight: .semibold))
-            }
-            .foregroundColor(foreground)
-            .frame(maxWidth: .infinity)
-            .frame(height: 54)
-            .background(background)
-            .cornerRadius(8)
-        }
     }
 }
 
