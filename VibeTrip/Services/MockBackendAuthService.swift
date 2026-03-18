@@ -17,7 +17,7 @@ final class MockBackendAuthService: BackendAuthServiceProtocol {
     // 네트워크 딜레이 시뮬 (기본 1초)
     var delay: UInt64 = 1_000_000_000
 
-    func authenticate(token: String, provider: LoginProvider, deviceId: String) async throws -> AuthToken {
+    func authenticate(token: String, provider: LoginProvider, deviceId: String, fullName: String?) async throws -> AuthToken {
         // 네트워크 딜레이 시뮬레이션
         try await Task.sleep(nanoseconds: delay)
 

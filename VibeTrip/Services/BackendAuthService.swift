@@ -24,7 +24,7 @@ final class BackendAuthService: BackendAuthServiceProtocol {
         return URLSession(configuration: config)
     }()
     
-    func authenticate(token: String, provider: LoginProvider, deviceId: String) async throws -> AuthToken {
+    func authenticate(token: String, provider: LoginProvider, deviceId: String, fullName: String?) async throws -> AuthToken {
         // TODO: 백엔드 엔드포인트 변경
         let endpoint = "/api/auth/\(provider.rawValue)"
         
@@ -37,11 +37,14 @@ final class BackendAuthService: BackendAuthServiceProtocol {
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
         
         // Request Body
-        let body: [String: String] = [
-            "\(provider.rawValue)AccessToken": token,  // 카카오 or 애플
+        var body: [String: Any] = [
+            provider == .apple ? "identityToken" : "accessToken": token,
             "deviceId": deviceId
         ]
-        request.httpBody = try? JSONEncoder().encode(body)
+        if provider == .apple {
+            body["fullName"] = fullName ?? NSNull()
+        }
+        request.httpBody = try? JSONSerialization.data(withJSONObject: body)
         
         do {
             let (data, response) = try await session.data(for: request)
