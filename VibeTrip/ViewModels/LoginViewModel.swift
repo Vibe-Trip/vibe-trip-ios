@@ -23,7 +23,15 @@ final class LoginViewModel: ObservableObject {
     @Published var isLoading: Bool = false
     
     // 에러 발생 시 표시할 UI 결정
-    @Published var errorState: LoginErrorState? = nil   /// nil: 에러 UI X
+    @Published var errorState: LoginErrorState? = nil {   /// nil: 에러 UI X
+        didSet {
+            if case .toast = errorState {
+                scheduleToastDismissal()
+            }
+        }
+    }
+
+    private var toastTask: Task<Void, Never>?
     
     // 로그인 성공 시 true -> fullScreenCover 전환 트리거
     @Published var isLoggedIn: Bool = false
@@ -101,6 +109,19 @@ final class LoginViewModel: ObservableObject {
                 errorState = loginError.errorState
             } catch {
                 errorState = LoginError.providerError.errorState
+            }
+        }
+    }
+
+    // MARK: - 토스트 자동 닫힘
+
+    private func scheduleToastDismissal() {
+        toastTask?.cancel()
+        toastTask = Task {
+            try? await Task.sleep(nanoseconds: 3_000_000_000)
+            guard !Task.isCancelled else { return }
+            if case .toast = errorState {
+                errorState = nil
             }
         }
     }

@@ -44,16 +44,6 @@ struct LoginView: View {
             }
         }
         .animation(.easeInOut(duration: 0.3), value: viewModel.errorState)
-        // 토스트 메시지(3초)
-        .onChange(of: viewModel.errorState) { newValue in
-            if case .toast = newValue {
-                DispatchQueue.main.asyncAfter(deadline: .now() + 3) {
-                    if case .toast = viewModel.errorState {
-                        viewModel.errorState = nil
-                    }
-                }
-            }
-        }
         // 재시도 팝업(timeout)
         .alert("로그인 실패", isPresented: Binding(
             get: { if case .retryPopup = viewModel.errorState { return true }; return false },
@@ -182,7 +172,7 @@ struct LoginView: View {
 
             // Apple Login Button
             SignInWithAppleButton(.continue) { request in
-                request.requestedScopes = [.fullName, .email]
+                request.requestedScopes = [.fullName]
             } onCompletion: { result in
                 viewModel.handleAppleCompletion(result)
             }
