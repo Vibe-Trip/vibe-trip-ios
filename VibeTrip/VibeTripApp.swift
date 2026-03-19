@@ -6,13 +6,15 @@
 //
 
 import SwiftUI
+import FirebaseCore
 import KakaoSDKCommon
 import KakaoSDKAuth
 
 class AppDelegate: NSObject, UIApplicationDelegate {
     func application(_ application: UIApplication,
                      didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey : Any]? = nil) -> Bool {
-
+        // Firebase 초기화
+        FirebaseApp.configure()
         
         // 카카오 SDK 초기화
         if let appKey = Bundle.main.infoDictionary?["KAKAO_APP_KEY"] as? String {
