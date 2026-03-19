@@ -2,7 +2,7 @@
 
 set -e
 
-PLIST_PATH="${CI_WORKSPACE}/VibeTrip/GoogleService-Info.plist"
+PLIST_PATH="/Volumes/workspace/repository/VibeTrip/GoogleService-Info.plist"
 
 cat > "$PLIST_PATH" <<EOF
 <?xml version="1.0" encoding="UTF-8"?>
