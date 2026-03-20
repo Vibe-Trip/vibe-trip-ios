@@ -24,7 +24,7 @@ final class BackendAuthService: BackendAuthServiceProtocol {
         return URLSession(configuration: config)
     }()
     
-    func authenticate(token: String, provider: LoginProvider, deviceId: String, fullName: String?) async throws -> AuthToken {
+    func authenticate(token: String, provider: LoginProvider, deviceId: String, fcmToken: String, fullName: String?) async throws -> AuthToken {
         // TODO: 백엔드 엔드포인트 변경
         let endpoint = "/api/auth/\(provider.rawValue)"
         
@@ -39,7 +39,8 @@ final class BackendAuthService: BackendAuthServiceProtocol {
         // Request Body
         var body: [String: Any] = [
             provider == .apple ? "identityToken" : "accessToken": token,
-            "deviceId": deviceId
+            "deviceId": deviceId,
+            "fcmToken": fcmToken
         ]
         if provider == .apple {
             body["fullName"] = fullName ?? NSNull()
