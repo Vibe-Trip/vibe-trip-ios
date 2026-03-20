@@ -7,6 +7,8 @@
 
 import SwiftUI
 import FirebaseCore
+import FirebaseMessaging
+import UserNotifications
 import KakaoSDKCommon
 import KakaoSDKAuth
 
@@ -20,10 +22,19 @@ class AppDelegate: NSObject, UIApplicationDelegate {
         if let appKey = Bundle.main.infoDictionary?["KAKAO_APP_KEY"] as? String {
             KakaoSDK.initSDK(appKey: appKey)
         }
-        
+
+        // 푸시 알림 권한 요청 + APNS 등록 (FCM 토큰 발급 전제조건)
+        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .badge, .sound]) { _, _ in }
+        application.registerForRemoteNotifications()
+
         return true
     }
-    
+
+    // APNS 토큰 -> Firebase에 전달
+    func application(_ application: UIApplication, didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data) {
+        Messaging.messaging().apnsToken = deviceToken
+    }
+
 }
 
 @main
