@@ -55,7 +55,7 @@ final class LoginViewModel: ObservableObject {
     ) {
         self.kakaoAuthService = kakaoAuthService ?? KakaoAuthService()
         self.appleAuthService = appleAuthService ?? AppleAuthService()
-        self.backendAuthService = backendAuthService ?? MockBackendAuthService()
+        self.backendAuthService = backendAuthService ?? BackendAuthService()
     }
     
     // MARK: - 카카오 로그인
@@ -202,7 +202,7 @@ final class LoginViewModel: ObservableObject {
         )
 
         // TODO: Keychain 저장으로 변경
-        print("로그인 성공. userId: \(authToken.userId), accessToken: \(authToken.accessToken)")
+        print("로그인 성공. accessToken: \(authToken.accessToken)")
         isLoggedIn = true
     }
 }
