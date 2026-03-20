@@ -51,7 +51,7 @@ extension LoginError {
         case .networkError:
             return .toast(message: "네트워크 연결이 원활하지 않습니다.")
         case .timeout:
-            return .retryPopup(message: "로그인 서버 응답이 지연되고 있어요. 잠시 후 다시 해볼까요?")
+            return .retryPopup(message: "로그인 서버 응답이 지연되고 있어요. \n잠시 후 다시 시도해주세요.")
         case .accountBlocked:
             return .alertPopup(message: "운영 정책에 따라 이용이 제한된 계정입니다. 고객센터에 문의해 주세요.")
         case .cancelled:

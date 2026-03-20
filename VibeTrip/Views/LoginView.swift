@@ -44,13 +44,16 @@ struct LoginView: View {
             }
         }
         .animation(.easeInOut(duration: 0.3), value: viewModel.errorState)
-        // 재시도 팝업(timeout)
+        // 타임아웃 팝업
         .alert("로그인 실패", isPresented: Binding(
             get: { if case .retryPopup = viewModel.errorState { return true }; return false },
             set: { if !$0 { viewModel.errorState = nil } }
         )) {
-            Button("다시 시도") { viewModel.errorState = nil }
-            Button("취소", role: .cancel) { viewModel.errorState = nil }
+            Button("다시 시도") {
+                viewModel.errorState = nil
+                viewModel.retryLogin()
+            }
+            Button("닫기", role: .cancel) { viewModel.errorState = nil }
         } message: {
             if case .retryPopup(let message) = viewModel.errorState {
                 Text(message)
@@ -61,7 +64,7 @@ struct LoginView: View {
             get: { if case .alertPopup = viewModel.errorState { return true }; return false },
             set: { if !$0 { viewModel.errorState = nil } }
         )) {
-            Button("확인", role: .cancel) { viewModel.errorState = nil }
+            Button("확인") { viewModel.errorState = nil }
         } message: {
             if case .alertPopup(let message) = viewModel.errorState {
                 Text(message)
@@ -174,7 +177,7 @@ struct LoginView: View {
             SignInWithAppleButton(.continue) { request in
                 request.requestedScopes = [.fullName]
             } onCompletion: { result in
-                viewModel.handleAppleCompletion(result)
+                viewModel.handleAppleResult(result)
             }
             .signInWithAppleButtonStyle(.black)
             .frame(height: 48)
