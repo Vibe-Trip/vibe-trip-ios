@@ -6,16 +6,14 @@
 //
 
 // 백엔드 인증 API 호출 서비스 구현체
-// 1. accessToken(카카오) or identityToken(애플), deviceId: 서버로 전송
+// 1. accessToken(카카오) or identityToken(애플), deviceId, fcmToken: 서버로 전송
 // 2. 서버가 발급한 JWT 반환
-// TODO: 백엔드 서버 연결(baseURL, 엔드포인트)
 
 import Foundation
 
 final class BackendAuthService: BackendAuthServiceProtocol {
-    
-    // TODO: 백엔드 baseURL 변경
-    private let baseURL = "https://api.vibetrip.com"
+
+    private let baseURL = "https://dev.retrip.shop"
     private let timeoutInterval: TimeInterval = 15
     
     private lazy var session: URLSession = {
@@ -25,8 +23,7 @@ final class BackendAuthService: BackendAuthServiceProtocol {
     }()
     
     func authenticate(token: String, provider: LoginProvider, deviceId: String, fcmToken: String, fullName: String?) async throws -> AuthToken {
-        // TODO: 백엔드 엔드포인트 변경
-        let endpoint = "/api/auth/\(provider.rawValue)"
+        let endpoint = "/api/v1/auth/login/\(provider.rawValue)"
         
         guard let url = URL(string: baseURL + endpoint) else {
             throw LoginError.providerError
@@ -43,7 +40,7 @@ final class BackendAuthService: BackendAuthServiceProtocol {
             "fcmToken": fcmToken
         ]
         if provider == .apple {
-            body["fullName"] = fullName ?? NSNull()
+            body["name"] = fullName ?? NSNull()
         }
         request.httpBody = try? JSONSerialization.data(withJSONObject: body)
         
@@ -53,7 +50,11 @@ final class BackendAuthService: BackendAuthServiceProtocol {
             guard let httpResponse = response as? HTTPURLResponse else {
                 throw LoginError.networkError
             }
-            
+
+            // 디버깅 코드
+            print("HTTP 상태코드: \(httpResponse.statusCode)")
+            print("서버 응답 raw: \(String(data: data, encoding: .utf8) ?? "디코딩 불가")")
+
             // HTTP 상태코드별 에러 처리
             switch httpResponse.statusCode {
             case 200...299:
@@ -63,12 +64,23 @@ final class BackendAuthService: BackendAuthServiceProtocol {
             default:
                 throw LoginError.providerError
             }
-            
-            return try JSONDecoder().decode(AuthToken.self, from: data)
-            
+
+            let apiResponse = try JSONDecoder().decode(ApiResponse<AuthToken>.self, from: data)
+
+            if apiResponse.resultType == "ERROR" {
+                throw LoginError.providerError
+            }
+
+            guard let authToken = apiResponse.data else {
+                throw LoginError.providerError
+            }
+
+            return authToken
+
         } catch let error as LoginError {
             throw error
         } catch let urlError as URLError {
+            print("URLError: \(urlError.code) - \(urlError.localizedDescription)")
             switch urlError.code {
             case .timedOut:
                 throw LoginError.timeout
@@ -78,6 +90,7 @@ final class BackendAuthService: BackendAuthServiceProtocol {
                 throw LoginError.networkError
             }
         } catch {
+            print("파싱 에러: \(error)")
             throw LoginError.providerError
         }
     }
