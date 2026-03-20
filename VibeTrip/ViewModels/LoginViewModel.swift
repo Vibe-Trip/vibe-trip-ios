@@ -12,6 +12,7 @@ import Foundation
 import UIKit
 import Combine
 import AuthenticationServices
+import FirebaseMessaging
 
 @MainActor
 final class LoginViewModel: ObservableObject {
@@ -175,16 +176,28 @@ final class LoginViewModel: ObservableObject {
         }
     }
 
+    // FCM 토큰 획득, 실패 시 LoginError.networkError throw
+    private func fetchFCMToken() async throws -> String {
+        do {
+            return try await Messaging.messaging().token()
+        } catch {
+            throw LoginError.networkError
+        }
+    }
+
     // 카카오&애플 공통 백엔드 인증 요청
     private func performBackendAuth(token: String, provider: LoginProvider, fullName: String? = nil) async throws {
         let deviceId = UIDevice.current.identifierForVendor?.uuidString ?? ""
+        let fcmToken = try await fetchFCMToken()
         print("deviceId: \(deviceId)")
+        print("fcmToken: \(fcmToken)")
         print("백엔드 요청. provider: \(provider.rawValue)")
 
         let authToken = try await backendAuthService.authenticate(
             token: token,
             provider: provider,
             deviceId: deviceId,
+            fcmToken: fcmToken,
             fullName: fullName
         )
 
