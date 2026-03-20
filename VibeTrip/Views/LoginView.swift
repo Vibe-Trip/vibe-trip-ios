@@ -175,7 +175,7 @@ struct LoginView: View {
 
             // Apple Login Button
             SignInWithAppleButton(.continue) { request in
-                request.requestedScopes = [.fullName]
+                request.requestedScopes = [.fullName, .email]
             } onCompletion: { result in
                 viewModel.handleAppleResult(result)
             }

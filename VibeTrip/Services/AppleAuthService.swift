@@ -25,7 +25,7 @@ final class AppleAuthService: NSObject, AppleAuthServiceProtocol {
             self.continuation = continuation
 
             let request = ASAuthorizationAppleIDProvider().createRequest()
-            request.requestedScopes = [.fullName]
+            request.requestedScopes = [.fullName, .email]
 
             let controller = ASAuthorizationController(authorizationRequests: [request])
             controller.delegate = self
