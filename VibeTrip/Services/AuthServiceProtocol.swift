@@ -19,6 +19,13 @@ protocol KakaoAuthServiceProtocol {
     func login() async throws -> String
 }
 
+// 애플 로그인 인터페이스
+protocol AppleAuthServiceProtocol {
+    /// 애플 로그인 실행: identityToken + fullName 반환
+    /// 사용자 취소 시: LoginError.cancelled throw
+    func login() async throws -> (identityToken: String, fullName: String?)
+}
+
 // MARK: - 백엔드 인증 프로토콜
 
 // 백엔드 JWT 발급 인터페이스

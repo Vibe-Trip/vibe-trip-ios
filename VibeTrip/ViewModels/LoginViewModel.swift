@@ -17,7 +17,6 @@ import AuthenticationServices
 final class LoginViewModel: ObservableObject {
     
     // MARK: - Published
-    // View 바인딩
     
     // 로그인 진행 여부: 버튼 비활성화 + 스피너 표시
     @Published var isLoading: Bool = false
@@ -31,14 +30,18 @@ final class LoginViewModel: ObservableObject {
         }
     }
 
-    private var toastTask: Task<Void, Never>?
-    
     // 로그인 성공 시 true -> fullScreenCover 전환 트리거
     @Published var isLoggedIn: Bool = false
-    
+
+    // MARK: - Private
+
+    private var toastTask: Task<Void, Never>?
+    private var lastLoginProvider: LoginProvider?
+
     // MARK: - Dependencies
     
     private let kakaoAuthService: KakaoAuthServiceProtocol
+    private let appleAuthService: AppleAuthServiceProtocol
     private let backendAuthService: BackendAuthServiceProtocol
     
     // MARK: - Init
@@ -46,23 +49,28 @@ final class LoginViewModel: ObservableObject {
 
     init(
         kakaoAuthService: KakaoAuthServiceProtocol? = nil,
+        appleAuthService: AppleAuthServiceProtocol? = nil,
         backendAuthService: BackendAuthServiceProtocol? = nil     // TODO: BackendAuthService()로 교체
     ) {
         self.kakaoAuthService = kakaoAuthService ?? KakaoAuthService()
+        self.appleAuthService = appleAuthService ?? AppleAuthService()
         self.backendAuthService = backendAuthService ?? MockBackendAuthService()
     }
     
     // MARK: - 카카오 로그인
     
     func loginWithKakao() {
-        guard !isLoading else { return }   // 중복 탭 방지
-        Task { await performLogin() }
-    }
-    
-    // MARK: - 애플 로그인
-    
-    func handleAppleCompletion(_ result: Result<ASAuthorization, Error>) {
         guard !isLoading else { return }
+        lastLoginProvider = .kakao
+        Task { await performKakaoLogin() }
+    }
+
+    // MARK: - 애플 로그인
+
+    // SignInWithAppleButton onCompletion 결과 처리(초기 로그인)
+    func handleAppleResult(_ result: Result<ASAuthorization, Error>) {
+        guard !isLoading else { return }
+        lastLoginProvider = .apple
         Task {
             isLoading = true
             errorState = nil
@@ -79,37 +87,39 @@ final class LoginViewModel: ObservableObject {
                     return
                 }
 
-                let nameParts = [credential.fullName?.givenName, credential.fullName?.familyName].compactMap { $0 }
+                let nameParts = [credential.fullName?.givenName, credential.fullName?.familyName]
+                    .compactMap { $0 }
                 let fullName: String? = nameParts.isEmpty ? nil : nameParts.joined(separator: " ")
-                let email = credential.email
 
                 print("애플 identityToken: \(identityToken)")
                 print("애플 fullName: \(fullName ?? "null")")
-                print("애플 email: \(email ?? "null")")
 
-                let deviceId = UIDevice.current.identifierForVendor?.uuidString ?? ""
-                print("deviceId: \(deviceId)")
-                print("백엔드 요청. provider: apple")
-
-                let authToken = try await backendAuthService.authenticate(
-                    token: identityToken,
-                    provider: .apple,
-                    deviceId: deviceId,
-                    fullName: fullName
-                )
-
-                // TODO: Keychain 저장으로 변경
-                print("로그인 성공. userId: \(authToken.userId), accessToken: \(authToken.accessToken)")
-                isLoggedIn = true
+                try await performBackendAuth(token: identityToken, provider: .apple, fullName: fullName)
 
             } catch let authError as ASAuthorizationError where authError.code == .canceled {
-                return  // 취소: 에러 UI 없이 유지
+                return
             } catch let loginError as LoginError {
                 if loginError == .cancelled { return }
                 errorState = loginError.errorState
             } catch {
                 errorState = LoginError.providerError.errorState
             }
+        }
+    }
+
+    // AppleAuthService를 통한 애플 로그인 (재시도 경로)
+    func loginWithApple() {
+        guard !isLoading else { return }
+        lastLoginProvider = .apple
+        Task { await performAppleLogin() }
+    }
+
+    // 재시도
+    func retryLogin() {
+        switch lastLoginProvider {
+        case .kakao: loginWithKakao()
+        case .apple: loginWithApple()
+        case nil: break
         }
     }
 
@@ -126,44 +136,60 @@ final class LoginViewModel: ObservableObject {
         }
     }
 
-    // MARK: - 카카오 로그인 플로우
+    // MARK: - 로그인 플로우
 
-    private func performLogin() async {
+    private func performKakaoLogin() async {
         isLoading = true
         errorState = nil
-        
         defer { isLoading = false }
-        
+
         do {
-            // 1. 카카오 토큰 획득
+            /// 카카오 토큰 획득
             let token = try await kakaoAuthService.login()
             print("카카오 accessToken: \(token)")
-
-            // 2. 디바이스 ID 추출
-            let deviceId = UIDevice.current.identifierForVendor?.uuidString ?? ""
-            print("deviceId: \(deviceId)")
-
-            // 3. 백엔드 JWT 요청
-            print("백엔드 요청. provider: kakao")
-            let authToken = try await backendAuthService.authenticate(
-                token: token,
-                provider: .kakao,
-                deviceId: deviceId
-            )
-            
-            // 4. JWT 저장
-            // TODO: Keychain 저장으로 변경
-            print("로그인 성공. userId: \(authToken.userId), accessToken: \(authToken.accessToken)")
-            
-            // 5. 화면 전환 트리거
-            isLoggedIn = true
-            
+            try await performBackendAuth(token: token, provider: .kakao)
         } catch let loginError as LoginError {
-            // 취소: 에러 UI 없이 그대로 로그인 화면 유지
             if loginError == .cancelled { return }
             errorState = loginError.errorState
         } catch {
             errorState = LoginError.providerError.errorState
         }
+    }
+
+    private func performAppleLogin() async {
+        isLoading = true
+        errorState = nil
+        defer { isLoading = false }
+
+        do {
+            let (identityToken, fullName) = try await appleAuthService.login()
+            print("애플 identityToken: \(identityToken)")
+            print("애플 fullName: \(fullName ?? "null")")
+            try await performBackendAuth(token: identityToken, provider: .apple, fullName: fullName)
+        } catch let loginError as LoginError {
+            /// 취소: 에러 UI 없이 그대로 로그인 화면 유지
+            if loginError == .cancelled { return }
+            errorState = loginError.errorState
+        } catch {
+            errorState = LoginError.providerError.errorState
+        }
+    }
+
+    // 카카오&애플 공통 백엔드 인증 요청
+    private func performBackendAuth(token: String, provider: LoginProvider, fullName: String? = nil) async throws {
+        let deviceId = UIDevice.current.identifierForVendor?.uuidString ?? ""
+        print("deviceId: \(deviceId)")
+        print("백엔드 요청. provider: \(provider.rawValue)")
+
+        let authToken = try await backendAuthService.authenticate(
+            token: token,
+            provider: provider,
+            deviceId: deviceId,
+            fullName: fullName
+        )
+
+        // TODO: Keychain 저장으로 변경
+        print("로그인 성공. userId: \(authToken.userId), accessToken: \(authToken.accessToken)")
+        isLoggedIn = true
     }
 }
