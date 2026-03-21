@@ -41,15 +41,37 @@ class AppDelegate: NSObject, UIApplicationDelegate {
 struct VibeTripApp: App {
     @UIApplicationDelegateAdaptor(AppDelegate.self) var delegate
     
+
+    // nil: 확인 중, true: 메인, false: 로그인
+    @State private var isLoggedIn: Bool? = nil
+
+    private let keychainService: KeychainServiceProtocol = KeychainService()
+
     var body: some Scene {
         WindowGroup {
-            LoginView()
-                .onOpenURL { url in
-                    // 카카오톡 앱 로그인 후 돌아오는 URL 처리 (취소 포함)
-                    if AuthApi.isKakaoTalkLoginUrl(url) {
-                        _ = AuthController.handleOpenUrl(url: url)
-                    }
+            Group {
+                switch isLoggedIn {
+                case .none:
+                    // Keychain 확인 전: 빈화면
+                    Color(.systemBackground).ignoresSafeArea()
+                case .some(false):
+                    LoginView()
+                        .onOpenURL { url in
+                            // 카카오톡 앱 로그인 후 돌아오는 URL 처리 (취소 포함)
+                            if AuthApi.isKakaoTalkLoginUrl(url) {
+                                _ = AuthController.handleOpenUrl(url: url)
+                            }
+                        }
+                case .some(true):
+                    // TODO: MainView()로 교체
+                    Text("메인 화면")
+                        .font(.title)
                 }
+            }
+            .task {
+                // 앱 진입 시 Keychain 토큰 유무로 초기 화면 결정
+                isLoggedIn = (try? keychainService.getAccessToken()) != nil
+            }
         }
     }
 }
