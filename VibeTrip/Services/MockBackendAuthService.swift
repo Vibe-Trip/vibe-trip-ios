@@ -9,15 +9,20 @@
 
 import Foundation
 
+#if DEBUG
 final class MockBackendAuthService: BackendAuthServiceProtocol {
 
-    // nil: 성공, 값을 지정하면 해당 에러를 throw
+    // nil: 성공
+    // .networkError: 네트워크 에러 (토스트)
+    // .timeout: 타임아웃 에러 (팝업)
+    // .accountBlocked: 계정 차단 (팝업)
+    
     var simulatedError: LoginError? = nil
 
     // 네트워크 딜레이 시뮬 (기본 1초)
     var delay: UInt64 = 1_000_000_000
 
-    func authenticate(token: String, provider: LoginProvider, deviceId: String, fullName: String?) async throws -> AuthToken {
+    func authenticate(token: String, provider: LoginProvider, deviceId: String, fcmToken: String, fullName: String?) async throws -> AuthToken {
         // 네트워크 딜레이 시뮬레이션
         try await Task.sleep(nanoseconds: delay)
 
@@ -29,8 +34,8 @@ final class MockBackendAuthService: BackendAuthServiceProtocol {
         // 가짜 JWT 반환
         return AuthToken(
             accessToken: "mock.access.token.\(provider.rawValue)",
-            refreshToken: "mock.refresh.token.\(provider.rawValue)",
-            userId: "mock-user-001"
+            refreshToken: "mock.refresh.token.\(provider.rawValue)"
         )
     }
 }
+#endif
