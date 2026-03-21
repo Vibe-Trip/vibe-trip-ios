@@ -44,18 +44,20 @@ final class LoginViewModel: ObservableObject {
     private let kakaoAuthService: KakaoAuthServiceProtocol
     private let appleAuthService: AppleAuthServiceProtocol
     private let backendAuthService: BackendAuthServiceProtocol
-    
+    private let keychainService: KeychainServiceProtocol
+
     // MARK: - Init
-    // 현재: MockBackendAuthService
 
     init(
         kakaoAuthService: KakaoAuthServiceProtocol? = nil,
         appleAuthService: AppleAuthServiceProtocol? = nil,
-        backendAuthService: BackendAuthServiceProtocol? = nil     // TODO: BackendAuthService()로 교체
+        backendAuthService: BackendAuthServiceProtocol? = nil,
+        keychainService: KeychainServiceProtocol? = nil
     ) {
         self.kakaoAuthService = kakaoAuthService ?? KakaoAuthService()
         self.appleAuthService = appleAuthService ?? AppleAuthService()
         self.backendAuthService = backendAuthService ?? BackendAuthService()
+        self.keychainService = keychainService ?? KeychainService()
     }
     
     // MARK: - 카카오 로그인
@@ -201,8 +203,15 @@ final class LoginViewModel: ObservableObject {
             fullName: fullName
         )
 
-        // TODO: Keychain 저장으로 변경
-        print("로그인 성공. accessToken: \(authToken.accessToken)")
+        do {
+            try keychainService.save(
+                accessToken: authToken.accessToken,
+                refreshToken: authToken.refreshToken
+            )
+        } catch {
+            throw LoginError.networkError
+        }
+
         isLoggedIn = true
     }
 }
