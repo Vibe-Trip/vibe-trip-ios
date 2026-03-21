@@ -1,0 +1,37 @@
+{
+  "configurations" : [
+    {
+      "id" : "D1C47F5F-B638-4627-B781-F8887D9ABBB8",
+      "name" : "Test Scheme Action",
+      "options" : {
+
+      }
+    }
+  ],
+  "defaultOptions" : {
+    "performanceAntipatternCheckerEnabled" : true,
+    "targetForVariableExpansion" : {
+      "containerPath" : "container:VibeTrip.xcodeproj",
+      "identifier" : "F5D0104E2F52015C0007B939",
+      "name" : "VibeTrip"
+    }
+  },
+  "testTargets" : [
+    {
+      "parallelizable" : false,
+      "target" : {
+        "containerPath" : "container:VibeTrip.xcodeproj",
+        "identifier" : "F5D0105B2F52015D0007B939",
+        "name" : "VibeTripTests"
+      }
+    },
+    {
+      "target" : {
+        "containerPath" : "container:VibeTrip.xcodeproj",
+        "identifier" : "F5D010652F52015D0007B939",
+        "name" : "VibeTripUITests"
+      }
+    }
+  ],
+  "version" : 1
+}
