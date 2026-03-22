@@ -14,7 +14,7 @@ import Foundation
 final class BackendAuthService: BackendAuthServiceProtocol {
 
     private let baseURL = "https://dev.retrip.shop"
-    private let timeoutInterval: TimeInterval = 15
+    private let timeoutInterval: TimeInterval = 5
     
     private lazy var session: URLSession = {
         let config = URLSessionConfiguration.default
@@ -59,8 +59,8 @@ final class BackendAuthService: BackendAuthServiceProtocol {
             switch httpResponse.statusCode {
             case 200...299:
                 break
-            case 403:
-                throw LoginError.accountBlocked
+            // case 403:
+            //     throw LoginError.accountBlocked
             default:
                 throw LoginError.providerError
             }

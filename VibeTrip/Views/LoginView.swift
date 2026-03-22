@@ -59,7 +59,7 @@ struct LoginView: View {
                 Text(message)
             }
         }
-        // 계정 제한 팝업(accountBlocked)
+        // 확인 팝업
         .alert("이용 제한", isPresented: Binding(
             get: { if case .alertPopup = viewModel.errorState { return true }; return false },
             set: { if !$0 { viewModel.errorState = nil } }

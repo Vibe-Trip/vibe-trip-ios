@@ -20,8 +20,8 @@ enum LoginError: Error {
     /// 백엔드 응답 지연
     case timeout
 
-    /// 운영 정책에 의해 차단된 계정
-    case accountBlocked
+    // /// 운영 정책에 의해 차단된 계정
+    // case accountBlocked
 
     /// 사용자가 시스템 팝업에서 직접 취소
     case cancelled
@@ -52,8 +52,8 @@ extension LoginError {
             return .toast(message: "네트워크 연결이 원활하지 않습니다.")
         case .timeout:
             return .retryPopup(message: "로그인 서버 응답이 지연되고 있어요. \n잠시 후 다시 시도해주세요.")
-        case .accountBlocked:
-            return .alertPopup(message: "운영 정책에 따라 이용이 제한된 계정입니다. 고객센터에 문의해 주세요.")
+        // case .accountBlocked:
+        //     return .alertPopup(message: "운영 정책에 따라 이용이 제한된 계정입니다. 고객센터에 문의해 주세요.")
         case .cancelled:
             return nil
         }
