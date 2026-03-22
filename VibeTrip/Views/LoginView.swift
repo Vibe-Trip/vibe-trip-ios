@@ -147,7 +147,7 @@ struct LoginView: View {
     // MARK: - Subtitle
     private var subtitleText: some View {
         Text("여행 사진 한 장으로 시작하는\n세상에 하나뿐인 사운드트랙")
-            .font(.system(size: 16, weight: .regular))
+            .font(.setPretendard(weight: .medium, size: 20))
             .multilineTextAlignment(.center)
             .foregroundColor(.white)
             .lineSpacing(4)
@@ -155,18 +155,19 @@ struct LoginView: View {
     
     // MARK: - Button Area
     private var buttonArea: some View {
-        VStack(spacing: 12) {
+        VStack(spacing: 14) {
             // Kakao Login Button
             Button { viewModel.loginWithKakao() } label: {
-                HStack(spacing: 6) {
+                HStack(spacing: 5) {
                     Image("KaKaoLogo")
                         .resizable()
                         .scaledToFit()
                         .frame(width: 15, height: 15)
                     Text("카카오로 계속하기")
-                        .font(.system(size: 18, weight: .semibold))
+                        .font(.setPretendard(weight: .medium, size: 18))
                 }
                 .foregroundColor(.black.opacity(0.85))
+                .padding(.horizontal, 16)
                 .frame(maxWidth: .infinity)
                 .frame(height: 48)
                 .background(Color(red: 254/255, green: 229/255, blue: 0))
@@ -185,6 +186,7 @@ struct LoginView: View {
             .cornerRadius(8)
         }
         .padding(.horizontal, 20)
+        .padding(.bottom, 20)
         .disabled(viewModel.isLoading)  // 로딩 중 전체 버튼 비활성화
     }
 }
