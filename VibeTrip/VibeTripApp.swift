@@ -63,9 +63,7 @@ struct VibeTripApp: App {
                             }
                         }
                 case .some(true):
-                    // TODO: MainView()로 교체
-                    Text("메인 화면")
-                        .font(.title)
+                    MainTabBarView()
                 }
             }
             .task {
