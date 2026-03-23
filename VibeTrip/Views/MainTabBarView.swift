@@ -71,23 +71,11 @@ struct MainTabBarView: View {
 
             // NavBar + TabBar를 콘텐츠 위에 오버레이
             VStack(spacing: 0) {
-                NavBarSpacer()
                 Spacer()
                 LiquidGlassTabBar(selectedTab: $selectedTab)
             }
         }
         .ignoresSafeArea()
-    }
-}
-
-// MARK: - NavBarSpacer
-// TODO: 로고 추가
-
-struct NavBarSpacer: View {
-
-    var body: some View {
-        Color.clear
-            .frame(height: 100)
     }
 }
 
@@ -136,8 +124,8 @@ struct LiquidGlassTabBar: View {
                             )
                     )
                     // 탭바 그림자
-                    .shadow(color: .black.opacity(0.18), radius: 15, x: 0, y: 8)
-                    .shadow(color: .black.opacity(0.08), radius: 6,  x: 0, y: 2)
+//                    .shadow(color: .black.opacity(0.08), radius: 6, x: 0, y: 4)
+//                    .shadow(color: .black.opacity(0.08), radius: 6,  x: 0, y: 4)
 
                 // 탭 아이템 목록 (내부 여백 적용 후 균등 분할)
                 HStack(spacing: 0) {
