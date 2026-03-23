@@ -71,10 +71,8 @@ struct LoginView: View {
             }
         }
         // 로그인 성공 -> 메인화면(fullScreenCover)
-        // TODO: MainView()로 교체
         .fullScreenCover(isPresented: $viewModel.isLoggedIn) {
-            Text("메인 화면")
-                .font(.title)
+            MainTabBarView()
         }
     }
     
@@ -173,7 +171,7 @@ struct LoginView: View {
                 .background(Color(red: 254/255, green: 229/255, blue: 0))
                 .cornerRadius(8)
             }
-
+            
             // Apple Login Button
             SignInWithAppleButton(.continue) { request in
                 request.requestedScopes = [.fullName, .email]
