@@ -24,7 +24,9 @@ VibeTrip/
 ├── Models/
 ├── Views/
 ├── ViewModels/
-└── Services/
+├── Services/
+├── Resources/
+└── Extensions/
 ```
 
 ## 📌 브랜치 전략

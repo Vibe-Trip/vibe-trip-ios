@@ -6,6 +6,14 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXBuildFile section */
+		F59BA9B42F6681BE00F9AAB0 /* KakaoSDKAuth in Frameworks */ = {isa = PBXBuildFile; productRef = F59BA9B32F6681BE00F9AAB0 /* KakaoSDKAuth */; };
+		F59BA9B62F6681BE00F9AAB0 /* KakaoSDKCommon in Frameworks */ = {isa = PBXBuildFile; productRef = F59BA9B52F6681BE00F9AAB0 /* KakaoSDKCommon */; };
+		F59BA9B82F6681BE00F9AAB0 /* KakaoSDKUser in Frameworks */ = {isa = PBXBuildFile; productRef = F59BA9B72F6681BE00F9AAB0 /* KakaoSDKUser */; };
+		F59BA9BF2F66CD1000F9AAB0 /* FirebaseCore in Frameworks */ = {isa = PBXBuildFile; productRef = F59BA9BE2F66CD1000F9AAB0 /* FirebaseCore */; };
+		F59BA9C12F66CD1000F9AAB0 /* FirebaseMessaging in Frameworks */ = {isa = PBXBuildFile; productRef = F59BA9C02F66CD1000F9AAB0 /* FirebaseMessaging */; };
+/* End PBXBuildFile section */
+
 /* Begin PBXContainerItemProxy section */
 		F5D0105D2F52015D0007B939 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
@@ -24,14 +32,28 @@
 /* End PBXContainerItemProxy section */
 
 /* Begin PBXFileReference section */
+		F50ECEBD2F6BB83B000626FF /* VibeTrip.xctestplan */ = {isa = PBXFileReference; lastKnownFileType = text; path = VibeTrip.xctestplan; sourceTree = "<group>"; };
 		F5D0104F2F52015D0007B939 /* VibeTrip.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = VibeTrip.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		F5D0105C2F52015D0007B939 /* VibeTripTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = VibeTripTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		F5D010662F52015D0007B939 /* VibeTripUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = VibeTripUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
+/* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
+		F59BA9BA2F668A3000F9AAB0 /* Exceptions for "VibeTrip" folder in "VibeTrip" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				Info.plist,
+			);
+			target = F5D0104E2F52015C0007B939 /* VibeTrip */;
+		};
+/* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
+
 /* Begin PBXFileSystemSynchronizedRootGroup section */
 		F5D010512F52015D0007B939 /* VibeTrip */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				F59BA9BA2F668A3000F9AAB0 /* Exceptions for "VibeTrip" folder in "VibeTrip" target */,
+			);
 			path = VibeTrip;
 			sourceTree = "<group>";
 		};
@@ -52,6 +74,11 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				F59BA9B62F6681BE00F9AAB0 /* KakaoSDKCommon in Frameworks */,
+				F59BA9B42F6681BE00F9AAB0 /* KakaoSDKAuth in Frameworks */,
+				F59BA9C12F66CD1000F9AAB0 /* FirebaseMessaging in Frameworks */,
+				F59BA9BF2F66CD1000F9AAB0 /* FirebaseCore in Frameworks */,
+				F59BA9B82F6681BE00F9AAB0 /* KakaoSDKUser in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -75,6 +102,7 @@
 		F5D010462F52015C0007B939 = {
 			isa = PBXGroup;
 			children = (
+				F50ECEBD2F6BB83B000626FF /* VibeTrip.xctestplan */,
 				F5D010512F52015D0007B939 /* VibeTrip */,
 				F5D0105F2F52015D0007B939 /* VibeTripTests */,
 				F5D010692F52015D0007B939 /* VibeTripUITests */,
@@ -112,6 +140,11 @@
 			);
 			name = VibeTrip;
 			packageProductDependencies = (
+				F59BA9B32F6681BE00F9AAB0 /* KakaoSDKAuth */,
+				F59BA9B52F6681BE00F9AAB0 /* KakaoSDKCommon */,
+				F59BA9B72F6681BE00F9AAB0 /* KakaoSDKUser */,
+				F59BA9BE2F66CD1000F9AAB0 /* FirebaseCore */,
+				F59BA9C02F66CD1000F9AAB0 /* FirebaseMessaging */,
 			);
 			productName = VibeTrip;
 			productReference = F5D0104F2F52015D0007B939 /* VibeTrip.app */;
@@ -195,6 +228,10 @@
 			);
 			mainGroup = F5D010462F52015C0007B939;
 			minimizedProjectReferenceProxies = 1;
+			packageReferences = (
+				F59BA9B22F6681BE00F9AAB0 /* XCRemoteSwiftPackageReference "kakao-ios-sdk" */,
+				F59BA9BD2F66CD1000F9AAB0 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */,
+			);
 			preferredProjectObjectVersion = 77;
 			productRefGroup = F5D010502F52015D0007B939 /* Products */;
 			projectDirPath = "";
@@ -322,7 +359,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 26.2;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.6;
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
 				MTL_ENABLE_DEBUG_INFO = INCLUDE_SOURCE;
 				MTL_FAST_MATH = YES;
@@ -381,7 +418,7 @@
 				GCC_WARN_UNINITIALIZED_AUTOS = YES_AGGRESSIVE;
 				GCC_WARN_UNUSED_FUNCTION = YES;
 				GCC_WARN_UNUSED_VARIABLE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 26.2;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.6;
 				LOCALIZATION_PREFERS_STRING_CATALOGS = YES;
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
@@ -397,11 +434,13 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = VibeTrip/VibeTrip.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 52AU86437A;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = VibeTrip/Info.plist;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -429,11 +468,13 @@
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
+				CODE_SIGN_ENTITLEMENTS = VibeTrip/VibeTrip.entitlements;
 				CODE_SIGN_STYLE = Automatic;
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 52AU86437A;
 				ENABLE_PREVIEWS = YES;
 				GENERATE_INFOPLIST_FILE = YES;
+				INFOPLIST_FILE = VibeTrip/Info.plist;
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -464,7 +505,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 52AU86437A;
 				GENERATE_INFOPLIST_FILE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 26.2;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.6;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.swyp.VibeTripTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -486,7 +527,7 @@
 				CURRENT_PROJECT_VERSION = 1;
 				DEVELOPMENT_TEAM = 52AU86437A;
 				GENERATE_INFOPLIST_FILE = YES;
-				IPHONEOS_DEPLOYMENT_TARGET = 26.2;
+				IPHONEOS_DEPLOYMENT_TARGET = 16.6;
 				MARKETING_VERSION = 1.0;
 				PRODUCT_BUNDLE_IDENTIFIER = com.swyp.VibeTripTests;
 				PRODUCT_NAME = "$(TARGET_NAME)";
@@ -580,6 +621,53 @@
 			defaultConfigurationName = Release;
 		};
 /* End XCConfigurationList section */
+
+/* Begin XCRemoteSwiftPackageReference section */
+		F59BA9B22F6681BE00F9AAB0 /* XCRemoteSwiftPackageReference "kakao-ios-sdk" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/kakao/kakao-ios-sdk";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 2.27.2;
+			};
+		};
+		F59BA9BD2F66CD1000F9AAB0 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/firebase/firebase-ios-sdk";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 12.10.0;
+			};
+		};
+/* End XCRemoteSwiftPackageReference section */
+
+/* Begin XCSwiftPackageProductDependency section */
+		F59BA9B32F6681BE00F9AAB0 /* KakaoSDKAuth */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = F59BA9B22F6681BE00F9AAB0 /* XCRemoteSwiftPackageReference "kakao-ios-sdk" */;
+			productName = KakaoSDKAuth;
+		};
+		F59BA9B52F6681BE00F9AAB0 /* KakaoSDKCommon */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = F59BA9B22F6681BE00F9AAB0 /* XCRemoteSwiftPackageReference "kakao-ios-sdk" */;
+			productName = KakaoSDKCommon;
+		};
+		F59BA9B72F6681BE00F9AAB0 /* KakaoSDKUser */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = F59BA9B22F6681BE00F9AAB0 /* XCRemoteSwiftPackageReference "kakao-ios-sdk" */;
+			productName = KakaoSDKUser;
+		};
+		F59BA9BE2F66CD1000F9AAB0 /* FirebaseCore */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = F59BA9BD2F66CD1000F9AAB0 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseCore;
+		};
+		F59BA9C02F66CD1000F9AAB0 /* FirebaseMessaging */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = F59BA9BD2F66CD1000F9AAB0 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseMessaging;
+		};
+/* End XCSwiftPackageProductDependency section */
 	};
 	rootObject = F5D010472F52015C0007B939 /* Project object */;
 }

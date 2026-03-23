@@ -1,0 +1,97 @@
+//
+//  BackendAuthService.swift
+//  VibeTrip
+//
+//  Created by CHOI on 3/15/26.
+//
+
+// 백엔드 인증 API 호출 서비스 구현체
+// 1. accessToken(카카오) or identityToken(애플), deviceId, fcmToken: 서버로 전송
+// 2. 서버가 발급한 JWT 반환
+
+import Foundation
+
+final class BackendAuthService: BackendAuthServiceProtocol {
+
+    private let baseURL = "https://dev.retrip.shop"
+    private let timeoutInterval: TimeInterval = 15
+    
+    private lazy var session: URLSession = {
+        let config = URLSessionConfiguration.default
+        config.timeoutIntervalForRequest = timeoutInterval
+        return URLSession(configuration: config)
+    }()
+    
+    func authenticate(token: String, provider: LoginProvider, deviceId: String, fcmToken: String, fullName: String?) async throws -> AuthToken {
+        let endpoint = "/api/v1/auth/login/\(provider.rawValue)"
+        
+        guard let url = URL(string: baseURL + endpoint) else {
+            throw LoginError.providerError
+        }
+        
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        
+        // Request Body
+        var body: [String: Any] = [
+            provider == .apple ? "identityToken" : "accessToken": token,
+            "deviceId": deviceId,
+            "fcmToken": fcmToken
+        ]
+        if provider == .apple {
+            body["name"] = fullName ?? NSNull()
+        }
+        request.httpBody = try? JSONSerialization.data(withJSONObject: body)
+        
+        do {
+            let (data, response) = try await session.data(for: request)
+            
+            guard let httpResponse = response as? HTTPURLResponse else {
+                throw LoginError.networkError
+            }
+
+            // 디버깅 코드
+            print("HTTP 상태코드: \(httpResponse.statusCode)")
+            print("서버 응답 raw: \(String(data: data, encoding: .utf8) ?? "디코딩 불가")")
+
+            // HTTP 상태코드별 에러 처리
+            switch httpResponse.statusCode {
+            case 200...299:
+                break
+            case 403:
+                throw LoginError.accountBlocked
+            default:
+                throw LoginError.providerError
+            }
+
+            let apiResponse = try JSONDecoder().decode(ApiResponse<AuthToken>.self, from: data)
+
+            if apiResponse.resultType == "ERROR" {
+                throw LoginError.providerError
+            }
+
+            guard let authToken = apiResponse.data else {
+                throw LoginError.providerError
+            }
+
+            return authToken
+
+        } catch let error as LoginError {
+            throw error
+        } catch let urlError as URLError {
+            print("URLError: \(urlError.code) - \(urlError.localizedDescription)")
+            switch urlError.code {
+            case .timedOut:
+                throw LoginError.timeout
+            case .notConnectedToInternet, .networkConnectionLost:
+                throw LoginError.networkError
+            default:
+                throw LoginError.networkError
+            }
+        } catch {
+            print("파싱 에러: \(error)")
+            throw LoginError.providerError
+        }
+    }
+}
