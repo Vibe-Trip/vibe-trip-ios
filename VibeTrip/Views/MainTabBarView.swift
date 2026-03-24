@@ -54,6 +54,11 @@ struct MainTabBarView: View {
 
     // 현재 선택된 탭 (기본값: 홈)
     @State private var selectedTab: AppTab = .home
+    @State private var isTabBarHidden = false
+    @State private var isPresentingMakeAlbum = false
+
+    private let makeAlbumTransition = AnyTransition.move(edge: .trailing).combined(with: .opacity)
+    private let tabBarTransition = AnyTransition.move(edge: .bottom).combined(with: .opacity)
 
     var body: some View {
         ZStack {
@@ -61,21 +66,54 @@ struct MainTabBarView: View {
             // 기본 배경색
             Color(UIColor.systemBackground).ignoresSafeArea()
 
-            // 탭 전환
-            switch selectedTab {
-            case .home:         MainPageView()
-            case .makeAlbum:    MakeAlbumView()
-            case .notification: NotificationView()
-            case .myPage:       MyPageView()
+            Group {
+                // 탭 전환
+                switch selectedTab {
+                case .home:
+                    MainPageView()
+                case .notification:
+                    NotificationView()
+                case .myPage:
+                    MyPageView()
+                case .makeAlbum:
+                    MainPageView()
+                }
+            }
+
+            if isPresentingMakeAlbum {
+                MakeAlbumView(
+                    onExit: {
+                        withAnimation(.easeInOut(duration: 0.24)) {
+                            isPresentingMakeAlbum = false
+                        }
+
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.18) {
+                            selectedTab = .home
+                            withAnimation(.easeInOut(duration: 0.22)) {
+                                isTabBarHidden = false
+                            }
+                        }
+                    }
+                )
+                .transition(makeAlbumTransition)
+                .zIndex(1)
             }
 
             // NavBar + TabBar를 콘텐츠 위에 오버레이
             VStack(spacing: 0) {
                 Spacer()
-                LiquidGlassTabBar(selectedTab: $selectedTab)
+                if !isTabBarHidden {
+                    LiquidGlassTabBar(
+                        selectedTab: $selectedTab,
+                        isTabBarHidden: $isTabBarHidden,
+                        isPresentingMakeAlbum: $isPresentingMakeAlbum
+                    )
+                    .transition(tabBarTransition)
+                }
             }
         }
-        .ignoresSafeArea()
+        .animation(.easeInOut(duration: 0.24), value: isPresentingMakeAlbum)
+        .animation(.easeInOut(duration: 0.22), value: isTabBarHidden)
     }
 }
 
@@ -84,11 +122,13 @@ struct MainTabBarView: View {
 struct LiquidGlassTabBar: View {
 
     @Binding var selectedTab: AppTab
+    @Binding var isTabBarHidden: Bool
+    @Binding var isPresentingMakeAlbum: Bool
 
     private enum Layout {
         static let iconSize: CGFloat      = 25   // 탭 아이콘 크기
         static let barHeight: CGFloat     = 64   // 탭바 높이
-        static let bottomPadding: CGFloat = 28   // 홈 인디케이터 여백
+//        static let bottomPadding: CGFloat = 28   // 홈 인디케이터 여백
         static let sidePadding: CGFloat   = 20   // 탭바 캡슐 좌우 여백
         static let innerPadding: CGFloat  = 20   // 탭바 내부 좌우 여백
     }
@@ -124,8 +164,8 @@ struct LiquidGlassTabBar: View {
                             )
                     )
                     // 탭바 그림자
-//                    .shadow(color: .black.opacity(0.08), radius: 6, x: 0, y: 4)
-//                    .shadow(color: .black.opacity(0.08), radius: 6,  x: 0, y: 4)
+                    .shadow(color: .black.opacity(0.08), radius: 6, x: 0, y: 4)
+                    .shadow(color: .black.opacity(0.08), radius: 6,  x: 0, y: 4)
 
                 // 탭 아이템 목록 (내부 여백 적용 후 균등 분할)
                 HStack(spacing: 0) {
@@ -139,7 +179,7 @@ struct LiquidGlassTabBar: View {
         }
         .frame(height: Layout.barHeight)
         .padding(.horizontal, Layout.sidePadding)
-        .padding(.bottom, Layout.bottomPadding)
+//        .padding(.bottom, Layout.bottomPadding)
     }
 
     // MARK: - tabItem
@@ -171,8 +211,23 @@ struct LiquidGlassTabBar: View {
         .animation(.easeInOut(duration: 0.2), value: isSelected)
         .contentShape(Rectangle())
         .onTapGesture {
-            withAnimation(.easeInOut(duration: 0.2)) {
-                selectedTab = tab
+            if tab == .makeAlbum {
+                withAnimation(.easeInOut(duration: 0.18)) {
+                    isTabBarHidden = true
+                }
+
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.08) {
+                    selectedTab = tab
+                    withAnimation(.easeInOut(duration: 0.24)) {
+                        isPresentingMakeAlbum = true
+                    }
+                }
+            } else {
+                withAnimation(.easeInOut(duration: 0.2)) {
+                    isTabBarHidden = false
+                    isPresentingMakeAlbum = false
+                    selectedTab = tab
+                }
             }
             // 탭 전환 햅틱 피드백
             UIImpactFeedbackGenerator(style: .soft).impactOccurred()
