@@ -28,9 +28,6 @@ struct AlbumLogView: View {
     // 토스트 제어
     @State private var isToastVisible: Bool = false
 
-    // 블러 배경 제어
-    @State private var isDragging: Bool = false
-
     private enum Constants {
         static let photoAreaHeight: CGFloat = 272
         static let photoCornerRadius: CGFloat = 12
@@ -53,9 +50,8 @@ struct AlbumLogView: View {
         static let textEditorMinHeight: CGFloat = 200
         static let textEditorTopPadding: CGFloat = 20
         static let textEditorInsetCorrection: CGFloat = 5
-        
-        // 페이지 컨트롤
-        static let dotSize: CGFloat = 6
+        // 페이지 인디케이터
+        static let dotSize: CGFloat = 6                
         static let dotSpacing: CGFloat = 6
         static let indicatorBottomPadding: CGFloat = 12
         static let indicatorPaddingH: CGFloat = 10
@@ -190,12 +186,6 @@ private extension AlbumLogView {
         }
         .clipShape(RoundedRectangle(cornerRadius: Constants.photoCornerRadius))
         .padding(.horizontal, Constants.contentHorizontalPadding)
-        .simultaneousGesture(
-            // 드래그 상태 추적: 스와이프 중에만 블러 배경 표시
-            DragGesture(minimumDistance: 10)
-                .onChanged { _ in isDragging = true }
-                .onEnded   { _ in isDragging = false }
-        )
     }
 
     // 커스텀 페이지 인디케이터
@@ -209,12 +199,6 @@ private extension AlbumLogView {
         }
         .padding(.horizontal, Constants.indicatorPaddingH)
         .padding(.vertical, Constants.indicatorPaddingV)
-        .background {
-            if isDragging {
-                Capsule()
-                    .fill(.regularMaterial)
-            }
-        }
     }
 
     // TextEditor 입력 필드
