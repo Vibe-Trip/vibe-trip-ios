@@ -119,7 +119,7 @@ struct MakeAlbumView: View {
         }
         // 토스트 애니메이션
         .animation(.easeInOut(duration: 0.2), value: viewModel.toastMessage)
-        .onChange(of: viewModel.toastMessage) { newValue in
+        .onChange(of: viewModel.toastMessage) { _, newValue in
             guard newValue != nil else {
                 return
             }
@@ -235,7 +235,7 @@ private struct MakeAlbumRequiredInputContent: View {
                             destinationInput = viewModel.album.travelDestination
                         }
                         // 25자 초과 예외처리
-                        .onChange(of: destinationInput) { newValue in
+                        .onChange(of: destinationInput) { _, newValue in
                             let limited = String(newValue.prefix(25))
                             if newValue != limited {
                                 destinationInput = limited

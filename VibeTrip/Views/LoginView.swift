@@ -77,7 +77,7 @@ struct LoginView: View {
                 .environmentObject(appState)
         }
         // 로그아웃/탈퇴 시 fullScreenCover 닫기
-        .onChange(of: appState.isLoggedIn) { newVal in
+        .onChange(of: appState.isLoggedIn) { _, newVal in
             if newVal == .some(false) {
                 viewModel.isLoggedIn = false
             }
