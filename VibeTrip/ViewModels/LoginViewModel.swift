@@ -102,7 +102,7 @@ final class LoginViewModel: ObservableObject {
             } catch let authError as ASAuthorizationError where authError.code == .canceled {
                 return
             } catch let loginError as LoginError {
-                if loginError == .cancelled { return }
+                if case .cancelled = loginError { return }
                 errorState = loginError.errorState
             } catch {
                 errorState = LoginError.providerError.errorState
@@ -152,7 +152,7 @@ final class LoginViewModel: ObservableObject {
             print("카카오 accessToken: \(token)")
             try await performBackendAuth(token: token, provider: .kakao)
         } catch let loginError as LoginError {
-            if loginError == .cancelled { return }
+            if case .cancelled = loginError { return }
             errorState = loginError.errorState
         } catch {
             errorState = LoginError.providerError.errorState
@@ -171,7 +171,7 @@ final class LoginViewModel: ObservableObject {
             try await performBackendAuth(token: identityToken, provider: .apple, fullName: fullName)
         } catch let loginError as LoginError {
             /// 취소: 에러 UI 없이 그대로 로그인 화면 유지
-            if loginError == .cancelled { return }
+            if case .cancelled = loginError { return }
             errorState = loginError.errorState
         } catch {
             errorState = LoginError.providerError.errorState

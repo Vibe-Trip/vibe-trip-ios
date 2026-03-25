@@ -55,24 +55,15 @@ final class BackendAuthService: BackendAuthServiceProtocol {
             print("HTTP 상태코드: \(httpResponse.statusCode)")
             print("서버 응답 raw: \(String(data: data, encoding: .utf8) ?? "디코딩 불가")")
 
-            // HTTP 상태코드별 에러 처리
-            switch httpResponse.statusCode {
-            case 200...299:
-                break
-            // case 403:
-            //     throw LoginError.accountBlocked
-            default:
-                throw LoginError.providerError
-            }
-
             let apiResponse = try JSONDecoder().decode(ApiResponse<AuthToken>.self, from: data)
 
             if apiResponse.resultType == "ERROR" {
-                throw LoginError.providerError
+                let code = apiResponse.error.flatMap { BackendErrorCode(rawValue: $0.errorCode) } ?? .unknown
+                throw LoginError.backendError(code)
             }
 
             guard let authToken = apiResponse.data else {
-                throw LoginError.providerError
+                throw LoginError.backendError(.unknown)
             }
 
             return authToken
