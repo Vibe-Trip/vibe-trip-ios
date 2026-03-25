@@ -7,7 +7,7 @@
 
 import SwiftUI
 
-// 화면 이탈 팝업
+// 커스텀 팝업
 // title 및 message 주입형
 struct ExitPopupView: View {
 
@@ -22,6 +22,9 @@ struct ExitPopupView: View {
 
     // 확인 탭 핸들러
     let onConfirm: () -> Void
+
+    // 화면별로 바꿔 쓸 수 있는 확인 버튼 문구
+    var confirmTitle: String = "확인"
 
     var body: some View {
         ZStack {
@@ -53,7 +56,7 @@ struct ExitPopupView: View {
                     )
 
                     popupButton(
-                        title: "확인",
+                        title: confirmTitle,
                         foregroundColor: .white,
                         backgroundColor: Color.appPrimary,
                         borderColor: Color.dialogConfirmBorder,
