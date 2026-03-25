@@ -134,10 +134,10 @@ struct AlbumLogView: View {
             maxSelectionCount: max(1, 5 - viewModel.selectedPhotos.count),
             matching: .images
         )
-        .onChange(of: photoPickerItems) { items in
+        .onChange(of: photoPickerItems) { _, items in
             loadPhotos(from: items)
         }
-        .onChange(of: viewModel.toastMessage) { message in
+        .onChange(of: viewModel.toastMessage) { _, message in
             guard message != nil else { return }
             showToast()
         }
