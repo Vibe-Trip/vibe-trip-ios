@@ -9,8 +9,9 @@ import SwiftUI
 import AuthenticationServices
 
 struct LoginView: View {
-    
+
     @StateObject private var viewModel = LoginViewModel()
+    @EnvironmentObject private var appState: AppState
     
     var body: some View {
         VStack(spacing: 0) {
@@ -73,6 +74,13 @@ struct LoginView: View {
         // 로그인 성공 -> 메인화면(fullScreenCover)
         .fullScreenCover(isPresented: $viewModel.isLoggedIn) {
             MainTabBarView()
+                .environmentObject(appState)
+        }
+        // 로그아웃/탈퇴 시 fullScreenCover 닫기
+        .onChange(of: appState.isLoggedIn) { newVal in
+            if newVal == .some(false) {
+                viewModel.isLoggedIn = false
+            }
         }
     }
     
@@ -177,5 +185,6 @@ struct LoginView: View {
 
 #Preview {
     LoginView()
+        .environmentObject(AppState())
 }
 
