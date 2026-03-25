@@ -21,7 +21,7 @@ struct AlbumCardView: View {
     
     // MARK: - Layout Constants
     
-    private enum Layout {
+    enum Layout {
         static let cardWidth: CGFloat          = 322
         static let cardHeight: CGFloat         = 600
         static let coverImageHeight: CGFloat   = 460
@@ -33,6 +33,9 @@ struct AlbumCardView: View {
         static let thumbnailTopPadding: CGFloat      = 16
         static let thumbnailTrailingPadding: CGFloat = 16
         
+        static let cardShadowOpacity: CGFloat    = 0.06
+        static let cardShadowRadius: CGFloat    = 1.5
+
         static let textTopPadding: CGFloat      = 58
         static let textLeadingPadding: CGFloat  = 16
         static let textSpacing: CGFloat         = 4
@@ -48,6 +51,7 @@ struct AlbumCardView: View {
         .frame(width: Layout.cardWidth, height: Layout.cardHeight)
         .background(Color.white)
         .cornerRadius(Layout.cardCornerRadius)
+        .shadow(color: .black.opacity(Layout.cardShadowOpacity), radius: Layout.cardShadowRadius, x: 0, y: 1)
     }
     
     // MARK: - 대표 이미지
