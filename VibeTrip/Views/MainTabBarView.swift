@@ -239,4 +239,5 @@ struct LiquidGlassTabBar: View {
 
 #Preview {
     MainTabBarView()
+        .environmentObject(AppState())
 }
