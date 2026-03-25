@@ -26,5 +26,11 @@ DerivedData/
 # Xcode Previews
 PreviewReplaced/
 
+# Test Views
+VibeTrip/testViews/
+
 # Firebase
 GoogleService-Info.plist
+
+# docs
+/docs/
