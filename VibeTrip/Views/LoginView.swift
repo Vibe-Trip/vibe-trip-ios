@@ -38,7 +38,7 @@ struct LoginView: View {
         // 토스트 오버레이
         .overlay(alignment: .bottom) {
             if case .toast(let message) = viewModel.errorState {
-                toastView(message: message)
+                AppToastView(message: message)
                     .padding(.bottom, 40)
                     .transition(.move(edge: .bottom).combined(with: .opacity))
             }
@@ -87,20 +87,6 @@ struct LoginView: View {
                 .tint(.white)
                 .scaleEffect(1.5)
         }
-    }
-    
-    // MARK: - Toast
-    
-    private func toastView(message: String) -> some View {
-        Text(message)
-            .font(.system(size: 14, weight: .medium))
-            .foregroundColor(.white)
-            .multilineTextAlignment(.center)
-            .padding(.horizontal, 20)
-            .padding(.vertical, 12)
-            .background(Color.black.opacity(0.75))
-            .cornerRadius(8)
-            .padding(.horizontal, 24)
     }
     
     // MARK: - Background

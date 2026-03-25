@@ -11,7 +11,7 @@ import SwiftUI
 struct AppToastView: View {
 
     let message: String
-    var systemImageName: String = "exclamationmark.circle.fill"
+    var systemImageName: String = "exclamationmark.circle"
 
     var body: some View {
         HStack(alignment: .center, spacing: 10) {
@@ -24,6 +24,7 @@ struct AppToastView: View {
                 .foregroundStyle(.white)
                 .multilineTextAlignment(.leading)
                 .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, 8)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(.horizontal, 16)
@@ -39,7 +40,7 @@ struct AppToastView: View {
         Color.white
         VStack {
             Spacer()
-            AppToastView(message: "필수 입력 항목을 모두 입력해 주세요.")
+            AppToastView(message: "사진은 최대 5장까지 등록할 수 있어요")
                 .padding(.bottom, 40)
         }
     }
