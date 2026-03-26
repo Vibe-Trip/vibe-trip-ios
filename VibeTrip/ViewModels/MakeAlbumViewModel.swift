@@ -99,40 +99,7 @@ final class MakeAlbumViewModel: ObservableObject {
     
     // 장르 설명 모달 데이터
     var genreDescriptions: [GenreDescriptionModel] {
-        let descriptions: [AlbumGenre: String] = [
-            .pop: "누구나 즐길 수 있는 대중적이고 산뜻한 리듬",
-            .kPop: "전 세계를 사로잡은 화려하고 트렌디한 사운드",
-            .ballad: "감미로운 선율에 담긴 깊은 서사와 애절한 울림",
-            .hipHop: "강렬한 비트 위에 펼쳐지는 자유로운 리듬의 향연",
-            .rnb: "부드럽고 그루비한 보컬이 매력적인 소울풀한 감성",
-            .rock: "심장을 울리는 강렬한 밴드 사운드와 뜨거운 에너지",
-            .cityPop: "세련된 도시의 밤이 느껴지는 레트로한 도심 무드",
-            .edm: "심박수를 높이는 짜릿한 전자음과 페스티벌 분위기",
-            .latinPop: "정렬적이고 태양처럼 뜨거운 댄서블한 라틴 리듬",
-            .country: "따뜻하고 정겨운 어쿠스틱 악기가 주는 향수",
-            .indie: "나만 알고 싶은 담백하고 독창적인 감성과 개성",
-            .gospel: "풍성한 화음이 전하는 평온함과 영성 어린 위로",
-            .classical: "웅장하고 품격있는 정통 오케스트라의 깊은 선율",
-            .loFi: "나른한 오후, 일상의 소음이 섞인 편안하고 빈티지한 비트",
-            .jazz: "세련된 선율, 자유로운 리듬이 만드는 여유로운 카페 분위기",
-            .ambient: "공간을 가득 채우는 몽환적이고 고요한 명상 같은 사운드",
-            .cinematic: "영화 속 한 장면처럼 서사적이고 웅장한 감동의 연주",
-            .newAge: "지친 마음을 부드럽게 어루만지는 맑고 평온한 힐링 사운드",
-            .acoustic: "악기 본연의 울림이 전하는 따뜻하고 순수한 날 것의 감성",
-            .electronic: "감각적인 합성음이 선사하는 세련되고 현대적인 도시 무드",
-            .bossaNova: "나른한 햇살 아래 여유로운 해변의 정취가 느껴지는 선율",
-            .chillHop: "부드러운 그루브와 편안한 리듬이 공존하는 여유로운 휴식",
-            .tropicalHouse: "시원한 바닷바람처럼 청량하고 밝은 에너지 가득한 사운드",
-            .techno: "반복적인 비트가 선사하는 강렬한 몰입감과 기계적인 미학"
-        ]
-        
-        return displayedGenres.compactMap { genre in
-            guard let description = descriptions[genre] else {
-                return nil
-            }
-            
-            return GenreDescriptionModel(genre: genre, description: description)
-        }
+        displayedGenres.map { GenreDescriptionModel(genre: $0, description: $0.descriptionText) }
     }
     
     // 선택한 사진의 용량 및 디코딩 가능 여부 검증
