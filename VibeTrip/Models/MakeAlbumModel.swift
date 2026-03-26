@@ -147,7 +147,7 @@ struct MakeAlbumModel: Equatable {
             return ""
         }
 
-        return "\(startDate.albumDateString) ~ \(endDate.albumDateString)"
+        return "\(startDate.albumDateString) - \(endDate.albumDateString)"
     }
 }
 
@@ -162,7 +162,7 @@ extension Date {
         let formatter = DateFormatter()
         formatter.locale = Locale(identifier: "ko_KR")
         formatter.timeZone = .current
-        formatter.dateFormat = "yyyy.MM.dd"
+        formatter.dateFormat = "yyyy년 M월 d일"
         return formatter
     }()
 }

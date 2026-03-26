@@ -24,7 +24,7 @@ struct DateRangePickerSheetView: View {
                         .font(Font.setPretendard(weight: .semiBold, size: 16))
                         .foregroundStyle(Color.textPrimary)
                     
-                    Text("\(startDate.albumDateString) ~ \(endDate.albumDateString)")
+                    Text("\(startDate.albumDateString) - \(endDate.albumDateString)")
                         .font(Font.setPretendard(weight: .medium, size: 14))
                         .foregroundStyle(Color.textSecondary)
                 }
