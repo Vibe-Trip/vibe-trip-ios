@@ -31,7 +31,6 @@ struct GenreDescriptionModalView: View {
                 HStack {
                     Spacer()
 
-                    // Figma 스펙: fw=500 (medium) — semiBold가 아님에 주의
                     Text("장르 설명")
                         .font(Font.setPretendard(weight: .medium, size: 16))
                         .foregroundStyle(Color.textPrimary)
