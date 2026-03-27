@@ -193,8 +193,7 @@ private extension AlbumDetailView {
                 .frame(minHeight: Constants.emptyStateMinHeight, alignment: .top)
 
         case .hasLogs:
-            // TODO: AlbumLogFeedItem 모델 추가 후 AlbumDetailLogFeedSection 연결
-            EmptyView()
+            AlbumDetailLogFeedSection()
         }
     }
 
@@ -509,12 +508,313 @@ private struct AlbumDetailAlbumMenuPopup: View {
         } label: {
             HStack(alignment: .center, spacing: 0) {
                 Text(item.title)
-                    .font(.setPretendard(weight: .regular, size: Constants.itemFontSize))
+                    .font(.setPretendard(weight: .medium, size: Constants.itemFontSize))
                     .foregroundStyle(Color.textPrimary)
             }
         }
         .buttonStyle(AlbumMenuItemButtonStyle())
     }
+}
+
+// MARK: - AlbumDetailLogFeedSection
+
+private struct AlbumDetailLogFeedSection: View {
+    
+    // 더미 데이터
+    private let dateGroups: [(label: String, items: [LogItemDummy])] = [
+        (
+            label: "3월 25일 화요일",
+            items: [
+                LogItemDummy(
+                    id: 1,
+                    dateLabel: "2026년 3월 25일",
+                    text: "이것은 더미 데이터 입니다. 여기서 뭐라고 더 말을 해야 할지 모르겠네요. 제가 만약 2줄이 넘는다면 보이지 않을 거에요. 그러니 우리 더보기로 만나요.이제 접어줘요.",
+                    imageCount: 3
+                ),
+                LogItemDummy(
+                    id: 2,
+                    dateLabel: "2026년 3월 25일",
+                    text: "이것은 더미 데이터 입니다. 여기서 뭐라고 더 말을 해야 할지 모르겠네요. 제가 만약 2줄이 넘는다면 보이지 않을 거에요. 그러니 우리 더보기로 만나요. 이제 접어줘요.",
+                    imageCount: 0
+                )
+            ]
+        ),
+        (
+            label: "3월 24일 월요일",
+            items: [
+                LogItemDummy(
+                    id: 3,
+                    dateLabel: "2026년 3월 24일",
+                    text: "안녕하세요? 저는 더미 데이터입니다. 이번에 저는 딱 2줄이 되어 볼거에요. 아직 아니네요 좀 더 작성할게요.",
+                    imageCount: 2
+                )
+            ]
+        )
+    ]
+    
+    private enum Constants {
+        static let horizontalPadding: CGFloat = 20
+        static let topPadding: CGFloat = 8
+        static let bottomPadding: CGFloat = 40
+    }
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: 20) {
+            ForEach(dateGroups.indices, id: \.self) { groupIndex in
+                AlbumDetailLogDateGroup(
+                    label: dateGroups[groupIndex].label,
+                    items: dateGroups[groupIndex].items
+                )
+            }
+        }
+        .padding(.horizontal, Constants.horizontalPadding)
+        .padding(.top, Constants.topPadding)
+        .padding(.bottom, Constants.bottomPadding)
+        .frame(maxWidth: .infinity, alignment: .leading)
+    }
+}
+
+// MARK: - AlbumDetailLogDateGroup
+// 날짜별 로그 그룹 (헤더 + 카드 목록)
+
+private struct AlbumDetailLogDateGroup: View {
+    let label: String
+    let items: [LogItemDummy]
+    
+    private enum Constants {
+        /// 로그 카드 간 간격
+        static let itemSpacing: CGFloat = 20
+    }
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: Constants.itemSpacing) {
+            ForEach(items.indices, id: \.self) { index in
+                AlbumDetailLogItemCard(item: items[index])
+            }
+        }
+    }
+}
+
+// MARK: - AlbumDetailLogItemCard
+// 개별 로그 아이템 카드
+
+private struct AlbumDetailLogItemCard: View {
+    let item: LogItemDummy
+    
+    private enum Constants {
+        static let dateFontSize: CGFloat = 14
+        static let menuIconSize: CGFloat = 16
+        static let contentSpacing: CGFloat = 8
+        static let labelColor = Color(red: 0.74, green: 0.75, blue: 0.76)
+    }
+    
+    var body: some View {
+        VStack(alignment: .leading, spacing: Constants.contentSpacing) {
+            // 날짜 + 로그 옵션 버튼
+            HStack {
+                Text(item.dateLabel)
+                    .font(.setPretendard(weight: .medium, size: Constants.dateFontSize))
+                    .foregroundStyle(Constants.labelColor)
+                Spacer()
+                Button {
+                    // TODO: 로그 옵션 팝업 표시
+                } label: {
+                    Image(systemName: "ellipsis")
+                        .font(.system(size: Constants.menuIconSize))
+                        .foregroundStyle(Constants.labelColor)
+                }
+                .buttonStyle(.plain)
+            }
+            
+            // 이미지 슬라이더 (이미지 있을 때만)
+            if item.imageCount > 0 {
+                AlbumDetailLogImageSlider(imageCount: item.imageCount)
+            }
+            
+            // 텍스트 + 더보기/접기
+            AlbumDetailLogTextSection(text: item.text)
+        }
+    }
+}
+
+// MARK: - AlbumDetailLogImageSlider
+// 이미지 슬라이더
+
+private struct AlbumDetailLogImageSlider: View {
+    let imageCount: Int
+    
+    @State private var currentIndex: Int = 0
+    
+    private enum Constants {
+        static let cornerRadius: CGFloat = 12
+        static let dotSize: CGFloat = 6
+        static let dotSpacing: CGFloat = 6
+        static let indicatorBottomPadding: CGFloat = 10
+        static let indicatorHPadding: CGFloat = 10
+        static let indicatorVPadding: CGFloat = 6
+        static let placeholderIconSize: CGFloat = 36
+        /// 4:3 비율 높이 계산
+        static var sliderHeight: CGFloat {
+            (UIScreen.main.bounds.width - 40) * 3 / 4
+        }
+    }
+    
+    var body: some View {
+        ZStack(alignment: .bottom) {
+            // 이미지 슬라이더
+            TabView(selection: $currentIndex) {
+                ForEach(0..<imageCount, id: \.self) { index in
+                    // 이미지 로드 실패 시 placeholder 표시
+                    ZStack {
+                        Color.secondary.opacity(0.12)
+                        Image(systemName: "photo")
+                            .font(.system(size: Constants.placeholderIconSize))
+                            .foregroundStyle(Color.placeholderSymbol)
+                    }
+                    .tag(index)
+                }
+            }
+            .tabViewStyle(.page(indexDisplayMode: .never))
+            .frame(height: Constants.sliderHeight)
+            .clipShape(RoundedRectangle(cornerRadius: Constants.cornerRadius))
+            
+            // 커스텀 페이지 인디케이터
+            if imageCount > 1 {
+                HStack(spacing: Constants.dotSpacing) {
+                    ForEach(0..<imageCount, id: \.self) { index in
+                        Circle()
+                            .frame(width: Constants.dotSize, height: Constants.dotSize)
+                            .foregroundStyle(
+                                index == currentIndex ? Color.appPrimary : Color.white
+                            )
+                    }
+                }
+                .padding(.horizontal, Constants.indicatorHPadding)
+                .padding(.vertical, Constants.indicatorVPadding)
+                .padding(.bottom, Constants.indicatorBottomPadding)
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .frame(height: Constants.sliderHeight)
+    }
+}
+
+// MARK: - AlbumDetailLogTextSection
+// 텍스트 + 더보기/접기
+
+private struct AlbumDetailLogTextSection: View {
+    let text: String
+    
+    @State private var isExpanded: Bool = false
+    /// GeometryReader로 측정한 실제 콘텐츠 너비
+    @State private var contentWidth: CGFloat = 0
+    
+    private enum Constants {
+        static let fontSize: CGFloat = 16
+        static let lineLimit: Int = 2
+        static let widthBuffer: CGFloat = 8
+        static let truncationSuffix: String = "...더 보기"
+    }
+    
+    private var textFont: Font { .setPretendard(weight: .regular, size: Constants.fontSize) }
+    private let actionColor = Color(red: 0.74, green: 0.75, blue: 0.76)
+    
+    private var uiFont: UIFont {
+        UIFont(name: "Pretendard-Regular", size: Constants.fontSize)
+        ?? UIFont.systemFont(ofSize: Constants.fontSize)
+    }
+    
+    private func truncatedText(for width: CGFloat) -> String? {
+        guard width > 0 else { return nil }
+        
+        let attrs: [NSAttributedString.Key: Any] = [.font: uiFont]
+        let measureWidth = width - Constants.widthBuffer
+        let constraintSize = CGSize(width: measureWidth, height: .greatestFiniteMagnitude)
+        let twoLineHeight = uiFont.lineHeight * CGFloat(Constants.lineLimit) + 1
+        
+        // 전체 텍스트가 2줄 이내면 truncation 불필요
+        let fullRect = (text as NSString).boundingRect(
+            with: constraintSize,
+            options: [.usesLineFragmentOrigin, .usesFontLeading],
+            attributes: attrs,
+            context: nil
+        )
+        guard fullRect.height > twoLineHeight else { return nil }
+        
+        let chars = Array(text)
+        var lo = 0, hi = chars.count
+        while lo < hi {
+            let mid = (lo + hi + 1) / 2
+            let candidate = String(chars.prefix(mid)) + Constants.truncationSuffix
+            let rect = (candidate as NSString).boundingRect(
+                with: constraintSize,
+                options: [.usesLineFragmentOrigin, .usesFontLeading],
+                attributes: attrs,
+                context: nil
+            )
+            if rect.height <= twoLineHeight { lo = mid } else { hi = mid - 1 }
+        }
+        return String(chars.prefix(lo))
+    }
+    
+    var body: some View {
+        // 실제 너비 측정 후 truncation 계산
+        let cutText = truncatedText(for: contentWidth)
+        let isTruncated = cutText != nil
+        
+        Group {
+            if isExpanded {
+                // 펼친 상태
+                ZStack(alignment: .bottomTrailing) {
+                    Text(text)
+                        .font(textFont)
+                        .foregroundStyle(Color.textPrimary)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                    
+                    Button("접기") {
+                        withAnimation(.easeInOut(duration: 0.2)) { isExpanded = false }
+                    }
+                    .font(textFont)
+                    .foregroundStyle(actionColor)
+                    .background(Color.white)
+                }
+            } else if isTruncated, let cut = cutText {
+                // 접힌 상태 + truncation
+                (
+                    Text(cut)
+                        .foregroundStyle(Color.textPrimary)
+                    + Text("...  ")
+                        .foregroundStyle(Color.textPrimary)
+                    + Text("더 보기")
+                        .foregroundStyle(actionColor)
+                )
+                .font(textFont)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .onTapGesture {
+                    withAnimation(.easeInOut(duration: 0.2)) { isExpanded = true }
+                }
+            } else {
+                Text(text)
+                    .font(textFont)
+                    .foregroundStyle(Color.textPrimary)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+        }
+        // 콘텐츠 너비 측정
+        .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { w in
+            if contentWidth == 0 { contentWidth = w }
+        }
+    }
+}
+
+// MARK: - LogItemDummy
+// 더미 데이터 구조체 
+
+private struct LogItemDummy {
+    let id: Int
+    let dateLabel: String
+    let text: String
+    let imageCount: Int
 }
 
 // MARK: - AlbumDetailDisplayModel
@@ -556,7 +856,7 @@ enum AlbumDetailContentState {
     AlbumDetailView(
         displayModel: AlbumDetailDisplayModel(
             title: "에펠탑 느낌나는 야경 도쿄타워",
-            destination: "일본 도쿄",
+            destination: "그레이트브리튼 북아일랜드 연합왕국 런던 마을",
             dateText: "2026년 3월 20일 - 2026년 3월 24일",
             coverImage: nil,
             contentState: .hasLogs,
