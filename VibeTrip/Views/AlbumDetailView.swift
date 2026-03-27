@@ -353,6 +353,7 @@ private struct AlbumDetailActionButton: View {
                 ZStack(alignment: .topTrailing) {
                     Image(systemName: systemImageName)
                         .font(.system(size: Constants.iconSize, weight: .medium))
+                        .contentTransition(.symbolEffect(.replace.offUp)) /// 심볼 전환 효과
                         .frame(width: Constants.iconFrameWidth, height: Constants.iconSize)
 
                     if showSparkle {
@@ -378,6 +379,11 @@ private struct AlbumDetailActionButton: View {
                     }
                     Text(title)
                         .fixedSize()
+                        .id(title)
+                        .transition(.asymmetric(    /// 타이틀 전환 효과
+                            insertion: .opacity.animation(.easeIn(duration: 0.2)),
+                            removal: .opacity.animation(.easeOut(duration: 0.05))
+                        ))
                 }
                 .font(.setPretendard(weight: .medium, size: Constants.fontSize))
             }
