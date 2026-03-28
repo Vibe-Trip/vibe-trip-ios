@@ -211,6 +211,9 @@ private extension AlbumDetailView {
             .padding(.top, Constants.infoTopPadding)
             .padding(.bottom, Constants.infoBottomPadding)
             .background(Color.white)
+            // 블러 네비게이션 바 전환 시: 앨범 정보 텍스트 페이드아웃 + 살짝 위로 밀리는 효과
+            .opacity(overlayOpacity)
+            .offset(y: -(1 - overlayOpacity) * 8)
         }
     }
     
