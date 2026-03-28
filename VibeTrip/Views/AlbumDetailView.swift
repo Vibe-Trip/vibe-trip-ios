@@ -473,7 +473,7 @@ private struct AlbumDetailAlbumMenuPopup: View {
             case .downloadMusic: return "배경 음악 다운로드"
             case .editAlbum:    return "앨범 수정"
             case .deleteAlbum:  return "앨범 삭제"
-            case .report:       return "신고하기"
+            case .report:       return "AI 음악 신고하기"
             }
         }
     }
