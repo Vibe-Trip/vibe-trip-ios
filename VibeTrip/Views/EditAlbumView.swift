@@ -285,7 +285,7 @@ struct EditAlbumView: View {
             }
             // 네비게이션 바
             .safeAreaInset(edge: .top, spacing: 0) {
-                AppNavigationBar(title: "앨범 수정", onBackTap: { isExitAlertPresented = true })
+                AppNavigationBar(title: "앨범 수정", style: .solidWhite, onBackTap: { isExitAlertPresented = true })
             }
 
             // 장르 설명 모달

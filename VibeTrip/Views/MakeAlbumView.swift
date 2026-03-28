@@ -60,7 +60,7 @@ struct MakeAlbumView: View {
             }
             // 네비게이션 바: 상단 SafeArea 영역에 고정
             .safeAreaInset(edge: .top, spacing: 0) {
-                AppNavigationBar(title: "앨범 만들기", onBackTap: handleBackTap)
+                AppNavigationBar(title: "앨범 만들기", style: .solidWhite, onBackTap: handleBackTap)
             }
             
             // 장르 설명 모달

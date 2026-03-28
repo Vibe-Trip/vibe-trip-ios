@@ -92,7 +92,7 @@ struct AlbumLogView: View {
             .safeAreaInset(edge: .top, spacing: 0) { // bottomToolbar 영역 확보 + 키보드 올라올 때 툴바도 함께 이동
                 // AppNavigationBar: 상단 safe area에 고정
                 // trailing에 저장 버튼 주입
-                AppNavigationBar(title: navTitle, onBackTap: handleBackButton) {
+                AppNavigationBar(title: navTitle, style: .solidWhite, onBackTap: handleBackButton) {
                     Button {
                         Task { await viewModel.saveLog() }
                     } label: {
