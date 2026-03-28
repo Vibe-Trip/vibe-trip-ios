@@ -781,7 +781,7 @@ private struct AlbumDetailLogTextSection: View {
     private enum Constants {
         static let fontSize: CGFloat = 16
         static let lineLimit: Int = 2
-        static let widthBuffer: CGFloat = 8
+        static let widthBuffer: CGFloat = 1
         static let truncationSuffix: String = "...더 보기"
     }
     
