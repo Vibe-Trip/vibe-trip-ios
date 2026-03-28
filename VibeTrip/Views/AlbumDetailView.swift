@@ -29,6 +29,12 @@ struct AlbumDetailView: View {
     // TODO: AVPlayer 연결
     @State private var isMusicPlaying: Bool
 
+    // 스크롤 offset: ScrollOffsetKey로 감지
+    @State private var scrollOffset: CGFloat = 0
+
+    // 네비게이션 바 진입 시점 계산에 사용
+    @State private var titleGlobalMinY: CGFloat = .greatestFiniteMagnitude
+
     // MARK: - Init
 
     init(
@@ -55,12 +61,22 @@ struct AlbumDetailView: View {
     // MARK: - Body
 
     var body: some View {
-        
+
         ZStack(alignment: .topTrailing) {
 
-            // ScrollView: empty-> scrollDisabled, hasLogs-> 스크롤 활성화
+            // ScrollView: empty -> scrollDisabled, hasLogs -> 스크롤 활성화
             ScrollView(showsIndicators: false) {
                 VStack(spacing: 0) {
+                    // 스크롤 offset 감지
+                    GeometryReader { geo in
+                        Color.clear
+                            .preference(
+                                key: ScrollOffsetKey.self,
+                                value: geo.frame(in: .global).minY
+                            )
+                    }
+                    .frame(height: 0)
+
                     coverImageSection
                     actionButtonsSection
                     contentSection
@@ -69,15 +85,30 @@ struct AlbumDetailView: View {
             .scrollDisabled(displayModel.contentState == .empty)
             .ignoresSafeArea(edges: .top)
             .background(Color.white.ignoresSafeArea())
+            .onPreferenceChange(ScrollOffsetKey.self) { scrollOffset = $0 }
 
+            // 블러 네비게이션 바 -> 커버 이미지 지날 때 사용
+            AppNavigationBar(
+                title: displayModel.title,
+                style: .blurTransition(scrollOffset: titleNavOffset),
+                onBackTap: onBackTap
+            ) {
+                Button(action: showAlbumMenu) {
+                    Image(systemName: "ellipsis")
+                        .font(.system(size: Constants.navIconSize, weight: .semibold))
+                        .foregroundStyle(Color.textPrimary)
+                }
+            }
+            .opacity(1 - overlayOpacity)
+            .allowsHitTesting(overlayOpacity < 1)
+
+            // 투명 네비게이션 바
             AlbumDetailNavigationOverlay(
                 onBackTap: onBackTap,
-                onMoreTap: {
-                    withAnimation(.easeInOut(duration: Constants.menuAnimationDuration)) {
-                        isAlbumMenuVisible = true
-                    }
-                }
+                onMoreTap: showAlbumMenu
             )
+            .opacity(overlayOpacity)
+            .allowsHitTesting(overlayOpacity > 0)
 
             // 앨범 옵션 팝업
             if isAlbumMenuVisible {
@@ -92,6 +123,36 @@ struct AlbumDetailView: View {
 // MARK: - Subviews
 
 private extension AlbumDetailView {
+
+    // MARK: - 블러 네비게이션 바
+
+    // 네비게이션 바 콘텐츠 하단 Y (safeTop + 44pt)
+    private var navBarBottom: CGFloat {
+        let safeTop = UIApplication.shared.connectedScenes
+            .compactMap { ($0 as? UIWindowScene)?.keyWindow }
+            .first?.safeAreaInsets.top ?? 0
+        return safeTop + 44
+    }
+
+    // 타이틀 텍스트 및 네비게이션 바 하단의 거리
+    var titleNavOffset: CGFloat {
+        titleGlobalMinY - navBarBottom
+    }
+
+    // 투명 오버레이 투명도
+    var overlayOpacity: Double {
+        let fadeWindow: CGFloat = 30
+        if titleNavOffset > fadeWindow { return 1 }
+        if titleNavOffset <= 0 { return 0 }
+        return Double(titleNavOffset / fadeWindow)
+    }
+
+    // 앨범 메뉴 팝업 표시 헬퍼
+    func showAlbumMenu() {
+        withAnimation(.easeInOut(duration: Constants.menuAnimationDuration)) {
+            isAlbumMenuVisible = true
+        }
+    }
 
     // 커버 이미지
     var coverImageSection: some View {
@@ -114,6 +175,11 @@ private extension AlbumDetailView {
                     .font(.setPretendard(weight: .semiBold, size: Constants.titleFontSize))
                     .foregroundStyle(Color.textPrimary)
                     .lineLimit(1)
+                    .onGeometryChange(for: CGFloat.self) {
+                        $0.frame(in: .global).minY
+                    } action: { minY in
+                        titleGlobalMinY = minY
+                    }
 
                 /// 여행지
                 Text(displayModel.destination)
@@ -267,6 +333,9 @@ private extension AlbumDetailView {
         static let menuTopPadding: CGFloat = 56
         static let menuTrailingPadding: CGFloat = 20
         static let menuAnimationDuration: CGFloat = 0.15
+
+        // 블러 네비게이션 바 trailing 아이콘 크기
+        static let navIconSize: CGFloat = 20
     }
 }
 

@@ -37,13 +37,13 @@ private enum AppNavigationBarConstants {
     // 블러 관련 상수
     
     /// 블러 강도: 0.0(투명) ~ 1.0(블러)
-    static let blurIntensity: CGFloat = 0.2
+    static let blurIntensity: CGFloat = 0.1
     /// 스크롤 시, 블러 시작 시점
     static let blurTrigger: CGFloat = 0
     /// 스크롤 시, 블러 최대 시점
     static let blurMaxOffset: CGFloat = -60
     /// 타이틀 fade 시작 시점 (blurTransition)
-    static let titleFadeStart: CGFloat = -30
+    static let titleFadeStart: CGFloat = -35
     /// 타이틀 fade 완료 시점 (blurTransition)
     static let titleFadeEnd: CGFloat = -60
 }
@@ -86,7 +86,7 @@ struct AppNavigationBar<Trailing: View>: View {
             // ZStack overlay 방식
             ZStack {
                 blurBackground
-                contentHStack(alignment: .bottom, bottomPadding: 12)
+                contentHStack(alignment: .top, topPadding: safeTop + 12)
             }
             .frame(height: safeTop + AppNavigationBarConstants.height)
             .ignoresSafeArea()
@@ -95,7 +95,7 @@ struct AppNavigationBar<Trailing: View>: View {
     
     // MARK: - 콘텐츠 HStack
     
-    private func contentHStack(alignment: Alignment, bottomPadding: CGFloat) -> some View {
+    private func contentHStack(alignment: Alignment, topPadding: CGFloat = 0, bottomPadding: CGFloat = 0) -> some View {
         HStack {
             // 좌측: 뒤로가기
             Button(action: onBackTap) {
@@ -133,6 +133,7 @@ struct AppNavigationBar<Trailing: View>: View {
         .frame(maxWidth: .infinity)
         .padding(.horizontal, AppNavigationBarConstants.horizontalPadding)
         .frame(maxHeight: .infinity, alignment: alignment)
+        .padding(.top, topPadding)
         .padding(.bottom, bottomPadding)
     }
     
@@ -154,9 +155,9 @@ struct AppNavigationBar<Trailing: View>: View {
                     LinearGradient(
                         gradient: Gradient(stops: [
                             .init(color: .black,                    location: 0.0),
-                            .init(color: .black,                    location: 0.82),
-                            .init(color: Color.black.opacity(0.6),  location: 0.90),
-                            .init(color: Color.black.opacity(0.15), location: 0.96),
+                            .init(color: .black,                    location: 0.70),
+                            .init(color: Color.black.opacity(0.6),  location: 0.82),
+                            .init(color: Color.black.opacity(0.15),  location: 0.92),
                             .init(color: .clear,                    location: 1.0)
                         ]),
                         startPoint: .top,
