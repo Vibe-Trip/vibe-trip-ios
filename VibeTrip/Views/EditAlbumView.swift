@@ -350,8 +350,8 @@ struct EditAlbumView: View {
         .overlay {
             if isExitAlertPresented {
                 ExitPopupView(
-                    title: "변경 사항이 저장되지 않았어요.",
-                    message: "나갈까요?",
+                    title: "앨범 수정을 멈출까요?",
+                    message: "페이지를 벗어나면 작성 중인 내용이\n저장되지 않고 사라지게 돼요.",
                     onCancel: { isExitAlertPresented = false },
                     onConfirm: {
                         isExitAlertPresented = false
