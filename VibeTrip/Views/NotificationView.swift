@@ -22,15 +22,16 @@ struct NotificationView: View {
     // MARK: - Layout Constants
 
     private enum Layout {
-        static let headerHeight: CGFloat       = 44
-        static let horizontalPadding: CGFloat  = 20
-        static let titleFontSize: CGFloat      = 18
-        static let emptyTitleSize: CGFloat     = 22
-        static let emptyBodySize: CGFloat      = 16
+        static let headerHeight: CGFloat        = 44
+        static let horizontalPadding: CGFloat   = 20
+        static let titleFontSize: CGFloat       = 24
+        static let emptyTitleSize: CGFloat      = 22
+        static let emptyBodySize: CGFloat       = 16
         static let emptyContentSpacing: CGFloat = 8
-        static let emptySymbolSize: CGFloat    = 120
-        static let emptyTextPadding: CGFloat   = 39
-        static let toastBottomPadding: CGFloat = 100
+        static let emptySymbolSize: CGFloat     = 120
+        static let emptyTextPadding: CGFloat    = 39
+        static let toastBottomPadding: CGFloat  = 100
+        static let tabBarHeight: CGFloat        = 64
     }
 
     // MARK: - Body
@@ -91,6 +92,7 @@ struct NotificationView: View {
             emptyContent
             Spacer()
         }
+        .padding(.bottom, Layout.tabBarHeight)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
