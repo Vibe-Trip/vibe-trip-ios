@@ -9,6 +9,7 @@ import SwiftUI
 
 // 커스텀 팝업
 // title 및 message 주입형
+// 타입: 두 버튼 / 두 버튼 + 체크박스 / 단일 버튼
 struct ExitPopupView: View {
 
     // 제목
@@ -26,77 +27,99 @@ struct ExitPopupView: View {
     // 화면별로 바꿔 쓸 수 있는 확인 버튼 문구
     var confirmTitle: String = "확인"
 
+    // nil: 취소 버튼 미표시 -> 단일 버튼 구조
+    var cancelTitle: String? = "취소"
+
+    // non-nil: 다시 보지 않기 체크박스 행 표시 -> 두 버튼 + 체크박스 구조
+    var doNotShowAgain: Binding<Bool>? = nil
+
     var body: some View {
         ZStack {
             // 팝업 뒷배경 처리
             Color.dimmedOverlay
                 .ignoresSafeArea()
 
-            VStack(spacing: 0) {
-                Text(title)
-                    .font(Font.setPretendard(weight: .bold, size: 20))
-                    .multilineTextAlignment(.center)
-                    .foregroundStyle(Color.textPrimary)
-                    .frame(maxWidth: .infinity, alignment: .top)
+            VStack(alignment: .center, spacing: 20) {
+                // 타이틀
+                VStack(alignment: .center, spacing: 8) {
+                    Text(title)
+                        .font(Font.setPretendard(weight: .bold, size: 20))
+                        .multilineTextAlignment(.center)
+                        .foregroundStyle(Color.textPrimary)
+                        .frame(maxWidth: .infinity, alignment: .top)
 
-                Text(message)
-                    .font(Font.setPretendard(weight: .regular, size: 14))
-                    .multilineTextAlignment(.center)
-                    .foregroundStyle(Color.textPrimary)
-                    .frame(maxWidth: .infinity, alignment: .top)
-                    .padding(.top, 8)
-
-                HStack(spacing: 10) {
-                    popupButton(
-                        title: "취소",
-                        foregroundColor: Color.textPrimary,
-                        backgroundColor: .white,
-                        borderColor: Color.fieldBorder,
-                        action: onCancel
-                    )
-
-                    popupButton(
-                        title: confirmTitle,
-                        foregroundColor: .white,
-                        backgroundColor: Color.appPrimary,
-                        borderColor: Color.dialogConfirmBorder,
-                        action: onConfirm
-                    )
+                    Text(message)
+                        .font(Font.setPretendard(weight: .regular, size: 14))
+                        .multilineTextAlignment(.center)
+                        .foregroundStyle(Color.textPrimary)
                 }
-                .padding(.top, 20)
+
+                // 체크박스: doNotShowAgain 바인딩이 있을 때만 표시
+                if let binding = doNotShowAgain {
+                    HStack(spacing: 4) {
+                        Button {
+                            binding.wrappedValue.toggle()
+                        } label: {
+                            Image(systemName: binding.wrappedValue ? "checkmark.square" : "square")
+                                .resizable()
+                                .frame(width: 16, height: 16)
+                                .foregroundStyle(
+                                    binding.wrappedValue
+                                    ? Color.textPrimary
+                                    : Color.textSecondary
+                                )
+                        }
+                        .buttonStyle(.plain)
+
+                        Text("다시 보지 않기")
+                            .font(Font.setPretendard(weight: .regular, size: 14))
+                            .foregroundStyle(Color.textSecondary)
+                    }
+                }
+
+                // 버튼 행: cancelTitle nil -> 확인 버튼만 전체 너비로 표시
+                HStack(spacing: 8) {
+                    if let cancelText = cancelTitle {
+                        popupButton(title: cancelText, isCancelStyle: true, action: onCancel)
+                    }
+                    popupButton(title: confirmTitle, isCancelStyle: false, action: onConfirm)
+                }
             }
             .padding(.horizontal, 16)
-            .padding(.vertical, 16)
-            .frame(maxWidth: .infinity)
-            .frame(minHeight: 136, alignment: .top)
+            .padding(.top, 24)
+            .padding(.bottom, 16)
+            .frame(width: 362, alignment: .top)
             .background(Color.white)
             .clipShape(RoundedRectangle(cornerRadius: 12))
             .overlay(
                 RoundedRectangle(cornerRadius: 12)
                     .stroke(Color.fieldBorder, lineWidth: 1)
             )
-            .padding(.horizontal, 20)
         }
     }
 
     // 버튼 색상 분기
     private func popupButton(
         title: String,
-        foregroundColor: Color,
-        backgroundColor: Color,
-        borderColor: Color,
+        isCancelStyle: Bool,
         action: @escaping () -> Void
     ) -> some View {
         Button(action: action) {
             Text(title)
-                .font(Font.setPretendard(weight: .semiBold, size: 18))
-                .foregroundStyle(foregroundColor)
-                .frame(width: 160, height: 48)
-                .background(backgroundColor)
+                .font(Font.setPretendard(weight: .semiBold, size: 16))
+                .multilineTextAlignment(.center)
+                .foregroundStyle(isCancelStyle ? Color("GrayScale/400") : Color.white)
+                .frame(maxWidth: .infinity)
+                .frame(minHeight: 48, maxHeight: 48)
+                .background(isCancelStyle ? Color("GrayScale/100") : Color.appPrimary)
                 .clipShape(RoundedRectangle(cornerRadius: 8))
                 .overlay(
                     RoundedRectangle(cornerRadius: 8)
-                        .stroke(borderColor, lineWidth: 1)
+                        .inset(by: 0.5)
+                        .stroke(
+                            isCancelStyle ? Color.fieldBorder : Color.dialogConfirmBorder,
+                            lineWidth: 1
+                        )
                 )
                 .shadow(color: .black.opacity(0.06), radius: 1.5, x: 0, y: 1)
         }
@@ -104,11 +127,37 @@ struct ExitPopupView: View {
     }
 }
 
-#Preview {
+#Preview("두 버튼") {
     ExitPopupView(
-        title: "기록을 멈출까요?",
+        title: "로그 작성을 멈출까요?",
         message: "페이지를 벗어나면 작성 중인 내용이\n저장되지 않고 사라지게 돼요.",
         onCancel: {},
         onConfirm: {}
+    )
+}
+
+#Preview("두 버튼 + 체크박스") {
+    struct PreviewWrapper: View {
+        @State private var doNotShow = false
+        var body: some View {
+            ExitPopupView(
+                title: "AI 음악을 만들까요?",
+                message: "사진을 분석해 어울리는 노래를 만듭니다.\n데이터는 보안이 강화된 AI 엔진을 통해 분석되며\n음악 생성에만 활용됩니다.",
+                onCancel: {},
+                onConfirm: {},
+                doNotShowAgain: $doNotShow
+            )
+        }
+    }
+    return PreviewWrapper()
+}
+
+#Preview("단일 버튼") {
+    ExitPopupView(
+        title: "음악 생성 실패",
+        message: "음악 생성 중 오류가 발생했어요.\n잠시 후 다시 시도해 주세요.",
+        onCancel: {},
+        onConfirm: {},
+        cancelTitle: nil
     )
 }
