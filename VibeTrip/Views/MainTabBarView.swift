@@ -20,7 +20,7 @@ enum AppTab: Int, CaseIterable {
     // 미선택 상태 아이콘 (outline)
     var icon: String {
         switch self {
-        case .home:         return "house"
+        case .home:         return "house.fill"
         case .makeAlbum:    return "rectangle.stack.badge.plus"
         case .notification: return "bell"
         case .myPage:       return "person"
@@ -56,6 +56,9 @@ struct MainTabBarView: View {
     @State private var selectedTab: AppTab = .home
     @State private var isTabBarHidden = false
     @State private var isPresentingMakeAlbum = false
+    @State private var makeAlbumInitialStep: AlbumCreationStep = .requiredInput
+
+    @EnvironmentObject private var appState: AppState
 
     private let makeAlbumTransition = AnyTransition.move(edge: .trailing).combined(with: .opacity)
     private let tabBarTransition = AnyTransition.move(edge: .bottom).combined(with: .opacity)
@@ -76,24 +79,27 @@ struct MainTabBarView: View {
                 case .myPage:
                     MyPageView()
                 case .makeAlbum:
-                    MainPageView()
+                    Color(UIColor.systemBackground).ignoresSafeArea()
                 }
             }
 
             if isPresentingMakeAlbum {
                 MakeAlbumView(
                     onExit: {
+                        // 시작 단계 초기화
+                        makeAlbumInitialStep = .requiredInput
                         withAnimation(.easeInOut(duration: 0.24)) {
                             isPresentingMakeAlbum = false
                         }
 
+                        // 진입 전 탭 복귀
                         DispatchQueue.main.asyncAfter(deadline: .now() + 0.18) {
-                            selectedTab = .home
                             withAnimation(.easeInOut(duration: 0.22)) {
                                 isTabBarHidden = false
                             }
                         }
-                    }
+                    },
+                    initialStep: makeAlbumInitialStep
                 )
                 .transition(makeAlbumTransition)
                 .zIndex(1)
@@ -114,6 +120,40 @@ struct MainTabBarView: View {
         }
         .animation(.easeInOut(duration: 0.24), value: isPresentingMakeAlbum)
         .animation(.easeInOut(duration: 0.22), value: isTabBarHidden)
+        // 알림 탭 시, 화면 이동
+        .onChange(of: appState.pendingNotificationAction) { _, action in
+            guard let action else { return }
+            switch action {
+            case .openMakeAlbum:
+                // 생성 실패: MakeAlbumView
+                makeAlbumInitialStep = .requiredInput
+                withAnimation(.easeInOut(duration: 0.18)) {
+                    isTabBarHidden = true
+                }
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.08) {
+                    withAnimation(.easeInOut(duration: 0.24)) {
+                        isPresentingMakeAlbum = true
+                    }
+                }
+
+            case .openAlbumCreationLoading:
+                // 생성 중: MakeAlbumLoadingView
+                // TODO: 서버 연동 시, 기존 생성 중인 ViewModel 상태 복원
+                makeAlbumInitialStep = .loading
+                withAnimation(.easeInOut(duration: 0.18)) {
+                    isTabBarHidden = true
+                }
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.08) {
+                    withAnimation(.easeInOut(duration: 0.24)) {
+                        isPresentingMakeAlbum = true
+                    }
+                }
+            case .openAlbumDetail:
+                // TODO: 서버 albumId 연동 후 AlbumDetailView 라우팅 구현
+                break
+            }
+            appState.pendingNotificationAction = nil
+        }
     }
 }
 
@@ -124,6 +164,8 @@ struct LiquidGlassTabBar: View {
     @Binding var selectedTab: AppTab
     @Binding var isTabBarHidden: Bool
     @Binding var isPresentingMakeAlbum: Bool
+
+    @EnvironmentObject private var appState: AppState
 
     private enum Layout {
         static let iconSize: CGFloat      = 25   // 탭 아이콘 크기
@@ -194,6 +236,14 @@ struct LiquidGlassTabBar: View {
                 .resizable()
                 .scaledToFit()
                 .frame(width: Layout.iconSize, height: Layout.iconSize)
+                .overlay(alignment: .topTrailing) {
+                    if tab == .notification && appState.hasUnreadNotifications {
+                        Circle()
+                            .fill(Color.red)
+                            .frame(width: 8, height: 8)
+                            .offset(x: 4, y: -4)
+                    }
+                }
 
             // 탭 레이블
             Text(tab.label)
@@ -217,7 +267,6 @@ struct LiquidGlassTabBar: View {
                 }
 
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.08) {
-                    selectedTab = tab
                     withAnimation(.easeInOut(duration: 0.24)) {
                         isPresentingMakeAlbum = true
                     }
