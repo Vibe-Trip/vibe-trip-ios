@@ -68,10 +68,10 @@ struct MainPageView: View {
         VStack(alignment: .center, spacing: 8) {
             
             // 빈 상태 아이콘
-            Image(systemName: "rectangle.stack.fill.badge.plus")
+            Image("CreateAlbum")
                 .resizable()
                 .scaledToFit()
-                .frame(width: 120, height: 120)
+                .frame(width: 200, height: 150)
                 .offset(x: -8)
                 .foregroundStyle(Color.placeholderSymbol)
             
