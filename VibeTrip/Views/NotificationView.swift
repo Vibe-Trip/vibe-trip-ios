@@ -32,14 +32,7 @@ struct NotificationView: View {
         static let emptyContentSpacing: CGFloat = 8
         static let emptySymbolSize: CGFloat     = 120
         static let emptyTextPadding: CGFloat    = 39
-        static let toastBottomPadding: CGFloat  = 100
         static let tabBarHeight: CGFloat        = 64
-        static let rowVerticalPadding: CGFloat  = 16
-        static let rowInnerSpacing: CGFloat     = 10
-        static let contentSpacing: CGFloat      = 4
-        static let trashIconSize: CGFloat       = 20
-        static let rowTitleSize: CGFloat        = 16
-        static let rowBodySize: CGFloat         = 14
     }
 
     // MARK: - Body

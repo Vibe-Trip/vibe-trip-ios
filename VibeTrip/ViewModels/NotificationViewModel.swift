@@ -112,7 +112,7 @@ final class NotificationViewModel: ObservableObject {
     // MARK: - Private Methods
 
     // 토스트 자동 숨김
-    func showToast(_ message: String) {
+    private func showToast(_ message: String) {
         toastMessage = message
         Task {
             try? await Task.sleep(nanoseconds: UInt64(ToastDuration.standard.rawValue * 1_000_000_000))
