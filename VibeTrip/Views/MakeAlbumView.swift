@@ -14,8 +14,8 @@ import UIKit
 struct MakeAlbumView: View {
     
     // 앨범 생성 데이터 및 UI 상태 관리
-    @StateObject private var viewModel = MakeAlbumViewModel()
-    
+    @StateObject private var viewModel: MakeAlbumViewModel
+
     // 토스트 메시지의 하단 여백: 키보드 높이에 따라 동적으로 계산
     @State private var keyboardHeight: CGFloat = 0
     
@@ -27,6 +27,7 @@ struct MakeAlbumView: View {
     
     init(onExit: @escaping () -> Void = {}) {
         self.onExit = onExit
+        _viewModel = StateObject(wrappedValue: MakeAlbumViewModel())
     }
     
     var body: some View {
@@ -105,7 +106,7 @@ struct MakeAlbumView: View {
         .overlay {
             if viewModel.isExitAlertPresented {
                 ExitPopupView(
-                    title: "기록을 멈출까요?",
+                    title: "앨범 생성을 멈출까요?",
                     message: "페이지를 벗어나면 작성 중인 내용이\n저장되지 않고 사라지게 돼요.",
                     onCancel: {
                         viewModel.isExitAlertPresented = false
