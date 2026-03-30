@@ -56,7 +56,7 @@ struct MainTabBarView: View {
     @State private var selectedTab: AppTab = .home
     @State private var isTabBarHidden = false
     @State private var isPresentingMakeAlbum = false
-    @State private var makeAlbumInitialStep: AlbumCreationStep = .requiredInput
+    @State private var isPresentingLoadingView = false
 
     @EnvironmentObject private var appState: AppState
 
@@ -86,8 +86,6 @@ struct MainTabBarView: View {
             if isPresentingMakeAlbum {
                 MakeAlbumView(
                     onExit: {
-                        // 시작 단계 초기화
-                        makeAlbumInitialStep = .requiredInput
                         withAnimation(.easeInOut(duration: 0.24)) {
                             isPresentingMakeAlbum = false
                         }
@@ -98,11 +96,16 @@ struct MainTabBarView: View {
                                 isTabBarHidden = false
                             }
                         }
-                    },
-                    initialStep: makeAlbumInitialStep
+                    }
                 )
                 .transition(makeAlbumTransition)
                 .zIndex(1)
+            }
+
+            if isPresentingLoadingView {
+                MakeAlbumLoadingView()
+                    .transition(makeAlbumTransition)
+                    .zIndex(1)
             }
 
             // NavBar + TabBar를 콘텐츠 위에 오버레이
@@ -126,7 +129,6 @@ struct MainTabBarView: View {
             switch action {
             case .openMakeAlbum:
                 // 생성 실패: MakeAlbumView
-                makeAlbumInitialStep = .requiredInput
                 withAnimation(.easeInOut(duration: 0.18)) {
                     isTabBarHidden = true
                 }
@@ -139,13 +141,12 @@ struct MainTabBarView: View {
             case .openAlbumCreationLoading:
                 // 생성 중: MakeAlbumLoadingView
                 // TODO: 서버 연동 시, 기존 생성 중인 ViewModel 상태 복원
-                makeAlbumInitialStep = .loading
                 withAnimation(.easeInOut(duration: 0.18)) {
                     isTabBarHidden = true
                 }
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.08) {
                     withAnimation(.easeInOut(duration: 0.24)) {
-                        isPresentingMakeAlbum = true
+                        isPresentingLoadingView = true
                     }
                 }
             case .openAlbumDetail:

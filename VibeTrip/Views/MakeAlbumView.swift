@@ -14,8 +14,8 @@ import UIKit
 struct MakeAlbumView: View {
     
     // 앨범 생성 데이터 및 UI 상태 관리
-    @StateObject private var viewModel = MakeAlbumViewModel()
-    
+    @StateObject private var viewModel: MakeAlbumViewModel
+
     // 토스트 메시지의 하단 여백: 키보드 높이에 따라 동적으로 계산
     @State private var keyboardHeight: CGFloat = 0
     
@@ -27,6 +27,7 @@ struct MakeAlbumView: View {
     
     init(onExit: @escaping () -> Void = {}) {
         self.onExit = onExit
+        _viewModel = StateObject(wrappedValue: MakeAlbumViewModel())
     }
     
     var body: some View {
