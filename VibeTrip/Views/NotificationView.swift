@@ -25,8 +25,6 @@ struct NotificationView: View {
 
     private enum Layout {
         static let headerHeight: CGFloat        = 44
-        static let horizontalPadding: CGFloat   = 20
-        static let titleFontSize: CGFloat       = 24
         static let emptyTitleSize: CGFloat      = 22
         static let emptyBodySize: CGFloat       = 16
         static let emptyContentSpacing: CGFloat = 8
@@ -39,12 +37,12 @@ struct NotificationView: View {
 
     var body: some View {
         ZStack(alignment: .bottom) {
-            VStack(spacing: 0) {
-                headerBar
+            ZStack(alignment: .top) {
                 contentArea
+                AppNavigationBar(largeTitle: "알림", style: .blurAlways)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
-            .ignoresSafeArea(edges: .bottom)
+            .ignoresSafeArea(edges: [.top, .bottom])
 
             // 토스트 메시지 오버레이
             // TODO: 표시 유무 정하기
@@ -70,22 +68,6 @@ struct NotificationView: View {
         }
     }
 
-    // MARK: - Header Bar
-
-    // 상단 타이틀 영역
-    private var headerBar: some View {
-        HStack {
-            Text("알림")
-                .font(Font.setPretendard(weight: .semiBold, size: Layout.titleFontSize))
-                .foregroundStyle(Color.textPrimary)
-            Spacer()
-        }
-        .frame(maxWidth: .infinity)
-        .frame(height: Layout.headerHeight)
-        .padding(.horizontal, Layout.horizontalPadding)
-        .background(Color.white)
-    }
-
     // MARK: - Content Area
 
     // 알림 유무로 분기
@@ -98,6 +80,18 @@ struct NotificationView: View {
         }
     }
 
+    // 헤더 여백 확보
+    private var headerSpacer: some View {
+        Color.clear.frame(height: safeTop + Layout.headerHeight)
+    }
+
+    // UIApplication 기반 safeArea top 조회
+    private var safeTop: CGFloat {
+        UIApplication.shared.connectedScenes
+            .compactMap { ($0 as? UIWindowScene)?.keyWindow }
+            .first?.safeAreaInsets.top ?? 0
+    }
+
     // MARK: - 빈 상태 UI
 
     private var emptyStateView: some View {
@@ -108,6 +102,7 @@ struct NotificationView: View {
         }
         .padding(.bottom, Layout.tabBarHeight)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .safeAreaInset(edge: .top) { headerSpacer }
     }
 
     private var emptyContent: some View {
@@ -160,6 +155,7 @@ struct NotificationView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color.white)
+        .safeAreaInset(edge: .top) { headerSpacer }
     }
 
     // MARK: - 알림 탭 네비게이션

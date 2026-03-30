@@ -96,6 +96,15 @@ struct MainTabBarView: View {
                                 isTabBarHidden = false
                             }
                         }
+                    },
+                    onProceedToLoading: {
+                        // LoadingView를 표시 후, MakeAlbumView 제거
+                        withAnimation(.easeInOut(duration: 0.24)) {
+                            isPresentingLoadingView = true
+                        }
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.24) {
+                            isPresentingMakeAlbum = false
+                        }
                     }
                 )
                 .transition(makeAlbumTransition)
@@ -103,9 +112,21 @@ struct MainTabBarView: View {
             }
 
             if isPresentingLoadingView {
-                MakeAlbumLoadingView()
-                    .transition(makeAlbumTransition)
-                    .zIndex(1)
+                MakeAlbumLoadingView(onHide: {
+
+                    // 화면 숨기기: 로딩 뷰 닫기 + 알림 탭으로 복귀
+                    selectedTab = .notification
+                    withAnimation(.easeInOut(duration: 0.24)) {
+                        isPresentingLoadingView = false
+                    }
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.18) {
+                        withAnimation(.easeInOut(duration: 0.22)) {
+                            isTabBarHidden = false
+                        }
+                    }
+                })
+                .transition(makeAlbumTransition)
+                .zIndex(2)
             }
 
             // NavBar + TabBar를 콘텐츠 위에 오버레이
