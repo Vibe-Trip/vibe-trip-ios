@@ -24,9 +24,13 @@ struct MakeAlbumView: View {
     
     // 앨범 생성 플로우를 벗어날 때 호출되는 콜백
     private let onExit: () -> Void
-    
-    init(onExit: @escaping () -> Void = {}) {
+
+    // 앨범 생성하기 탭 시, 로딩 화면으로 전환 콜백 (MainTabBarView에서 처리)
+    private let onProceedToLoading: () -> Void
+
+    init(onExit: @escaping () -> Void = {}, onProceedToLoading: @escaping () -> Void = {}) {
         self.onExit = onExit
+        self.onProceedToLoading = onProceedToLoading
         _viewModel = StateObject(wrappedValue: MakeAlbumViewModel())
     }
     
@@ -52,11 +56,11 @@ struct MakeAlbumView: View {
                     // 선택 입력 뷰
                     MakeAlbumOptionalInputContent(
                         viewModel: viewModel,
-                        onCreateTap: viewModel.proceedToLoadingStep
+                        onCreateTap: onProceedToLoading
                     )
                 case .loading:
-                    // 앨범 생성 중 로딩 화면
-                    MakeAlbumLoadingView()
+                    // 로딩은 MainTabBarView 오버레이로 처리
+                    Color.white.ignoresSafeArea()
                 }
             }
             // 네비게이션 바: 상단 SafeArea 영역에 고정
