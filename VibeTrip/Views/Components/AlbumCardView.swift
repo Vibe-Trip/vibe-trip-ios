@@ -26,7 +26,7 @@ struct AlbumCardView: View {
         static let cardHeight: CGFloat         = 600
         static let coverImageHeight: CGFloat   = 460
         static let infoAreaHeight: CGFloat     = 140
-        static let cardCornerRadius: CGFloat   = 16
+        static let cardCornerRadius: CGFloat   = 18
         
         static let thumbnailSize: CGFloat      = 36
         static let thumbnailOverlap: CGFloat   = 12

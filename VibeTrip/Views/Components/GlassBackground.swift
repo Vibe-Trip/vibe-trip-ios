@@ -18,7 +18,7 @@ struct LiquidGlassBackground: UIViewRepresentable {
         // .systemThinMaterial      : 보통
         // .systemMaterial          : 진함
         // .systemThickMaterial     : 가장 진함
-        let blur         = UIBlurEffect(style: .systemThinMaterial)
+        let blur         = UIBlurEffect(style: .systemUltraThinMaterial)
         let view         = UIVisualEffectView(effect: blur)
 
         // Vibrancy: 배경색 반영된 블러 효과

@@ -159,7 +159,7 @@ struct AppNavigationBar<Leading: View, Trailing: View>: View {
                     // 중앙: 타이틀 (옵셔널)
                     if let title {
                         Text(title)
-                            .font(.setPretendard(weight: .medium, size: 16))
+                            .font(.setPretendard(weight: .bold, size: 16))
                             .foregroundStyle(Color.textPrimary)
                             .lineLimit(1)
                             .opacity(titleOpacity)
