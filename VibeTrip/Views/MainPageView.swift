@@ -31,7 +31,7 @@ struct MainPageView: View {
         static let cardWidth: CGFloat              = AlbumCardView.Layout.cardWidth
         static let cardGap: CGFloat                = 17
         static let activeTopSpacing: CGFloat       = 68
-        static let inactiveTopSpacing: CGFloat     = 84   // active와 16pt 차이
+        static let inactiveTopSpacing: CGFloat     = 84
         static let activeSideSpacing: CGFloat      = 40
         static let swipeThresholdRatio: CGFloat    = 0.35
         static let swipeVelocityThreshold: CGFloat = 200
@@ -189,6 +189,15 @@ struct MainPageView: View {
                             }
                         }
                 )
+
+                // MARK: - 네비게이션 바 (로고)
+                AppNavigationBar(style: .transparent) {
+                    Image("AppLogo_Home")
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: 120, height: 30)
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
             }
             .ignoresSafeArea()
         }
