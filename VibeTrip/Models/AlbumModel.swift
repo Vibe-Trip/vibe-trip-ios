@@ -9,9 +9,51 @@ import Foundation
 
 // MARK: - Decodable 확장 (MakeAlbumModel에 정의된 enum 재사용)
 
-extension AlbumGenre: Decodable {}
+extension AlbumGenre: Decodable {
+
+    // 서버 전송용 enum 값
+    var serverValue: String {
+        switch self {
+        case .pop:          return "POP"
+        case .kPop:         return "K_POP"
+        case .ballad:       return "BALLAD"
+        case .hipHop:       return "HIP_HOP"
+        case .rnb:          return "R_AND_B"
+        case .rock:         return "ROCK"
+        case .cityPop:      return "CITY_POP"
+        case .edm:          return "EDM"
+        case .latinPop:     return "LATIN_POP"
+        case .country:      return "COUNTRY"
+        case .indie:        return "INDIE"
+        case .gospel:       return "GOSPEL"
+        case .classical:    return "CLASSICAL"
+        case .loFi:         return "LO_FI"
+        case .jazz:         return "JAZZ"
+        case .ambient:      return "AMBIENT"
+        case .cinematic:    return "CINEMATIC"
+        case .newAge:       return "NEW_AGE"
+        case .acoustic:     return "ACOUSTIC"
+        case .electronic:   return "ELECTRONIC"
+        case .bossaNova:    return "BOSSA_NOVA"
+        case .chillHop:     return "CHILL_HOP"
+        case .tropicalHouse: return "TROPICAL_HOUSE"
+        case .techno:       return "TECHNO"
+        }
+    }
+}
+
 extension LyricsOption: Decodable {}
-extension VocalGender: Decodable {}
+
+extension VocalGender: Decodable {
+
+    // 서버 전송용 enum 값
+    var serverValue: String {
+        switch self {
+        case .male:   return "M"
+        case .female: return "F"
+        }
+    }
+}
 
 // MARK: - AlbumCard
 
