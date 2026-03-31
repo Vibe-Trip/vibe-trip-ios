@@ -13,7 +13,17 @@ import Combine
 // 앨범 생성 플로우의 입력 상태, 검증, 단계 전환을 담당하는 ViewModel
 @MainActor
 final class MakeAlbumViewModel: ObservableObject {
-    
+
+    // MARK: - 로딩 화면 에러 상태
+
+    // networkError: 재시도 팝업 / fatalError: 확인 단일 버튼 팝업
+    enum AlbumCreationLoadingError {
+        case networkError
+        case fatalError
+    }
+
+    // MARK: - Input State
+
     // 사용자가 입력한 앨범 생성 데이터
     @Published var album = MakeAlbumModel()
     
@@ -34,6 +44,17 @@ final class MakeAlbumViewModel: ObservableObject {
     @Published var stagedStartDate = Date()
     @Published var stagedEndDate: Date?
     
+    private let albumService: AlbumServiceProtocol
+
+    // 네트워크 오류 시 생성 데이터 보관 -> 재시도에 사용
+    private var pendingRequest: AlbumCreateRequest?
+
+    init(albumService: AlbumServiceProtocol = AlbumService()) {
+        self.albumService = albumService
+    }
+
+    // MARK: - Constants
+
     private let maximumDestinationCount = 25
     private let maximumCommentaryCount = 500
     private let maximumPhotoBytes = 10 * 1024 * 1024
@@ -200,22 +221,93 @@ final class MakeAlbumViewModel: ObservableObject {
         stagedEndDate = date
     }
     
-    // 필수 입력 필드 감지
+    // MARK: - Step Navigation
+
+    // 필수 입력 완료 시 선택 입력 단계로 이동
     func proceedToOptionalStep() {
         guard isRequiredInputValid else {
             showToast("필수 입력 항목을 모두 입력해 주세요.")
             return
         }
-        
         currentStep = .optionalInput
     }
-    
-    func proceedToLoadingStep() {
-        currentStep = .loading
-    }
-    
+
     func returnToRequiredStep() {
         currentStep = .requiredInput
+    }
+
+    // MARK: - Album Creation
+
+    // 앨범 생성 요청 진입점: 로딩 단계로 전환 후 API 호출
+    // onStarted: LoadingView 노출 트리거
+    // onSuccess: 생성 완료(albumId 전달)
+    // onNetworkError: 네트워크 오류 시 재시도 클로저 전달
+    // onFatalError: 재시도 불가 오류 시 확인 팝업 트리거
+    func submitAlbum(
+        onStarted: @escaping () -> Void,
+        onSuccess: @escaping (Int) -> Void,
+        onNetworkError: @escaping (@escaping () -> Void) -> Void,
+        onFatalError: @escaping () -> Void
+    ) {
+        guard let photoData = selectedPhotoData,
+              let startDate = album.startDate,
+              let endDate = album.endDate else { return }
+
+        let request = AlbumCreateRequest(
+            photoData: photoData,
+            location: album.travelDestination,
+            startDate: startDate,
+            endDate: endDate,
+            lyricsOption: album.lyricsOption,
+            vocalGender: album.vocalGender,
+            genre: resolvedGenre,
+            comment: album.albumCommentary
+        )
+        pendingRequest = request
+        currentStep = .loading
+        onStarted()
+
+        Task {
+            await performRequest(
+                request,
+                isRetry: false,
+                onSuccess: onSuccess,
+                onNetworkError: onNetworkError,
+                onFatalError: onFatalError
+            )
+        }
+    }
+
+    // 공통 API 실행: 첫 시도/재시도 모두 이 메서드 거침
+    private func performRequest(
+        _ request: AlbumCreateRequest,
+        isRetry: Bool,
+        onSuccess: @escaping (Int) -> Void,
+        onNetworkError: @escaping (@escaping () -> Void) -> Void,
+        onFatalError: @escaping () -> Void
+    ) async {
+        do {
+            let response = try await albumService.createAlbum(request: request)
+            onSuccess(response.albumId)
+        } catch APIClientError.networkError where !isRetry {
+            // 최초 1회 네트워크 오류만 재시도 허용
+            let retryAction: () -> Void = { [weak self] in
+                guard let self, let req = self.pendingRequest else { return }
+                Task {
+                    await self.performRequest(
+                        req,
+                        isRetry: true,
+                        onSuccess: onSuccess,
+                        onNetworkError: onNetworkError,
+                        onFatalError: onFatalError
+                    )
+                }
+            }
+            onNetworkError(retryAction)
+        } catch {
+            // networkError 재시도 실패 or serverError or decodingFailed or unknown
+            onFatalError()
+        }
     }
     
     func showToast(_ message: String) {
