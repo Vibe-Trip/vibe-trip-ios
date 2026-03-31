@@ -14,6 +14,21 @@ struct MakeAlbumLoadingView: View {
     // 화면 숨기기 탭 시, 알림 탭으로 복귀
     let onHide: () -> Void
 
+    // API 요청 진행 중 여부: true -> 화면 숨기기 버튼 비활성화
+    let isCreating: Bool
+
+    // 에러 상태: non-nil -> 해당 팝업 표시
+    let loadingError: MakeAlbumViewModel.AlbumCreationLoadingError?
+
+    // 다시시도 시,호출
+    let onRetry: () -> Void
+
+    // 팝업: 나중에 하기 or 확인 탭 -> 메인 페이지로 이동
+    let onDismissToMain: () -> Void
+
+    // 요청 진행 중 버튼 탭 시 노출 toast
+    @State private var busyToastMessage: String? = nil
+
     private enum Layout {
         static let topPadding: CGFloat            = 219
         static let imageWidth: CGFloat            = 260
@@ -67,7 +82,14 @@ struct MakeAlbumLoadingView: View {
                 Spacer(minLength: Layout.bodyToButtonMinSpacing)
 
                 // 화면 숨기기 버튼
-                Button(action: onHide) {
+                // isCreating: 버튼 비활성화 + 탭 시 toast 노출
+                Button {
+                    if isCreating {
+                        busyToastMessage = "생성 요청중입니다 잠시 기다려주세요"
+                    } else {
+                        onHide()
+                    }
+                } label: {
                     Text("화면 숨기기")
                         .font(Font.setPretendard(weight: .semiBold, size: Layout.buttonFontSize))
                         .multilineTextAlignment(.center)
@@ -75,19 +97,95 @@ struct MakeAlbumLoadingView: View {
                         .frame(width: Layout.buttonWidth)
                         .padding(.vertical, Layout.buttonVerticalPadding)
                 }
-                .background(Color.appPrimary)
+                .background(isCreating ? Color.appPrimary.opacity(0.5) : Color.appPrimary)
                 .cornerRadius(Layout.buttonCornerRadius)
 
                 Spacer().frame(height: Layout.bottomPadding)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .ignoresSafeArea()
+
+            // 에러 팝업
+            if let error = loadingError {
+                switch error {
+                case .networkError:
+                    // 네트워크 오류: 재시도 가능
+                    ExitPopupView(
+                        title: "네트워크 오류",
+                        message: "연결 상태가 원활하지 않아 음악 생성이 중단 되었습니다.\n연결 확인 후 음악 생성을 다시 시도해 주세요.",
+                        onCancel: onDismissToMain,
+                        onConfirm: onRetry,
+                        confirmTitle: "다시 시도",
+                        cancelTitle: "나중에 하기"
+                    )
+                case .fatalError:
+                    // 생성 실패: 재시도 불가
+                    ExitPopupView(
+                        title: "음악 생성 실패",
+                        message: "음악 생성 중 오류가 발생했습니다.\n잠시 후 다시 시도해 주세요.",
+                        onCancel: {},
+                        onConfirm: onDismissToMain,
+                        confirmTitle: "확인",
+                        cancelTitle: nil
+                    )
+                }
+            }
         }
+        // 요청 진행 중 버튼 탭 시 toast
+        .overlay(alignment: .bottom) {
+            if let message = busyToastMessage {
+                AppToastView(message: message)
+                    .padding(.bottom, 40)
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+                    .onAppear {
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
+                            busyToastMessage = nil
+                        }
+                    }
+            }
+        }
+        .animation(.easeInOut(duration: 0.2), value: busyToastMessage)
     }
 }
 
 // MARK: - Preview
 
-#Preview {
-    MakeAlbumLoadingView(onHide: {})
+#Preview("기본") {
+    MakeAlbumLoadingView(
+        onHide: {},
+        isCreating: false,
+        loadingError: nil,
+        onRetry: {},
+        onDismissToMain: {}
+    )
+}
+
+#Preview("요청 진행 중") {
+    MakeAlbumLoadingView(
+        onHide: {},
+        isCreating: true,
+        loadingError: nil,
+        onRetry: {},
+        onDismissToMain: {}
+    )
+}
+
+#Preview("네트워크 오류 팝업") {
+    MakeAlbumLoadingView(
+        onHide: {},
+        isCreating: false,
+        loadingError: .networkError,
+        onRetry: {},
+        onDismissToMain: {}
+    )
+}
+
+#Preview("생성 실패 팝업") {
+    MakeAlbumLoadingView(
+        onHide: {},
+        isCreating: false,
+        loadingError: .fatalError,
+        onRetry: {},
+        onDismissToMain: {}
+    )
 }
