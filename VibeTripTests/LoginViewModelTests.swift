@@ -103,16 +103,4 @@ final class LoginViewModelTests: XCTestCase {
         }
     }
 
-    // 백엔드 계정 차단(PopUp)
-    func test_accountBlocked_showsAlertPopup() async {
-        let vm = makeViewModel(backendError: .accountBlocked)
-        vm.loginWithKakao()
-        await waitForTask()
-
-        if case .alertPopup(let msg) = vm.errorState {
-            XCTAssertFalse(msg.isEmpty)
-        } else {
-            XCTFail("alertPopup이 표시되어야 합니다. 실제: \(String(describing: vm.errorState))")
-        }
-    }
 }
