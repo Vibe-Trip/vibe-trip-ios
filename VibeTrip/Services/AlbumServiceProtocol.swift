@@ -28,21 +28,19 @@ protocol AlbumServiceProtocol {
 
 // MARK: - AlbumCreateRequest / AlbumCreateResponse
 
-// TODO: MakeAlbumModel.swift와 통합 여부 서버 스펙 확정 후 결정
 struct AlbumCreateRequest {
-    let photoDataList: [Data]
-    let title: String
+    let photoData: Data
     let location: String
     let startDate: Date
     let endDate: Date
     let lyricsOption: LyricsOption
     let vocalGender: VocalGender?
-    let genre: AlbumGenre?
-    let commentary: String
+    let genre: AlbumGenre
+    let comment: String
 }
 
 struct AlbumCreateResponse: Decodable {
-    let albumId: String
+    let albumId: Int
 }
 
 // MARK: - AlbumService (실 구현체 stub)
@@ -99,7 +97,7 @@ final class MockAlbumService: AlbumServiceProtocol {
     func createAlbum(request: AlbumCreateRequest) async throws -> AlbumCreateResponse {
         try await Task.sleep(nanoseconds: delay)
         if let error = simulatedError { throw error }
-        return AlbumCreateResponse(albumId: "mock-album-id-001")
+        return AlbumCreateResponse(albumId: 1)
     }
     
     func fetchAlbumLog(albumId: String) async throws -> AlbumLog {
