@@ -56,18 +56,39 @@ private struct AlbumCreateRequestBody: Encodable {
     let comment: String
 }
 
-// MARK: - AlbumService (실 구현체 stub)
+// MARK: - AlbumService
 
-/// API 스펙 확정 전 stub — 서버 스펙 확정 후 각 메서드 구현 예정
-/// 이미지 업로드 방식(multipart vs presigned URL) 확정 필요
 final class AlbumService: AlbumServiceProtocol {
-    
+
+    private let apiClient: APIClientProtocol
+
+    init(apiClient: APIClientProtocol = APIClient.shared) {
+        self.apiClient = apiClient
+    }
+
     func fetchAlbums(cursor: String?, limit: Int) async throws -> AlbumListPayload {
         fatalError("TODO: 서버 스펙 확정 후 구현")
     }
-    
+
+    // 커버 이미지 + 앨범 정보: multipart/form-data로 전송해 앨범 생성
     func createAlbum(request: AlbumCreateRequest) async throws -> AlbumCreateResponse {
-        fatalError("TODO: 서버 스펙 확정 후 구현")
+        // 서버 필드명 기준으로 JSON 파트 구성
+        let body = AlbumCreateRequestBody(
+            region: request.location,
+            travelStartDate: Self.dateFormatter.string(from: request.startDate),
+            travelEndDate: Self.dateFormatter.string(from: request.endDate),
+            genre: request.genre.serverValue,
+            withLyrics: request.lyricsOption == .include,
+            // 가사 없음(nil): vocalGender: "N", 가사 있음: "M"/"F"
+            vocalGender: request.vocalGender?.serverValue ?? "N",
+            comment: request.comment
+        )
+        var formData = MultipartFormData()
+        try formData.append(name: "request", encodable: body)
+        formData.append(name: "coverImage", imageData: request.photoData)
+
+        let endpoint = APIEndpoint(path: "/api/v1/albums", method: .post)
+        return try await apiClient.upload(endpoint, formData: formData)
     }
     
     func fetchAlbumLog(albumId: String) async throws -> AlbumLog {
@@ -85,6 +106,14 @@ final class AlbumService: AlbumServiceProtocol {
     func saveLog(request: AlbumLogRequest) async throws -> AlbumLog {
         fatalError("TODO: 서버 스펙 확정 후 구현")
     }
+
+    // 서버 요구 날짜 포맷
+    private static let dateFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.locale = Locale(identifier: "en_US_POSIX")
+        f.dateFormat = "yyyy-MM-dd"
+        return f
+    }()
 }
 
 // MARK: - MockAlbumService (DEBUG 전용)
