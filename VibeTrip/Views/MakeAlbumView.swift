@@ -25,12 +25,30 @@ struct MakeAlbumView: View {
     // 앨범 생성 플로우를 벗어날 때 호출되는 콜백
     private let onExit: () -> Void
 
-    // 앨범 생성하기 탭 시, 로딩 화면으로 전환 콜백 (MainTabBarView에서 처리)
-    private let onProceedToLoading: () -> Void
+    // 앨범 생성 시작: LoadingView 노출 트리거
+    private let onCreationStarted: () -> Void
 
-    init(onExit: @escaping () -> Void = {}, onProceedToLoading: @escaping () -> Void = {}) {
+    // 앨범 생성 성공: albumId 전달
+    private let onCreationSuccess: (Int) -> Void
+
+    // 네트워크 오류: 재시도 클로저 -> MainTabBarView로 전달
+    private let onNetworkError: (@escaping () -> Void) -> Void
+
+    // 재시도 불가 오류: 확인 팝업 트리거
+    private let onFatalError: () -> Void
+
+    init(
+        onExit: @escaping () -> Void = {},
+        onCreationStarted: @escaping () -> Void = {},
+        onCreationSuccess: @escaping (Int) -> Void = { _ in },
+        onNetworkError: @escaping (@escaping () -> Void) -> Void = { _ in },
+        onFatalError: @escaping () -> Void = {}
+    ) {
         self.onExit = onExit
-        self.onProceedToLoading = onProceedToLoading
+        self.onCreationStarted = onCreationStarted
+        self.onCreationSuccess = onCreationSuccess
+        self.onNetworkError = onNetworkError
+        self.onFatalError = onFatalError
         _viewModel = StateObject(wrappedValue: MakeAlbumViewModel())
     }
     
@@ -56,7 +74,15 @@ struct MakeAlbumView: View {
                     // 선택 입력 뷰
                     MakeAlbumOptionalInputContent(
                         viewModel: viewModel,
-                        onCreateTap: onProceedToLoading
+                        onCreateTap: {
+                            // 앨범 생성하기 탭 시 API 호출 진입
+                            viewModel.submitAlbum(
+                                onStarted: onCreationStarted,
+                                onSuccess: onCreationSuccess,
+                                onNetworkError: onNetworkError,
+                                onFatalError: onFatalError
+                            )
+                        }
                     )
                 case .loading:
                     // 로딩은 MainTabBarView 오버레이로 처리
@@ -549,11 +575,7 @@ private struct MakeAlbumOptionalInputContent: View {
             MakeAlbumBottomButton(
                 title: "앨범 생성하기",
                 isEnabled: true,
-                action: {
-                    // 장르가 nil: resolvedGenre을 기본값 처리
-                    _ = viewModel.resolvedGenre
-                    onCreateTap()
-                },
+                action: onCreateTap,
                 bottomSpacing: 16
             )
         }

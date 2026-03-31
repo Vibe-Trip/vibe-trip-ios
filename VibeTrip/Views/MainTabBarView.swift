@@ -58,6 +58,11 @@ struct MainTabBarView: View {
     @State private var isPresentingMakeAlbum = false
     @State private var isPresentingLoadingView = false
 
+    // 앨범 생성 로딩 관련 상태
+    @State private var isAlbumCreating = false                                                  // 요청 진행 중 여부
+    @State private var albumLoadingError: MakeAlbumViewModel.AlbumCreationLoadingError? = nil  // 에러 팝업 종류
+    @State private var albumRetryAction: (() -> Void)? = nil                                  // 네트워크 오류 재시도 클로저
+
     @EnvironmentObject private var appState: AppState
 
     private let makeAlbumTransition = AnyTransition.move(edge: .trailing).combined(with: .opacity)
@@ -86,25 +91,38 @@ struct MainTabBarView: View {
             if isPresentingMakeAlbum {
                 MakeAlbumView(
                     onExit: {
+                        // 앨범 생성 이탈: MakeAlbumView 닫고 진입 전 탭 복귀
                         withAnimation(.easeInOut(duration: 0.24)) {
                             isPresentingMakeAlbum = false
                         }
-
-                        // 진입 전 탭 복귀
                         DispatchQueue.main.asyncAfter(deadline: .now() + 0.18) {
                             withAnimation(.easeInOut(duration: 0.22)) {
                                 isTabBarHidden = false
                             }
                         }
                     },
-                    onProceedToLoading: {
-                        // LoadingView를 표시 후, MakeAlbumView 제거
+                    onCreationStarted: {
+                        // API 호출 시작: LoadingView 노출, MakeAlbumView는 메모리에 유지
+                        isAlbumCreating = true
                         withAnimation(.easeInOut(duration: 0.24)) {
                             isPresentingLoadingView = true
                         }
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.24) {
-                            isPresentingMakeAlbum = false
-                        }
+                    },
+                    onCreationSuccess: { albumId in
+                        // 생성 성공: 화면 숨기기 버튼 활성화
+                        isAlbumCreating = false
+                        albumLoadingError = nil
+                    },
+                    onNetworkError: { retryAction in
+                        // 네트워크 오류: 재시도 클로저 보관 후 팝업 표시
+                        isAlbumCreating = false
+                        albumRetryAction = retryAction
+                        albumLoadingError = .networkError
+                    },
+                    onFatalError: {
+                        // 재시도 불가 오류: 확인 팝업 표시
+                        isAlbumCreating = false
+                        albumLoadingError = .fatalError
                     }
                 )
                 .transition(makeAlbumTransition)
@@ -112,19 +130,33 @@ struct MainTabBarView: View {
             }
 
             if isPresentingLoadingView {
-                MakeAlbumLoadingView(onHide: {
-
-                    // 화면 숨기기: 로딩 뷰 닫기 + 알림 탭으로 복귀
-                    selectedTab = .notification
-                    withAnimation(.easeInOut(duration: 0.24)) {
-                        isPresentingLoadingView = false
-                    }
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.18) {
-                        withAnimation(.easeInOut(duration: 0.22)) {
-                            isTabBarHidden = false
+                MakeAlbumLoadingView(
+                    onHide: {
+                        // 화면 숨기기: 두 뷰 닫고 알림 탭으로 복귀
+                        selectedTab = .notification
+                        withAnimation(.easeInOut(duration: 0.24)) {
+                            isPresentingLoadingView = false
+                            isPresentingMakeAlbum = false
                         }
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.18) {
+                            withAnimation(.easeInOut(duration: 0.22)) {
+                                isTabBarHidden = false
+                            }
+                        }
+                    },
+                    isCreating: isAlbumCreating,
+                    loadingError: albumLoadingError,
+                    onRetry: {
+                        // 재시도: 로딩 상태 복원 후 저장된 클로저 실행
+                        isAlbumCreating = true
+                        albumLoadingError = nil
+                        albumRetryAction?()
+                    },
+                    onDismissToMain: {
+                        // 팝업 dismiss: 메인 페이지로 이동
+                        dismissAlbumCreationToMain()
                     }
-                })
+                )
                 .transition(makeAlbumTransition)
                 .zIndex(2)
             }
@@ -175,6 +207,25 @@ struct MainTabBarView: View {
                 break
             }
             appState.pendingNotificationAction = nil
+        }
+    }
+
+    // MARK: - Helpers
+
+    // 앨범 생성 관련 모든 뷰/상태를 초기화하고 홈 탭으로 복귀
+    private func dismissAlbumCreationToMain() {
+        selectedTab = .home
+        isAlbumCreating = false
+        albumLoadingError = nil
+        albumRetryAction = nil
+        withAnimation(.easeInOut(duration: 0.24)) {
+            isPresentingLoadingView = false
+            isPresentingMakeAlbum = false
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.18) {
+            withAnimation(.easeInOut(duration: 0.22)) {
+                isTabBarHidden = false
+            }
         }
     }
 }
