@@ -42,4 +42,15 @@ enum NotificationNavigationAction: Equatable {
     // 알림 탭 시 이동할 화면
     // NotificationView(세팅) -> MainTabBarView: onChange에서 화면 전환 처리 및 nil 초기화
     @Published var pendingNotificationAction: NotificationNavigationAction? = nil
+
+    // APIClient.sessionExpiredPublisher 구독 유지용
+    private var cancellables = Set<AnyCancellable>()
+
+    init(apiClient: APIClientProtocol = APIClient.shared) {
+        // refreshToken 만료 시 APIClient가 발행 -> 자동 로그아웃
+        apiClient.sessionExpiredPublisher
+            .receive(on: DispatchQueue.main)
+            .sink { [weak self] in self?.isLoggedIn = false }
+            .store(in: &cancellables)
+    }
 }
