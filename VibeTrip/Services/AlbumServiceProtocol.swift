@@ -43,6 +43,19 @@ struct AlbumCreateResponse: Decodable {
     let albumId: Int
 }
 
+// MARK: - AlbumCreateRequestBody
+
+// multipart request 파트
+private struct AlbumCreateRequestBody: Encodable {
+    let region: String
+    let travelStartDate: String
+    let travelEndDate: String
+    let genre: String
+    let withLyrics: Bool
+    let vocalGender: String
+    let comment: String
+}
+
 // MARK: - AlbumService (실 구현체 stub)
 
 /// API 스펙 확정 전 stub — 서버 스펙 확정 후 각 메서드 구현 예정
