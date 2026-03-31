@@ -131,15 +131,16 @@ struct LoginView: View {
     
     // MARK: - Logo Placeholder
     private var logoPlaceholder: some View {
-        Image(systemName: "airplane")
-            .font(.system(size: 40, weight: .semibold))
-            .foregroundColor(.white)
+        Image("AppLogo_Login")
+            .resizable()
+            .scaledToFit()
+            .frame(width: 138, height: 30)
     }
     
     // MARK: - Subtitle
     private var subtitleText: some View {
         Text("여행 사진 한 장으로 시작하는\n세상에 하나뿐인 사운드트랙")
-            .font(.setPretendard(weight: .medium, size: 20))
+            .font(.setPretendard(weight: .semiBold, size: 16))
             .multilineTextAlignment(.center)
             .foregroundColor(.white)
             .lineSpacing(4)

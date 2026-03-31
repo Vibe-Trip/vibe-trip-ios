@@ -242,7 +242,7 @@ struct LiquidGlassTabBar: View {
 
     private enum Layout {
         static let iconSize: CGFloat      = 25   // 탭 아이콘 크기
-        static let barHeight: CGFloat     = 64   // 탭바 높이
+        static let barHeight: CGFloat     = 60   // 탭바 높이
 //        static let bottomPadding: CGFloat = 28   // 홈 인디케이터 여백
         static let sidePadding: CGFloat   = 20   // 탭바 캡슐 좌우 여백
         static let innerPadding: CGFloat  = 20   // 탭바 내부 좌우 여백

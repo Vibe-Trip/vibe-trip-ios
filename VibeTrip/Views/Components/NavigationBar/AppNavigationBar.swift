@@ -33,7 +33,7 @@ enum NavBarStyle {
 private enum AppNavigationBarConstants {
     static let touchTargetSize: CGFloat = 44
     static let horizontalPadding: CGFloat = 20
-    static let height: CGFloat = 44
+    static let height: CGFloat = 46
     static let backIconSize: CGFloat = 20
 
     // 블러 관련 상수
@@ -114,7 +114,7 @@ struct AppNavigationBar<Leading: View, Trailing: View>: View {
             // ZStack overlay 방식
             ZStack {
                 blurBackground
-                contentHStack(alignment: .top, topPadding: safeTop + 12)
+                contentHStack(alignment: .top, topPadding: safeTop + 8)
             }
             .frame(height: safeTop + AppNavigationBarConstants.height)
             .ignoresSafeArea()
@@ -132,6 +132,8 @@ struct AppNavigationBar<Leading: View, Trailing: View>: View {
                         Text(title)
                             .font(.setPretendard(weight: .semiBold, size: 24))
                             .foregroundStyle(Color.textPrimary)
+                    } else {
+                        leading
                     }
                     Spacer()
                     Color.clear
@@ -157,7 +159,7 @@ struct AppNavigationBar<Leading: View, Trailing: View>: View {
                     // 중앙: 타이틀 (옵셔널)
                     if let title {
                         Text(title)
-                            .font(.setPretendard(weight: .medium, size: 16))
+                            .font(.setPretendard(weight: .bold, size: 16))
                             .foregroundStyle(Color.textPrimary)
                             .lineLimit(1)
                             .opacity(titleOpacity)
@@ -294,6 +296,20 @@ extension AppNavigationBar where Leading == AppNavBackButton, Trailing == EmptyV
         self.style = style
         self.isLargeTitle = false
         self.leading = AppNavBackButton(action: onBackTap)
+        self.trailing = EmptyView()
+    }
+}
+
+// 로고 이미지 등 커스텀 leading (trailing X)
+extension AppNavigationBar where Trailing == EmptyView {
+    init(
+        style: NavBarStyle = .transparent,
+        @ViewBuilder logoContent: () -> Leading
+    ) {
+        self.title = nil
+        self.style = style
+        self.isLargeTitle = true
+        self.leading = logoContent()
         self.trailing = EmptyView()
     }
 }
