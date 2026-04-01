@@ -6,7 +6,6 @@
 //
 
 import SwiftUI
-import UIKit
 
 // MARK: - AlbumDetailView
 // contentState에 따라 스크롤 활성화 여부 분기
@@ -220,20 +219,23 @@ private extension AlbumDetailView {
     // 커버 이미지: URL 없으면 placeholder 표시
     @ViewBuilder
     var coverImage: some View {
-        if let coverImage = displayModel.coverImage {
-            Image(uiImage: coverImage)
-                .resizable()
-                .scaledToFill()
-                .frame(maxWidth: .infinity, maxHeight: .infinity)
-                .clipped()
-        } else {
-            ZStack {
-                Rectangle()
-                    .fill(Color.placeholderSymbol)
-                
-                Image(systemName: "photo")
-                    .font(.system(size: Constants.placeholderIconSize, weight: .medium))
-                    .foregroundStyle(.white.opacity(0.9))
+        AsyncImage(url: displayModel.coverImageUrl) { phase in
+            switch phase {
+            case .success(let image):
+                image
+                    .resizable()
+                    .scaledToFill()
+                    .frame(maxWidth: .infinity, maxHeight: .infinity)
+                    .clipped()
+            default:
+                ZStack {
+                    Rectangle()
+                        .fill(Color.placeholderSymbol)
+
+                    Image(systemName: "photo")
+                        .font(.system(size: Constants.placeholderIconSize, weight: .medium))
+                        .foregroundStyle(.white.opacity(0.9))
+                }
             }
         }
     }
@@ -1079,7 +1081,7 @@ struct AlbumDetailDisplayModel {
     let title: String
     let destination: String
     let dateText: String
-    let coverImage: UIImage?
+    let coverImageUrl: URL?
     let contentState: AlbumDetailContentState
     let isMusicPlaying: Bool
 }
@@ -1100,7 +1102,7 @@ enum AlbumDetailContentState {
             title: "에펠탑 느낌나는 야경 도쿄타워",
             destination: "그레이트브리튼 북아일랜드 연합왕국 런던 마을",
             dateText: "2026년 11월 22일 - 2026년 11월 26일",
-            coverImage: nil,
+            coverImageUrl: nil,
             contentState: .empty,
             isMusicPlaying: false
         )
@@ -1113,7 +1115,7 @@ enum AlbumDetailContentState {
             title: "에펠탑 느낌나는 야경 도쿄타워",
             destination: "그레이트브리튼 북아일랜드 연합왕국 런던 마을",
             dateText: "2026년 3월 20일 - 2026년 3월 24일",
-            coverImage: nil,
+            coverImageUrl: nil,
             contentState: .hasLogs,
             isMusicPlaying: true
         )

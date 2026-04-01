@@ -20,10 +20,11 @@ struct MainPageView: View {
     }
     
     // MARK: - Carousel State (UI 전용)
-    
-    @State private var currentIndex: Int   = 0
-    @State private var dragOffset: CGFloat = 0
-    @State private var isDragging: Bool    = false
+
+    @State private var currentIndex: Int        = 0
+    @State private var dragOffset: CGFloat      = 0
+    @State private var isDragging: Bool         = false
+    @State private var selectedAlbum: AlbumCard? = nil
     
     // MARK: - 캐러셀 Layout Constants
     
@@ -51,6 +52,12 @@ struct MainPageView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .task { await viewModel.loadAlbums() }
+        .fullScreenCover(item: $selectedAlbum) { album in
+            AlbumDetailView(
+                displayModel: album.toDisplayModel(),
+                onBackTap: { selectedAlbum = nil }
+            )
+        }
     }
     
     // MARK: - 빈 상태 UI
@@ -133,6 +140,9 @@ struct MainPageView: View {
                             }()
                             
                             AlbumCardView(album: viewModel.albums[index])
+                                .onTapGesture {
+                                    if isActive { selectedAlbum = viewModel.albums[index] }
+                                }
                                 .offset(
                                     x: CarouselLayout.activeSideSpacing + baseX + dragOffset,
                                     y: topY
@@ -203,6 +213,33 @@ struct MainPageView: View {
             }
             .ignoresSafeArea()
         }
+    }
+}
+
+// MARK: - AlbumCard -> AlbumDetailDisplayModel 변환
+
+private extension AlbumCard {
+
+    // "yyyy-MM-dd" -> "yyyy년 M월 d일" 포맷팅
+    private func formatDate(_ raw: String) -> String {
+        let input = DateFormatter()
+        input.dateFormat = "yyyy-MM-dd"
+        let output = DateFormatter()
+        output.locale = Locale(identifier: "ko_KR")
+        output.dateFormat = "yyyy년 M월 d일"
+        guard let date = input.date(from: raw) else { return raw }
+        return output.string(from: date)
+    }
+
+    func toDisplayModel() -> AlbumDetailDisplayModel {
+        AlbumDetailDisplayModel(
+            title: title,
+            destination: location,
+            dateText: "\(formatDate(startDate)) - \(formatDate(endDate))",
+            coverImageUrl: coverImageUrl,
+            contentState: .empty,
+            isMusicPlaying: false
+        )
     }
 }
 
