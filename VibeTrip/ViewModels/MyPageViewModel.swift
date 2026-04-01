@@ -20,6 +20,7 @@ import Combine
     @Published var isNotificationEnabled: Bool {
         didSet { UserDefaults.standard.set(isNotificationEnabled, forKey: Constants.notificationKey) }
     }
+    @Published var isLogoutAlertPresented: Bool = false
     @Published var isWithdrawalAlertPresented: Bool = false
     @Published var isMailPresented: Bool = false
     @Published private(set) var toastMessage: String?
