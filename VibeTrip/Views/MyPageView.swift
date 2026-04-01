@@ -87,6 +87,25 @@ struct MyPageView: View {
                 Task { await viewModel.loadProfile() }
             }
             .overlay {
+                // 로그아웃 확인 팝업
+                if viewModel.isLogoutAlertPresented {
+                    ExitPopupView(
+                        title: "로그아웃할까요?",
+                        message: "로그아웃하면 다음 접속 시 다시 로그인해야 합니다.",
+                        onCancel: {
+                            viewModel.isLogoutAlertPresented = false
+                        },
+                        onConfirm: {
+                            viewModel.isLogoutAlertPresented = false
+                            viewModel.logout(appState: appState)
+                        },
+                        confirmTitle: "로그아웃"
+                    )
+                    .transition(.opacity)
+                }
+            }
+            .animation(.easeInOut(duration: 0.2), value: viewModel.isLogoutAlertPresented)
+            .overlay {
                 // 회원탈퇴 확인 팝업
                 if viewModel.isWithdrawalAlertPresented {
                     ExitPopupView(
@@ -270,7 +289,7 @@ struct MyPageView: View {
         VStack(spacing: 0) {
             sectionHeader("계정관리")
             Button {
-                viewModel.logout(appState: appState)
+                viewModel.isLogoutAlertPresented = true
             } label: {
                 HStack {
                     Text("로그아웃")
