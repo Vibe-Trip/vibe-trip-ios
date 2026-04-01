@@ -165,7 +165,7 @@ struct LoginView: View {
                         .offset(x: -3)
                         
                     Text("카카오로 계속하기")
-                        .font(.setPretendard(weight: .medium, size: 18))
+                        .font(.setPretendard(weight: .medium, size: 20))
                         .offset(x: -1)
                 }
                 .foregroundColor(.black.opacity(0.85))
@@ -191,7 +191,6 @@ struct LoginView: View {
             captionView
         }
         .padding(.horizontal, 20)
-        .padding(.bottom, 20)
         .disabled(viewModel.isLoading)  // 로딩 중 전체 버튼 비활성화
     }
 
