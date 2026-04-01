@@ -48,8 +48,8 @@ struct MyPageView: View {
         static let termsURL = URL(string: "https://example.com/terms")!
         static let privacyURL = URL(string: "https://example.com/privacy")!
         static let openSourceURL = URL(string: "https://example.com/licenses")!
-        static let supportEmail = "Retrip@gmail.com"
-        static let mailSubject = "[VibeTrip 문의]"
+        static let supportEmail = "vibetrip26@gmail.com"
+        static let mailSubject = "[RETRIP 문의]"
     }
     
     var body: some View {
