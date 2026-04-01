@@ -8,6 +8,8 @@
 import Foundation
 import MessageUI
 import Combine
+import UIKit
+import UserNotifications
 
 @MainActor final class MyPageViewModel: ObservableObject {
     
@@ -16,10 +18,7 @@ import Combine
     @Published private(set) var userProfile: UserProfile?
     @Published private(set) var albumCount: Int = 0
     @Published private(set) var logCount: Int = 0
-    // 알림 설정 변경 시 UserDefaults에 즉시 저장
-    @Published var isNotificationEnabled: Bool {
-        didSet { UserDefaults.standard.set(isNotificationEnabled, forKey: Constants.notificationKey) }
-    }
+    @Published private(set) var isNotificationEnabled: Bool
     @Published var isLogoutAlertPresented: Bool = false
     @Published var isWithdrawalAlertPresented: Bool = false
     @Published var isMailPresented: Bool = false
@@ -62,6 +61,18 @@ import Combine
             showToast("프로필을 불러오지 못했어요.")
         }
     }
+
+    func setNotificationEnabled(_ isEnabled: Bool) {
+        Task {
+            if isEnabled {
+                // 토글 on: 권한 상태 확인
+                await enableNotifications()
+            } else {
+                // 토글 off: 원격 알림 등록 해제
+                disableNotifications()
+            }
+        }
+    }
     
     func logout(appState: AppState) {
         // 로컬 인증 정보 제거 후 로그인 화면으로 복귀
@@ -99,5 +110,55 @@ import Combine
     
     func consumeToast() {
         toastMessage = nil
+    }
+
+    private func enableNotifications() async {
+        let center = UNUserNotificationCenter.current()
+        let settings = await center.notificationSettings()
+
+        switch settings.authorizationStatus {
+        case .authorized, .provisional, .ephemeral:
+            // 이미 권한 O: APNs 등록만 다시 보장
+            UIApplication.shared.registerForRemoteNotifications()
+            persistNotificationEnabled(true)
+
+        case .notDetermined:
+            // 최초 1회: 시스템 권한 팝업 띄움
+            let granted = await requestNotificationAuthorization()
+            if granted {
+                UIApplication.shared.registerForRemoteNotifications()
+                persistNotificationEnabled(true)
+            } else {
+                persistNotificationEnabled(false)
+                showToast("알림 권한이 허용되지 않았어요.")
+            }
+
+        case .denied:
+            persistNotificationEnabled(false)
+            showToast("설정 앱에서 알림 권한을 허용해 주세요.")
+
+        @unknown default:
+            persistNotificationEnabled(false)
+            showToast("알림 설정을 변경하지 못했어요.")
+        }
+    }
+
+    private func disableNotifications() {
+        // 원격 알림 등록 해제
+        UIApplication.shared.unregisterForRemoteNotifications()
+        persistNotificationEnabled(false)
+    }
+
+    private func persistNotificationEnabled(_ isEnabled: Bool) {
+        isNotificationEnabled = isEnabled
+        UserDefaults.standard.set(isEnabled, forKey: Constants.notificationKey)
+    }
+
+    private func requestNotificationAuthorization() async -> Bool {
+        await withCheckedContinuation { continuation in
+            UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .badge, .sound]) { granted, _ in
+                continuation.resume(returning: granted)
+            }
+        }
     }
 }

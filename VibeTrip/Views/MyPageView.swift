@@ -254,7 +254,13 @@ struct MyPageView: View {
                     .font(Font.setPretendard(weight: .medium, size: 16))
                     .foregroundStyle(Color.black)
                 Spacer()
-                Toggle("", isOn: $viewModel.isNotificationEnabled)
+                Toggle(
+                    "",
+                    isOn: Binding(
+                        get: { viewModel.isNotificationEnabled },
+                        set: { viewModel.setNotificationEnabled($0) }
+                    )
+                )
                     .tint(Color.appPrimary)
                     .labelsHidden()
             }
