@@ -39,21 +39,24 @@ enum APIClientError: Error {
 
 // 단일 API 요청을 설명하는 값 타입
 struct APIEndpoint {
-    let path: String            // 앤드포인트 경로
-    let method: HTTPMethod      // HTTP 메서드
-    let body: (any Encodable)?  // JSON 바디 (없으면 nil)
-    let requiresAuth: Bool      // false: Authorization 헤더 생략
+    let path: String                    // 앤드포인트 경로
+    let method: HTTPMethod              // HTTP 메서드
+    let body: (any Encodable)?          // JSON 바디 (없으면 nil)
+    let requiresAuth: Bool              // false: Authorization 헤더 생략
+    let queryItems: [URLQueryItem]?     // GET 쿼리 파라미터
 
     init(
         path: String,
         method: HTTPMethod,
         body: (any Encodable)? = nil,
-        requiresAuth: Bool = true
+        requiresAuth: Bool = true,
+        queryItems: [URLQueryItem]? = nil
     ) {
         self.path = path
         self.method = method
         self.body = body
         self.requiresAuth = requiresAuth
+        self.queryItems = queryItems
     }
 }
 
@@ -299,7 +302,10 @@ final class APIClient: APIClientProtocol {
     // MARK: - URLRequest 생성 (JSON)
 
     private func buildJSONRequest(_ endpoint: APIEndpoint) throws -> URLRequest {
-        guard let url = URL(string: baseURL + endpoint.path) else {
+        // URLComponents: 쿼리 파라미터를 URL에 인코딩 및 연결
+        var components = URLComponents(string: baseURL + endpoint.path)
+        components?.queryItems = endpoint.queryItems
+        guard let url = components?.url else {
             throw APIClientError.invalidURL
         }
 

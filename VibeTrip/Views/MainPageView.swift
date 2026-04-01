@@ -20,10 +20,11 @@ struct MainPageView: View {
     }
     
     // MARK: - Carousel State (UI 전용)
-    
-    @State private var currentIndex: Int   = 0
-    @State private var dragOffset: CGFloat = 0
-    @State private var isDragging: Bool    = false
+
+    @State private var currentIndex: Int        = 0
+    @State private var dragOffset: CGFloat      = 0
+    @State private var isDragging: Bool         = false
+    @State private var selectedAlbum: AlbumCard? = nil
     
     // MARK: - 캐러셀 Layout Constants
     
@@ -43,7 +44,7 @@ struct MainPageView: View {
     
     var body: some View {
         Group {
-            if viewModel.albumCount == 0 {
+            if viewModel.albums.isEmpty {
                 emptyContent
             } else {
                 carouselView
@@ -51,6 +52,12 @@ struct MainPageView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .task { await viewModel.loadAlbums() }
+        .fullScreenCover(item: $selectedAlbum) { album in
+            AlbumDetailView(
+                displayModel: album.toDisplayModel(),
+                onBackTap: { selectedAlbum = nil }
+            )
+        }
     }
     
     // MARK: - 빈 상태 UI
@@ -113,7 +120,7 @@ struct MainPageView: View {
                 Color(UIColor.systemBackground).ignoresSafeArea()
                 
                 ZStack {
-                    ForEach((0..<viewModel.albumCount).reversed(), id: \.self) { index in
+                    ForEach((0..<viewModel.albums.count).reversed(), id: \.self) { index in
                         let rel        = index - currentIndex
                         let isActive   = rel == 0
                         let isNext     = rel == 1
@@ -132,7 +139,10 @@ struct MainPageView: View {
                                 return inactiveTopY
                             }()
                             
-                            AlbumCardView()
+                            AlbumCardView(album: viewModel.albums[index])
+                                .onTapGesture {
+                                    if isActive { selectedAlbum = viewModel.albums[index] }
+                                }
                                 .offset(
                                     x: CarouselLayout.activeSideSpacing + baseX + dragOffset,
                                     y: topY
@@ -166,7 +176,7 @@ struct MainPageView: View {
                             isDragging   = true
                             let t        = value.translation.width
                             let atStart  = currentIndex == 0 && t > 0
-                            let atEnd    = currentIndex == viewModel.albumCount - 1 && t < 0
+                            let atEnd    = currentIndex == viewModel.albums.count - 1 && t < 0
                             dragOffset   = (atStart || atEnd) ? t * 0.2 : t
                         }
                         .onEnded { value in
@@ -176,7 +186,7 @@ struct MainPageView: View {
                             - value.translation.width
                             
                             if dragOffset < -threshold || velocity < -CarouselLayout.swipeVelocityThreshold {
-                                if currentIndex < viewModel.albumCount - 1 { currentIndex += 1 }
+                                if currentIndex < viewModel.albums.count - 1 { currentIndex += 1 }
                             } else if dragOffset > threshold || velocity > CarouselLayout.swipeVelocityThreshold {
                                 if currentIndex > 0 { currentIndex -= 1 }
                             }
@@ -187,6 +197,8 @@ struct MainPageView: View {
                             )) {
                                 dragOffset = 0
                             }
+
+                            Task { await viewModel.loadMoreIfNeeded(currentIndex: currentIndex) }
                         }
                 )
 
@@ -204,12 +216,41 @@ struct MainPageView: View {
     }
 }
 
+// MARK: - AlbumCard -> AlbumDetailDisplayModel 변환
+
+private extension AlbumCard {
+
+    // "yyyy-MM-dd" -> "yyyy년 M월 d일" 포맷팅
+    private func formatDate(_ raw: String) -> String {
+        let input = DateFormatter()
+        input.dateFormat = "yyyy-MM-dd"
+        let output = DateFormatter()
+        output.locale = Locale(identifier: "ko_KR")
+        output.dateFormat = "yyyy년 M월 d일"
+        guard let date = input.date(from: raw) else { return raw }
+        return output.string(from: date)
+    }
+
+    func toDisplayModel() -> AlbumDetailDisplayModel {
+        AlbumDetailDisplayModel(
+            title: title,
+            destination: location,
+            dateText: "\(formatDate(startDate)) - \(formatDate(endDate))",
+            coverImageUrl: coverImageUrl,
+            contentState: .empty,
+            isMusicPlaying: false
+        )
+    }
+}
+
 // MARK: - Preview
 
 #Preview("카드 있음") {
-    MainPageView(viewModel: MainPageViewModel(albumCount: 4))
+    MainPageView(viewModel: MainPageViewModel(albumService: MockAlbumService()))
 }
 
 #Preview("빈 상태") {
-    MainPageView()
+    let service = MockAlbumService()
+    service.isEmpty = true
+    return MainPageView(viewModel: MainPageViewModel(albumService: service))
 }
