@@ -133,12 +133,12 @@ final class MockAlbumService: AlbumServiceProtocol {
     var isEmpty: Bool = false              // isEmpty: 빈 목록 테스트
     var delay: UInt64 = 500_000_000       // 응답 지연 시뮬레이션(0.5초)
     
-    func fetchAlbums(cursor: String?, limit: Int) async throws -> AlbumListPayload {
+    func fetchAlbums(cursor: Int?, limit: Int) async throws -> AlbumListPayload {
         try await Task.sleep(nanoseconds: delay)
         if let error = simulatedError { throw error }
-        if isEmpty { return AlbumListPayload(albums: [], totalCount: 0, hasNext: false) }
+        if isEmpty { return AlbumListPayload(content: [], totalCount: 0, hasNext: false) }
         return AlbumListPayload(
-            albums: AlbumCard.mockItems,
+            content: AlbumCard.mockItems,
             totalCount: AlbumCard.mockItems.count,
             hasNext: false
         )
