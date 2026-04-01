@@ -57,20 +57,24 @@ extension VocalGender: Decodable {
 
 // MARK: - AlbumCard
 
-// 메인 페이지 앨범 목록 카드 모델
+// 메인 페이지 앨범 목록 카드 모델 (GET /api/v1/albums)
 struct AlbumCard: Identifiable, Decodable {
-    let id: String
+    let id: Int             // "albumId": 페이지네이션 cursor값
     let title: String
-    let location: String
-    
-    // 서버 응답 포맷
-    let startDate: String
-    let endDate: String
+    let location: String    // "region"
+    let startDate: String   // "travelStartDate"
+    let endDate: String     // "travelEndDate"
     let coverImageUrl: URL?
-    let thumbnailImageUrls: [URL]
-    let musicTitle: String?
-    let musicGenre: AlbumGenre
-    let createdAt: Date
+
+    // Swift 프로퍼티명 <-> 서버 필드명 매핑
+    enum CodingKeys: String, CodingKey {
+        case id = "albumId"
+        case title
+        case location = "region"
+        case startDate = "travelStartDate"
+        case endDate = "travelEndDate"
+        case coverImageUrl
+    }
 }
 
 // MARK: - AlbumLog
@@ -97,7 +101,7 @@ struct AlbumLog: Decodable {
 
 // 앨범 목록 응답 래퍼 (커서 기반 페이지네이션)
 struct AlbumListPayload: Decodable {
-    let albums: [AlbumCard]
+    let content: [AlbumCard] // "content"
     let totalCount: Int
     let hasNext: Bool
 }
@@ -143,22 +147,22 @@ enum AlbumError: Error {
 extension AlbumCard {
     static let mockItems: [AlbumCard] = [
         .init(
-            id: "1", title: "오사카 도톤보리", location: "일본 오사카",
-            startDate: "2026.01.12", endDate: "2026.01.15",
-            coverImageUrl: nil, thumbnailImageUrls: [],
-            musicTitle: "Neon Rain", musicGenre: .jazz, createdAt: Date()
+            id: 1, title: "오사카 도톤보리",
+            location: "일본 오사카",
+            startDate: "2026-01-12", endDate: "2026-01-15",
+            coverImageUrl: nil
         ),
         .init(
-            id: "2", title: "보홀 에메랄드 바다", location: "필리핀 보홀",
-            startDate: "2024.11.14", endDate: "2024.11.19",
-            coverImageUrl: nil, thumbnailImageUrls: [],
-            musicTitle: "Ocean Drift", musicGenre: .acoustic, createdAt: Date()
+            id: 2, title: "보홀 에메랄드 바다",
+            location: "필리핀 보홀",
+            startDate: "2024-11-14", endDate: "2024-11-19",
+            coverImageUrl: nil
         ),
         .init(
-            id: "3", title: "파리 에펠탑", location: "프랑스 파리",
-            startDate: "2025.06.01", endDate: "2025.06.07",
-            coverImageUrl: nil, thumbnailImageUrls: [],
-            musicTitle: "Café Lune", musicGenre: .jazz, createdAt: Date()
+            id: 3, title: "파리 에펠탑",
+            location: "프랑스 파리",
+            startDate: "2025-06-01", endDate: "2025-06-07",
+            coverImageUrl: nil
         ),
     ]
 }
