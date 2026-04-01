@@ -302,7 +302,10 @@ final class APIClient: APIClientProtocol {
     // MARK: - URLRequest 생성 (JSON)
 
     private func buildJSONRequest(_ endpoint: APIEndpoint) throws -> URLRequest {
-        guard let url = URL(string: baseURL + endpoint.path) else {
+        // URLComponents: 쿼리 파라미터를 URL에 인코딩 및 연결
+        var components = URLComponents(string: baseURL + endpoint.path)
+        components?.queryItems = endpoint.queryItems
+        guard let url = components?.url else {
             throw APIClientError.invalidURL
         }
 
