@@ -145,7 +145,7 @@ struct LoginView: View {
     
     // MARK: - Subtitle
     private var subtitleText: some View {
-        Text("여행 사진 한 장으로 시작하는\n세상에 하나뿐인 사운드트랙")
+        Text("여행 사진 한 장으로 시작하는\n이 세상에 하나뿐인 사운드트랙")
             .font(.setPretendard(weight: .semiBold, size: 16))
             .multilineTextAlignment(.center)
             .foregroundColor(.white)
@@ -154,7 +154,7 @@ struct LoginView: View {
     
     // MARK: - Button Area
     private var buttonArea: some View {
-        VStack(spacing: 14) {
+        VStack(spacing: 12) {
             // Kakao Login Button
             Button { viewModel.loginWithKakao() } label: {
                 HStack(spacing: 5) {
@@ -162,8 +162,11 @@ struct LoginView: View {
                         .resizable()
                         .scaledToFit()
                         .frame(width: 15, height: 15)
+                        .offset(x: -3)
+                        
                     Text("카카오로 계속하기")
                         .font(.setPretendard(weight: .medium, size: 18))
+                        .offset(x: -1)
                 }
                 .foregroundColor(.black.opacity(0.85))
                 .padding(.horizontal, 16)
@@ -183,10 +186,41 @@ struct LoginView: View {
             .frame(height: 48)
             .frame(maxWidth: .infinity)
             .cornerRadius(8)
+
+            // 약관 캡션
+            captionView
         }
         .padding(.horizontal, 20)
         .padding(.bottom, 20)
         .disabled(viewModel.isLoading)  // 로딩 중 전체 버튼 비활성화
+    }
+
+    // MARK: - Terms Caption
+
+    // TODO: 실제 URL로 교체
+    private let termsURL = URL(string: "https://retrip.kr/terms")!  // 서비스 이용 약관
+    private let privacyURL = URL(string: "https://retrip.kr/privacy")! // 개인정보 처리방침
+
+    private var captionAttributedText: AttributedString {
+        var prefix  = AttributedString("회원가입 시 RETRIP 서비스 필수 동의 항목인 \n")
+        var terms   = AttributedString("서비스 이용약관")
+        var and     = AttributedString("과 ")
+        var privacy = AttributedString("개인정보처리방침")
+        var suffix  = AttributedString("이 함께 적용됩니다.")
+        terms.link = termsURL
+        terms.underlineStyle = .single
+        privacy.link = privacyURL
+        privacy.underlineStyle = .single
+        return prefix + terms + and + privacy + suffix
+    }
+
+    private var captionView: some View {
+        Text(captionAttributedText)
+            .font(.setPretendard(weight: .regular, size: 12))
+            .foregroundColor(.white)
+            .multilineTextAlignment(.center)
+            .lineSpacing(3.6)
+            .tint(.white)
     }
 }
 
@@ -194,4 +228,3 @@ struct LoginView: View {
     LoginView()
         .environmentObject(AppState())
 }
-
