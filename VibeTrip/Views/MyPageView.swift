@@ -30,8 +30,9 @@ struct MyPageView: View {
         static let avatarBackgroundColor = Color(red: 0.92, green: 0.92, blue: 0.98)
         static let avatarSymbolColor = Color(red: 0.67, green: 0.68, blue: 0.93)
         static let headerHeight: CGFloat = 44
+        static let tabBarHeight: CGFloat = 60
         static let rowHeight: CGFloat = 52
-        static let toastBottomPadding: CGFloat = 40
+        static let toastBottomPadding: CGFloat = tabBarHeight + 16
         static let toastAnimationDuration: Double = 3.0
         static let statCardCornerRadius: CGFloat = 12
         static let statCardSpacing: CGFloat = 10
@@ -41,7 +42,7 @@ struct MyPageView: View {
         static let settingsGroupSpacing: CGFloat = 16
         static let settingsTopPadding: CGFloat = 40
         static let sectionHeaderBottomPadding: CGFloat = 4
-        static let contentBottomPadding: CGFloat = 112
+        static let contentBottomPadding: CGFloat = tabBarHeight + 52
         static let secondaryLabelColor = Color(red: 0.6, green: 0.62, blue: 0.64)
         // TODO: 실제 URL로 교체 필요
         static let termsURL = URL(string: "https://example.com/terms")!
