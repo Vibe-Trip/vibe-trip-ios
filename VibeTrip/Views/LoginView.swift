@@ -76,6 +76,12 @@ struct LoginView: View {
             MainTabBarView()
                 .environmentObject(appState)
         }
+        // 로그인 성공 시 appState 동기화 -> 재로그아웃 정상화 목적
+        .onChange(of: viewModel.isLoggedIn) { _, newVal in
+            if newVal {
+                appState.isLoggedIn = true
+            }
+        }
         // 로그아웃/탈퇴 시 fullScreenCover 닫기
         .onChange(of: appState.isLoggedIn) { _, newVal in
             if newVal == .some(false) {
