@@ -11,11 +11,12 @@ import SwiftUI
 
 struct AlbumCardView: View {
     
-    // TODO: 실제 데이터 연결 시 album.photos.count - 1 (커버 이미지 제외한 추가 사진 수)로 교체
+    private let album: AlbumCard
+    // TODO: 서버 연동: 미리보기 이미지 받아오기
     private let extraPhotoCount: Int
     
-    // 테스트용 사진 개수
-    init(extraPhotoCount: Int = 5) {
+    init(album: AlbumCard, extraPhotoCount: Int = 5) {
+        self.album = album
         self.extraPhotoCount = extraPhotoCount
     }
     
@@ -35,7 +36,7 @@ struct AlbumCardView: View {
         
         static let cardShadowOpacity: CGFloat    = 0.06
         static let cardShadowRadius: CGFloat    = 1.5
-
+        
         static let textTopPadding: CGFloat      = 58
         static let textLeadingPadding: CGFloat  = 16
         static let textSpacing: CGFloat         = 4
@@ -57,15 +58,21 @@ struct AlbumCardView: View {
     // MARK: - 대표 이미지
     
     private var coverImage: some View {
-        // TODO: AsyncImage(url: album.coverImageUrl)
-        Rectangle()
-            .foregroundColor(.clear)
-            .frame(width: Layout.cardWidth, height: Layout.coverImageHeight)
-            .background(
+        // 이미지 로드 중 or 실패 시 placeholder 표시
+        AsyncImage(url: album.coverImageUrl) { phase in
+            switch phase {
+            case .success(let image):
+                image
+                    .resizable()
+                    .scaledToFill()
+            default:
                 Color.placeholderSymbol
-            )
-            .cornerRadius(Layout.cardCornerRadius)
-            .shadow(color: .black.opacity(0.1), radius: 7.5, x: 0, y: 5)
+            }
+        }
+        .frame(width: Layout.cardWidth, height: Layout.coverImageHeight)
+        .clipped()
+        .cornerRadius(Layout.cardCornerRadius)
+        .shadow(color: .black.opacity(0.1), radius: 7.5, x: 0, y: 5)
     }
     
     // MARK: - Info Overlay
@@ -87,17 +94,17 @@ struct AlbumCardView: View {
                 
                 // 텍스트 그룹 (커버 이미지 하단 기준 고정 위치)
                 VStack(alignment: .leading, spacing: Layout.textSpacing) {
-                    Text("오사카 도톤보리") // TODO: album.title
+                    Text(album.title)
                         .font(Font.setPretendard(weight: .semiBold, size: 20))
                         .foregroundStyle(Color.textPrimary)
                         .lineLimit(1)
                     
-                    Text("일본 오사카") // TODO: album.location
+                    Text(album.location)
                         .font(Font.setPretendard(weight: .medium, size: 12))
                         .foregroundStyle(Color.textSecondary)
                         .lineLimit(1)
                     
-                    Text("2026.01.12 ~ 2026.01.15") // TODO: "\(album.startDate) ~ \(album.endDate)"
+                    Text("\(album.startDate) ~ \(album.endDate)")
                         .font(Font.setPretendard(weight: .medium, size: 12))
                         .kerning(0.2)
                         .foregroundStyle(Color.textSecondary)
@@ -116,7 +123,7 @@ struct AlbumCardView: View {
         // extraPhotoCount 개수 별 표시
         /// 사진 1장 : 원형 1개 / 2장 : 원형 2개 / 3장 : 원형 3개 / 4장 이상 : 원형 3개 + +N 배지
         let photoCircleCount = min(extraPhotoCount, 3)
-        let remainingCount = extraPhotoCount - 3  // TODO: 실제 데이터 연결 시 album.photos.count - 4
+        let remainingCount = extraPhotoCount - 3
         
         return HStack(spacing: -Layout.thumbnailOverlap) {
             ForEach(0..<photoCircleCount, id: \.self) { _ in
@@ -146,5 +153,5 @@ struct AlbumCardView: View {
 // MARK: - Preview
 
 #Preview {
-    AlbumCardView()
+    AlbumCardView(album: AlbumCard.mockItems[0])
 }
