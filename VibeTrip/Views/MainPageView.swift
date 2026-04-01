@@ -43,7 +43,7 @@ struct MainPageView: View {
     
     var body: some View {
         Group {
-            if viewModel.albumCount == 0 {
+            if viewModel.albums.isEmpty {
                 emptyContent
             } else {
                 carouselView
@@ -113,7 +113,7 @@ struct MainPageView: View {
                 Color(UIColor.systemBackground).ignoresSafeArea()
                 
                 ZStack {
-                    ForEach((0..<viewModel.albumCount).reversed(), id: \.self) { index in
+                    ForEach((0..<viewModel.albums.count).reversed(), id: \.self) { index in
                         let rel        = index - currentIndex
                         let isActive   = rel == 0
                         let isNext     = rel == 1
@@ -132,7 +132,7 @@ struct MainPageView: View {
                                 return inactiveTopY
                             }()
                             
-                            AlbumCardView()
+                            AlbumCardView(album: viewModel.albums[index])
                                 .offset(
                                     x: CarouselLayout.activeSideSpacing + baseX + dragOffset,
                                     y: topY
@@ -166,7 +166,7 @@ struct MainPageView: View {
                             isDragging   = true
                             let t        = value.translation.width
                             let atStart  = currentIndex == 0 && t > 0
-                            let atEnd    = currentIndex == viewModel.albumCount - 1 && t < 0
+                            let atEnd    = currentIndex == viewModel.albums.count - 1 && t < 0
                             dragOffset   = (atStart || atEnd) ? t * 0.2 : t
                         }
                         .onEnded { value in
@@ -176,7 +176,7 @@ struct MainPageView: View {
                             - value.translation.width
                             
                             if dragOffset < -threshold || velocity < -CarouselLayout.swipeVelocityThreshold {
-                                if currentIndex < viewModel.albumCount - 1 { currentIndex += 1 }
+                                if currentIndex < viewModel.albums.count - 1 { currentIndex += 1 }
                             } else if dragOffset > threshold || velocity > CarouselLayout.swipeVelocityThreshold {
                                 if currentIndex > 0 { currentIndex -= 1 }
                             }
@@ -187,6 +187,8 @@ struct MainPageView: View {
                             )) {
                                 dragOffset = 0
                             }
+
+                            Task { await viewModel.loadMoreIfNeeded(currentIndex: currentIndex) }
                         }
                 )
 
@@ -207,9 +209,11 @@ struct MainPageView: View {
 // MARK: - Preview
 
 #Preview("카드 있음") {
-    MainPageView(viewModel: MainPageViewModel(albumCount: 4))
+    MainPageView(viewModel: MainPageViewModel(albumService: MockAlbumService()))
 }
 
 #Preview("빈 상태") {
-    MainPageView()
+    let service = MockAlbumService()
+    service.isEmpty = true
+    return MainPageView(viewModel: MainPageViewModel(albumService: service))
 }
