@@ -13,7 +13,7 @@ import Foundation
 /// Auth 레이어(AuthServiceProtocol)와 동일한 Protocol 기반 패턴 적용
 protocol AlbumServiceProtocol {
     /// 앨범 목록 조회 (커서 기반 페이지네이션)
-    func fetchAlbums(cursor: String?, limit: Int) async throws -> AlbumListPayload
+    func fetchAlbums(cursor: Int?, limit: Int) async throws -> AlbumListPayload
     /// 앨범 생성
     func createAlbum(request: AlbumCreateRequest) async throws -> AlbumCreateResponse
     /// 앨범 로그 조회
@@ -66,8 +66,16 @@ final class AlbumService: AlbumServiceProtocol {
         self.apiClient = apiClient
     }
 
-    func fetchAlbums(cursor: String?, limit: Int) async throws -> AlbumListPayload {
-        fatalError("TODO: 서버 스펙 확정 후 구현")
+    func fetchAlbums(cursor: Int?, limit: Int) async throws -> AlbumListPayload {
+        // cursor: 존재 ->해당 albumId 이후부터, 존재X -> 첫 페이지부터 조회
+        var queryItems: [URLQueryItem] = [
+            URLQueryItem(name: "limit", value: String(limit))
+        ]
+        if let cursor {
+            queryItems.append(URLQueryItem(name: "cursor", value: String(cursor)))
+        }
+        let endpoint = APIEndpoint(path: "/api/v1/albums", method: .get, queryItems: queryItems)
+        return try await apiClient.request(endpoint)
     }
 
     // 커버 이미지 + 앨범 정보: multipart/form-data로 전송해 앨범 생성
