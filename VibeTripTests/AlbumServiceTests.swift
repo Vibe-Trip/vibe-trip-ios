@@ -61,6 +61,18 @@ final class MockAPIClient: APIClientProtocol {
     func perform(_ endpoint: APIEndpoint) async throws {
         fatalError("AlbumServiceTests에서 미사용")
     }
+
+    // performUpload 호출 시 반환할 결과
+    var performUploadResult: Result<Void, Error> = .success(())
+    private(set) var performUploadCallCount = 0
+    private(set) var capturedFormData: MultipartFormData?
+
+    func performUpload(_ endpoint: APIEndpoint, formData: MultipartFormData) async throws {
+        performUploadCallCount += 1
+        capturedEndpoints.append(endpoint)
+        capturedFormData = formData
+        if case .failure(let error) = performUploadResult { throw error }
+    }
 }
 
 // MARK: - AlbumServiceTests
