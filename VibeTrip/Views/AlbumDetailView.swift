@@ -20,6 +20,18 @@ import Combine
     private var cursor: Int? = nil
     private let limit = 20
     private let service: AlbumServiceProtocol
+    // 밀리초 포함 ISO8601 파싱
+    private static let isoFormatterWithFractionalSeconds: ISO8601DateFormatter = {
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        return formatter
+    }()
+    // 일반 ISO8601 파싱
+    private static let isoFormatter: ISO8601DateFormatter = {
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime]
+        return formatter
+    }()
 
     init(albumId: String, service: AlbumServiceProtocol = AlbumService()) {
         self.albumId = albumId
@@ -56,14 +68,12 @@ import Combine
     // postedAt(ISO8601) 기준 날짜별 그룹핑
     // 반환: [(dateLabel: "3월 25일 화요일", logs: [AlbumLogEntry])]
     var groupedLogs: [(dateLabel: String, logs: [AlbumLogEntry])] {
-        let isoFormatter = ISO8601DateFormatter()
-        isoFormatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
         let labelFormatter = DateFormatter()
         labelFormatter.locale = Locale(identifier: "ko_KR")
         labelFormatter.dateFormat = "M월 d일 EEEE"
 
         let grouped = Dictionary(grouping: logs) { entry -> String in
-            guard let date = isoFormatter.date(from: entry.postedAt) else { return "" }
+            guard let date = Self.parseISO8601Date(entry.postedAt) else { return "" }
             return labelFormatter.string(from: date)
         }
 
@@ -72,10 +82,15 @@ import Combine
             return (label, items)
         }
         .sorted { lhs, rhs in
-            guard let l = isoFormatter.date(from: lhs.1.first!.postedAt),
-                  let r = isoFormatter.date(from: rhs.1.first!.postedAt) else { return false }
+            guard let l = Self.parseISO8601Date(lhs.1.first!.postedAt),
+                  let r = Self.parseISO8601Date(rhs.1.first!.postedAt) else { return false }
             return l > r
         }
+    }
+
+    static func parseISO8601Date(_ value: String) -> Date? {
+        isoFormatterWithFractionalSeconds.date(from: value)
+            ?? isoFormatter.date(from: value)
     }
 }
 
@@ -207,7 +222,10 @@ struct AlbumDetailView: View {
         }
         .navigationBarBackButtonHidden(true)
         .toolbar(.hidden, for: .navigationBar)
-        .fullScreenCover(isPresented: $isWritingLog) {
+        .fullScreenCover(isPresented: $isWritingLog, onDismiss: {
+            // 작성 완료 후 목록 재조회
+            Task { await logViewModel.loadInitialLogs() }
+        }) {
             AlbumLogView(albumId: String(displayModel.albumId), mode: .create)
         }
         .task { await logViewModel.loadInitialLogs() }
@@ -899,12 +917,12 @@ private struct AlbumDetailLogItemCard: View {
 
     /// postedAt ISO8601 → "yyyy년 M월 d일" 포맷
     private var dateLabel: String {
-        let isoFormatter = ISO8601DateFormatter()
-        isoFormatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
         let displayFormatter = DateFormatter()
         displayFormatter.locale = Locale(identifier: "ko_KR")
         displayFormatter.dateFormat = "yyyy년 M월 d일"
-        guard let date = isoFormatter.date(from: entry.postedAt) else { return entry.postedAt }
+        guard let date = AlbumDetailViewModel.parseISO8601Date(entry.postedAt) else {
+            return entry.postedAt
+        }
         return displayFormatter.string(from: date)
     }
 
