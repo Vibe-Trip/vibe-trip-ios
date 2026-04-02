@@ -588,26 +588,46 @@ private struct MakeAlbumOptionalInputContent: View {
 private struct MakeAlbumPhotoBox: View {
     
     let image: UIImage?
+
+    private enum Layout {
+        static let containerHeight: CGFloat = 210
+        // 디자이너 스펙: 전체 박스 대비 실제 이미지 표시 영역의 가로 비율
+        static let imageWidthRatio: CGFloat = 242.0 / 362.0
+    }
     
     var body: some View {
         ZStack {
             // 배경 컨테이너
             RoundedRectangle(cornerRadius: 12)
                 .fill(Color.fieldBackground)
-                .frame(height: 210)
+                .frame(height: Layout.containerHeight)
                 .overlay(
                     RoundedRectangle(cornerRadius: 12)
-                        .stroke(Color.fieldBorder, lineWidth: 1)
+                        .inset(by: 0.5)
+                        .stroke(Color(red: 0.93, green: 0.93, blue: 0.93), lineWidth: 1)
                 )
                 .shadow(color: .black.opacity(0.06), radius: 1.5, x: 0, y: 1)
             
             if let image {
                 // 선택된 사진
-                Image(uiImage: image)
-                    .resizable()
-                    .scaledToFill()
-                    .frame(height: 210)
-                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                GeometryReader { proxy in
+                    let imageWidth = proxy.size.width * Layout.imageWidthRatio
+                    let imageHeight = proxy.size.height
+
+                    ZStack {
+                        // 좌우 여백: GrayScale/900
+                        RoundedRectangle(cornerRadius: 12)
+                            .fill(Color("GrayScale/900"))
+
+                        Image(uiImage: image)
+                            .resizable()
+                            .scaledToFill()
+                            .frame(width: imageWidth, height: imageHeight - 0.5) // 업로드 이미지 높이 조절 -> 박스 벗어남 방지
+                            .clipped()
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
+                }
+                .frame(height: Layout.containerHeight)
             } else {
                 // 카메라 아이콘 + 안내 문구 (PlaceHolder)
                 VStack(spacing: 8) {
