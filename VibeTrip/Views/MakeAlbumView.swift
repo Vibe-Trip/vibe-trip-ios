@@ -180,7 +180,7 @@ struct MakeAlbumView: View {
     
     // 키보드가 올라와 있으면 키보드 바로 위에, 그렇지 않으면 하단에서 고정 여백으로 표시
     private var keyboardAwareToastPadding: CGFloat {
-        keyboardHeight > 0 ? keyboardHeight + 32 : 140
+        keyboardHeight > 0 ? keyboardHeight + 32 : 104
     }
     
     // 뒤로 가기 탭 처리: 단계에 따라 동작이 다름
