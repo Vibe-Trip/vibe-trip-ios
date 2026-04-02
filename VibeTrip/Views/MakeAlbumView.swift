@@ -243,6 +243,7 @@ private struct MakeAlbumRequiredInputContent: View {
                         MakeAlbumPhotoBox(image: displayedPhotoImage)
                     }
                     .buttonStyle(.plain)
+                    .contentShape(RoundedRectangle(cornerRadius: 12))
                     
                     // 여행지 섹션
                     albumSectionHeader(
