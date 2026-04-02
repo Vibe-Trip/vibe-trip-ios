@@ -29,8 +29,10 @@ struct MyPageView: View {
         static let avatarSize: CGFloat = 120
         static let avatarBackgroundColor = Color(red: 0.92, green: 0.92, blue: 0.98)
         static let avatarSymbolColor = Color(red: 0.67, green: 0.68, blue: 0.93)
+        static let headerHeight: CGFloat = 44
+        static let tabBarHeight: CGFloat = 60
         static let rowHeight: CGFloat = 52
-        static let toastBottomPadding: CGFloat = 40
+        static let toastBottomPadding: CGFloat = tabBarHeight + 16
         static let toastAnimationDuration: Double = 3.0
         static let statCardCornerRadius: CGFloat = 12
         static let statCardSpacing: CGFloat = 10
@@ -40,19 +42,19 @@ struct MyPageView: View {
         static let settingsGroupSpacing: CGFloat = 16
         static let settingsTopPadding: CGFloat = 40
         static let sectionHeaderBottomPadding: CGFloat = 4
-        static let contentBottomPadding: CGFloat = 112
+        static let contentBottomPadding: CGFloat = tabBarHeight + 52
         static let secondaryLabelColor = Color(red: 0.6, green: 0.62, blue: 0.64)
         // TODO: 실제 URL로 교체 필요
         static let termsURL = URL(string: "https://example.com/terms")!
         static let privacyURL = URL(string: "https://example.com/privacy")!
         static let openSourceURL = URL(string: "https://example.com/licenses")!
-        static let supportEmail = "Retrip@gmail.com"
-        static let mailSubject = "[VibeTrip 문의]"
+        static let supportEmail = "vibetrip26@gmail.com"
+        static let mailSubject = "[RETRIP 문의]"
     }
     
     var body: some View {
-        NavigationView {
-            ZStack(alignment: .bottom) {
+        ZStack(alignment: .bottom) {
+            ZStack(alignment: .top) {
                 ScrollView {
                     VStack(spacing: 0) {
                         profileSection
@@ -67,76 +69,89 @@ struct MyPageView: View {
                     }
                 }
                 .background(Color.white)
-                
-                // 화면 하단 피드백 토스트
-                if let message = viewModel.toastMessage {
-                    AppToastView(message: message)
-                        .padding(.bottom, Constants.toastBottomPadding)
-                        .transition(.move(edge: .bottom).combined(with: .opacity))
-                        .onAppear {
-                            DispatchQueue.main.asyncAfter(deadline: .now() + Constants.toastAnimationDuration) {
-                                withAnimation { viewModel.consumeToast() }
-                            }
+                .safeAreaInset(edge: .top) { headerSpacer }
+
+                AppNavigationBar(largeTitle: "마이페이지", style: .blurAlways)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .ignoresSafeArea(edges: [.top, .bottom])
+
+            // 화면 하단 피드백 토스트
+            if let message = viewModel.toastMessage {
+                AppToastView(message: message)
+                    .padding(.bottom, Constants.toastBottomPadding)
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+                    .onAppear {
+                        DispatchQueue.main.asyncAfter(deadline: .now() + Constants.toastAnimationDuration) {
+                            withAnimation { viewModel.consumeToast() }
                         }
-                }
-            }
-            .animation(.easeInOut(duration: 0.3), value: viewModel.toastMessage)
-            .navigationTitle("마이페이지")
-            .navigationBarTitleDisplayMode(.large)
-            .onAppear {
-                Task { await viewModel.loadProfile() }
-            }
-            .overlay {
-                // 로그아웃 확인 팝업
-                if viewModel.isLogoutAlertPresented {
-                    ExitPopupView(
-                        title: "로그아웃할까요?",
-                        message: "로그아웃하면 다음 접속 시 다시 로그인해야 합니다.",
-                        onCancel: {
-                            viewModel.isLogoutAlertPresented = false
-                        },
-                        onConfirm: {
-                            viewModel.isLogoutAlertPresented = false
-                            viewModel.logout(appState: appState)
-                        },
-                        confirmTitle: "로그아웃"
-                    )
-                    .transition(.opacity)
-                }
-            }
-            .animation(.easeInOut(duration: 0.2), value: viewModel.isLogoutAlertPresented)
-            .overlay {
-                // 회원탈퇴 확인 팝업
-                if viewModel.isWithdrawalAlertPresented {
-                    ExitPopupView(
-                        title: "정말 탈퇴할까요?",
-                        message: "탈퇴 후 7일 이내 재로그인 시 데이터가 복구됩니다.\n7일 이후에는 모든 정보가 영구 삭제됩니다.",
-                        onCancel: {
-                            viewModel.isWithdrawalAlertPresented = false
-                        },
-                        onConfirm: {
-                            viewModel.isWithdrawalAlertPresented = false
-                            viewModel.withdraw(appState: appState)
-                        },
-                        confirmTitle: "탈퇴"
-                    )
-                    .transition(.opacity)
-                }
-            }
-            .animation(.easeInOut(duration: 0.2), value: viewModel.isWithdrawalAlertPresented)
-            .sheet(isPresented: $viewModel.isMailPresented) {
-                MailComposeView(
-                    toRecipients: [Constants.supportEmail],
-                    subject: Constants.mailSubject,
-                    onDismiss: { viewModel.isMailPresented = false }
-                )
-                .ignoresSafeArea()
-            }
-            .sheet(item: $safariItem) { item in
-                SafariView(url: item.url)
-                    .ignoresSafeArea()
+                    }
             }
         }
+        .animation(.easeInOut(duration: 0.3), value: viewModel.toastMessage)
+        .onAppear {
+            Task { await viewModel.loadProfile() }
+        }
+        .overlay {
+            // 로그아웃 확인 팝업
+            if viewModel.isLogoutAlertPresented {
+                ExitPopupView(
+                    title: "로그아웃할까요?",
+                    message: "로그아웃하면 다음 접속 시 다시 로그인해야 합니다.",
+                    onCancel: {
+                        viewModel.isLogoutAlertPresented = false
+                    },
+                    onConfirm: {
+                        viewModel.isLogoutAlertPresented = false
+                        viewModel.logout(appState: appState)
+                    },
+                    confirmTitle: "로그아웃"
+                )
+                .transition(.opacity)
+            }
+        }
+        .animation(.easeInOut(duration: 0.2), value: viewModel.isLogoutAlertPresented)
+        .overlay {
+            // 회원탈퇴 확인 팝업
+            if viewModel.isWithdrawalAlertPresented {
+                ExitPopupView(
+                    title: "정말 탈퇴할까요?",
+                    message: "탈퇴 후 7일 이내 재로그인 시 데이터가 복구됩니다.\n7일 이후에는 모든 정보가 영구 삭제됩니다.",
+                    onCancel: {
+                        viewModel.isWithdrawalAlertPresented = false
+                    },
+                    onConfirm: {
+                        viewModel.isWithdrawalAlertPresented = false
+                        viewModel.withdraw(appState: appState)
+                    },
+                    confirmTitle: "탈퇴"
+                )
+                .transition(.opacity)
+            }
+        }
+        .animation(.easeInOut(duration: 0.2), value: viewModel.isWithdrawalAlertPresented)
+        .sheet(isPresented: $viewModel.isMailPresented) {
+            MailComposeView(
+                toRecipients: [Constants.supportEmail],
+                subject: Constants.mailSubject,
+                onDismiss: { viewModel.isMailPresented = false }
+            )
+            .ignoresSafeArea()
+        }
+        .sheet(item: $safariItem) { item in
+            SafariView(url: item.url)
+                .ignoresSafeArea()
+        }
+    }
+
+    private var headerSpacer: some View {
+        Color.clear.frame(height: safeTop + Constants.headerHeight)
+    }
+
+    private var safeTop: CGFloat {
+        UIApplication.shared.connectedScenes
+            .compactMap { ($0 as? UIWindowScene)?.keyWindow }
+            .first?.safeAreaInsets.top ?? 0
     }
     
     // MARK: - 프로필 섹션
@@ -239,7 +254,13 @@ struct MyPageView: View {
                     .font(Font.setPretendard(weight: .medium, size: 16))
                     .foregroundStyle(Color.black)
                 Spacer()
-                Toggle("", isOn: $viewModel.isNotificationEnabled)
+                Toggle(
+                    "",
+                    isOn: Binding(
+                        get: { viewModel.isNotificationEnabled },
+                        set: { viewModel.setNotificationEnabled($0) }
+                    )
+                )
                     .tint(Color.appPrimary)
                     .labelsHidden()
             }

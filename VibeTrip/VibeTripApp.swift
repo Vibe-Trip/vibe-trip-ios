@@ -13,6 +13,10 @@ import KakaoSDKCommon
 import KakaoSDKAuth
 
 class AppDelegate: NSObject, UIApplicationDelegate {
+    private enum Constants {
+        static let notificationKey = "isNotificationEnabled"
+    }
+
     func application(_ application: UIApplication,
                      didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey : Any]? = nil) -> Bool {
         // Firebase 초기화
@@ -23,9 +27,21 @@ class AppDelegate: NSObject, UIApplicationDelegate {
             KakaoSDK.initSDK(appKey: appKey)
         }
 
-        // 푸시 알림 권한 요청 + APNS 등록 (FCM 토큰 발급 전제조건)
-        UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .badge, .sound]) { _, _ in }
-        application.registerForRemoteNotifications()
+        let isNotificationEnabled = UserDefaults.standard.object(forKey: Constants.notificationKey) as? Bool ?? true
+
+        // 사용자 설정이 켜져 있을 때만 푸시 권한 요청 및 APNs 등록
+        if isNotificationEnabled {
+            UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .badge, .sound]) { granted, _ in
+                guard granted else { return }
+                DispatchQueue.main.async {
+                    // 알림 토글 on: APNs 원격 알림 등록 요청
+                    application.registerForRemoteNotifications()
+                }
+            }
+        } else {
+            // 알림 토글 off: 앱 런치 시에도 원격 알림 등록 유지X
+            application.unregisterForRemoteNotifications()
+        }
 
         return true
     }
