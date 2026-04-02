@@ -22,8 +22,8 @@ protocol AlbumServiceProtocol {
     func updateAlbum(albumId: String, request: AlbumUpdateRequest) async throws -> AlbumCard
     /// 앨범 삭제
     func deleteAlbum(albumId: String) async throws
-    /// 로그 저장 (작성/수정 공통)
-    func saveLog(request: AlbumLogRequest) async throws -> AlbumLog
+    /// 로그 등록
+    func saveLog(request: AlbumLogRequest) async throws
 }
 
 // MARK: - AlbumCreateRequest / AlbumCreateResponse
@@ -46,6 +46,10 @@ struct AlbumCreateResponse: Decodable {
 // MARK: - AlbumCreateRequestBody
 
 // multipart request 파트
+private struct AlbumLogRegisterRequestBody: Encodable {
+    let description: String
+}
+
 private struct AlbumCreateRequestBody: Encodable {
     let region: String
     let travelStartDate: String
@@ -111,8 +115,15 @@ final class AlbumService: AlbumServiceProtocol {
         fatalError("TODO: 서버 스펙 확정 후 구현")
     }
     
-    func saveLog(request: AlbumLogRequest) async throws -> AlbumLog {
-        fatalError("TODO: 서버 스펙 확정 후 구현")
+    func saveLog(request: AlbumLogRequest) async throws {
+        let body = AlbumLogRegisterRequestBody(description: request.logText)
+        var formData = MultipartFormData()
+        try formData.append(name: "request", encodable: body)
+        for imageData in request.photoDataList {
+            formData.append(name: "images", imageData: imageData)
+        }
+        let endpoint = APIEndpoint(path: "/api/v1/albums/\(request.albumId)/album-logs", method: .post)
+        try await apiClient.performUpload(endpoint, formData: formData)
     }
 
     // 서버 요구 날짜 포맷
@@ -167,10 +178,9 @@ final class MockAlbumService: AlbumServiceProtocol {
         if let error = simulatedError { throw error }
     }
     
-    func saveLog(request: AlbumLogRequest) async throws -> AlbumLog {
+    func saveLog(request: AlbumLogRequest) async throws {
         try await Task.sleep(nanoseconds: delay)
         if let error = simulatedError { throw error }
-        return AlbumLog.mock
     }
 }
 #endif

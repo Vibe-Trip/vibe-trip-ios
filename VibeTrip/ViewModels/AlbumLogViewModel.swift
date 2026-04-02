@@ -31,6 +31,8 @@ import UIKit
     @Published var isExitAlertPresented: Bool = false
     // 저장 요청 진행 중 여부
     @Published private(set) var isSaving: Bool = false
+    // 저장 성공 여부 (화면 전환 트리거)
+    @Published private(set) var isSaved: Bool = false
     
     // MARK: - Properties
     
@@ -39,9 +41,9 @@ import UIKit
     // 날짜 헤더 표시용 -> 생성: 작성 날짜, 수정: 생성 날짜
     let createdDate: Date
     
-    // 저장 버튼 활성화 조건: 텍스트 1자 이상 or 사진 1장 이상
+    // 저장 버튼 활성화 조건: 텍스트 1자 이상
     var isSaveEnabled: Bool {
-        !logText.isEmpty || !selectedPhotos.isEmpty
+        !logText.isEmpty
     }
     
     // 변경 감지: 이탈 팝업 노출 판단
@@ -132,7 +134,8 @@ import UIKit
                 logText: logText,
                 photoDataList: photoDataList
             )
-            _ = try await service.saveLog(request: request)
+            try await service.saveLog(request: request)
+            isSaved = true
         } catch {
             showToast(Constants.saveErrorMessage)
         }
