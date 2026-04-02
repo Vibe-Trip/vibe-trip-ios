@@ -233,6 +233,7 @@ private extension AlbumCard {
 
     func toDisplayModel() -> AlbumDetailDisplayModel {
         AlbumDetailDisplayModel(
+            albumId: id,
             title: title,
             destination: location,
             dateText: "\(formatDate(startDate)) - \(formatDate(endDate))",

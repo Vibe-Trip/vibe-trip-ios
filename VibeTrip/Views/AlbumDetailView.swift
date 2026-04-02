@@ -23,6 +23,9 @@ struct AlbumDetailView: View {
     
     // 앨범 옵션 팝업 표시 여부
     @State private var isAlbumMenuVisible: Bool = false
+
+    // 로그 작성 화면 표시 여부
+    @State private var isWritingLog: Bool = false
     
     // 재생/일시정지 토글 상태
     // TODO: AVPlayer 연결
@@ -129,6 +132,9 @@ struct AlbumDetailView: View {
         }
         .navigationBarBackButtonHidden(true)
         .toolbar(.hidden, for: .navigationBar)
+        .fullScreenCover(isPresented: $isWritingLog) {
+            AlbumLogView(albumId: String(displayModel.albumId), mode: .create)
+        }
     }
 }
 
@@ -258,7 +264,7 @@ private extension AlbumDetailView {
             AlbumDetailActionButton(
                 title: "로그 작성",
                 systemImageName: "pencil.line",
-                action: onWriteLogTap
+                action: { isWritingLog = true }
             )
         }
         .padding(.horizontal, Constants.horizontalPadding)
@@ -1078,6 +1084,7 @@ private struct LogItemDummy {
 // 앨범 상세 화면 표시용
 
 struct AlbumDetailDisplayModel {
+    let albumId: Int
     let title: String
     let destination: String
     let dateText: String
@@ -1099,6 +1106,7 @@ enum AlbumDetailContentState {
 #Preview("로그 없음") {
     AlbumDetailView(
         displayModel: AlbumDetailDisplayModel(
+            albumId: 1,
             title: "에펠탑 느낌나는 야경 도쿄타워",
             destination: "그레이트브리튼 북아일랜드 연합왕국 런던 마을",
             dateText: "2026년 11월 22일 - 2026년 11월 26일",
@@ -1112,6 +1120,7 @@ enum AlbumDetailContentState {
 #Preview("로그 있음") {
     AlbumDetailView(
         displayModel: AlbumDetailDisplayModel(
+            albumId: 1,
             title: "에펠탑 느낌나는 야경 도쿄타워",
             destination: "그레이트브리튼 북아일랜드 연합왕국 런던 마을",
             dateText: "2026년 3월 20일 - 2026년 3월 24일",
