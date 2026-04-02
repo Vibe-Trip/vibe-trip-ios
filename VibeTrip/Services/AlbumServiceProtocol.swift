@@ -22,6 +22,8 @@ protocol AlbumServiceProtocol {
     func updateAlbum(albumId: String, request: AlbumUpdateRequest) async throws -> AlbumCard
     /// 앨범 삭제
     func deleteAlbum(albumId: String) async throws
+    /// 앨범 로그 목록 조회 (커서 기반 페이지네이션)
+    func fetchAlbumLogs(albumId: String, cursor: Int?, limit: Int) async throws -> AlbumLogListPayload
     /// 로그 등록
     func saveLog(request: AlbumLogRequest) async throws
 }
@@ -106,6 +108,21 @@ final class AlbumService: AlbumServiceProtocol {
     func fetchAlbumLog(albumId: String) async throws -> AlbumLog {
         fatalError("TODO: 로그 조회 API 엔드포인트 확인 후 구현")
     }
+
+    func fetchAlbumLogs(albumId: String, cursor: Int?, limit: Int) async throws -> AlbumLogListPayload {
+        var queryItems: [URLQueryItem] = [
+            URLQueryItem(name: "limit", value: String(limit))
+        ]
+        if let cursor {
+            queryItems.append(URLQueryItem(name: "cursor", value: String(cursor)))
+        }
+        let endpoint = APIEndpoint(
+            path: "/api/v1/albums/\(albumId)/album-logs",
+            method: .get,
+            queryItems: queryItems
+        )
+        return try await apiClient.request(endpoint)
+    }
     
     func updateAlbum(albumId: String, request: AlbumUpdateRequest) async throws -> AlbumCard {
         fatalError("TODO: 서버 스펙 확정 후 구현")
@@ -165,6 +182,12 @@ final class MockAlbumService: AlbumServiceProtocol {
         try await Task.sleep(nanoseconds: delay)
         if let error = simulatedError { throw error }
         return AlbumLog.mock
+    }
+
+    func fetchAlbumLogs(albumId: String, cursor: Int?, limit: Int) async throws -> AlbumLogListPayload {
+        try await Task.sleep(nanoseconds: delay)
+        if let error = simulatedError { throw error }
+        return AlbumLogListPayload(content: AlbumLogEntry.mockItems, hasNext: false)
     }
     
     func updateAlbum(albumId: String, request: AlbumUpdateRequest) async throws -> AlbumCard {
