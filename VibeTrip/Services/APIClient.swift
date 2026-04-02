@@ -143,6 +143,9 @@ protocol APIClientProtocol {
     // 응답 데이터가 없는 요청 (DELETE, ApiResponseUnit 처리)
     func perform(_ endpoint: APIEndpoint) async throws
 
+    // multipart 업로드 + 응답 데이터 없는 요청 (ApiResponseUnit 처리)
+    func performUpload(_ endpoint: APIEndpoint, formData: MultipartFormData) async throws
+
     // refreshToken 만료 시 발행: AppState -> 로그아웃 처리
     var sessionExpiredPublisher: AnyPublisher<Void, Never> { get }
 }
@@ -226,6 +229,20 @@ final class APIClient: APIClientProtocol {
         let urlRequest = try buildJSONRequest(endpoint)
         let data = try await executeRaw(urlRequest)
         // data 필드 없이 resultType만 확인 (ApiResponseUnit 처리)
+        guard let apiResponse = try? JSONDecoder().decode(ApiResponse<EmptyDecodable>.self, from: data) else {
+            throw APIClientError.decodingFailed
+        }
+        if apiResponse.resultType == "ERROR" {
+            let code = apiResponse.error.flatMap { BackendErrorCode(rawValue: $0.errorCode) } ?? .unknown
+            throw APIClientError.serverError(code)
+        }
+    }
+
+    // MARK: - multipart 업로드 + 응답 바디 없는 요청
+
+    func performUpload(_ endpoint: APIEndpoint, formData: MultipartFormData) async throws {
+        let urlRequest = try buildMultipartRequest(endpoint, formData: formData)
+        let data = try await executeRaw(urlRequest)
         guard let apiResponse = try? JSONDecoder().decode(ApiResponse<EmptyDecodable>.self, from: data) else {
             throw APIClientError.decodingFailed
         }
@@ -385,6 +402,11 @@ final class MockAPIClient: APIClientProtocol {
     }
 
     func perform(_ endpoint: APIEndpoint) async throws {
+        try await Task.sleep(nanoseconds: delay)
+        if let error = stubbedError { throw error }
+    }
+
+    func performUpload(_ endpoint: APIEndpoint, formData: MultipartFormData) async throws {
         try await Task.sleep(nanoseconds: delay)
         if let error = stubbedError { throw error }
     }
