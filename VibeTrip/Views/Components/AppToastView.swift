@@ -35,7 +35,8 @@ struct AppToastView: View {
                 VStack(alignment: .leading, spacing: 10) {
                     Text(message)
                         .font(Font.custom("Pretendard", size: 16).weight(.medium))
-                        .multilineTextAlignment(.center)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .multilineTextAlignment(.leading)
                         .foregroundColor(.white)
                 }
                 .padding(16)

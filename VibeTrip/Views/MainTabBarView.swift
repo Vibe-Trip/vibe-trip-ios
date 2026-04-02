@@ -62,11 +62,17 @@ struct MainTabBarView: View {
     @State private var isAlbumCreating = false                                                  // 요청 진행 중 여부
     @State private var albumLoadingError: MakeAlbumViewModel.AlbumCreationLoadingError? = nil  // 에러 팝업 종류
     @State private var albumRetryAction: (() -> Void)? = nil                                  // 네트워크 오류 재시도 클로저
+    @State private var hiddenLoadingToastMessage: String? = nil
 
     @EnvironmentObject private var appState: AppState
 
     private let makeAlbumTransition = AnyTransition.move(edge: .trailing).combined(with: .opacity)
     private let tabBarTransition = AnyTransition.move(edge: .bottom).combined(with: .opacity)
+
+    private enum Constants {
+        static let toastBottomPadding: CGFloat = 88
+        static let toastAnimationDuration: Double = 3.0
+    }
 
     var body: some View {
         ZStack {
@@ -132,11 +138,12 @@ struct MainTabBarView: View {
             if isPresentingLoadingView {
                 MakeAlbumLoadingView(
                     onHide: {
-                        // 화면 숨기기: 두 뷰 닫고 알림 탭으로 복귀
-                        selectedTab = .notification
+                        // 화면 숨기기: 두 뷰 닫고 메인 페이지로 복귀
+                        selectedTab = .home
                         withAnimation(.easeInOut(duration: 0.24)) {
                             isPresentingLoadingView = false
                             isPresentingMakeAlbum = false
+                            hiddenLoadingToastMessage = "음악을 백그라운드에서 만들고 있어요. \n알림 리스트에서 확인해 보세요!"
                         }
                         DispatchQueue.main.asyncAfter(deadline: .now() + 0.18) {
                             withAnimation(.easeInOut(duration: 0.22)) {
@@ -173,9 +180,27 @@ struct MainTabBarView: View {
                     .transition(tabBarTransition)
                 }
             }
+
+            if let hiddenLoadingToastMessage {
+                VStack {
+                    Spacer()
+                    AppToastView(message: hiddenLoadingToastMessage, systemImageName: nil)
+                        .padding(.bottom, Constants.toastBottomPadding)
+                        .transition(.move(edge: .bottom).combined(with: .opacity))
+                        .onAppear {
+                            DispatchQueue.main.asyncAfter(deadline: .now() + Constants.toastAnimationDuration) {
+                                withAnimation(.easeInOut(duration: 0.2)) {
+                                    self.hiddenLoadingToastMessage = nil
+                                }
+                            }
+                        }
+                }
+                .zIndex(3)
+            }
         }
         .animation(.easeInOut(duration: 0.24), value: isPresentingMakeAlbum)
         .animation(.easeInOut(duration: 0.22), value: isTabBarHidden)
+        .animation(.easeInOut(duration: 0.2), value: hiddenLoadingToastMessage)
         // 알림 탭 시, 화면 이동
         .onChange(of: appState.pendingNotificationAction) { _, action in
             guard let action else { return }

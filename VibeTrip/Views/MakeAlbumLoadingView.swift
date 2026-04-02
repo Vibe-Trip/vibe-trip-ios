@@ -26,9 +26,6 @@ struct MakeAlbumLoadingView: View {
     // 팝업: 나중에 하기 or 확인 탭 -> 메인 페이지로 이동
     let onDismissToMain: () -> Void
 
-    // 요청 진행 중 버튼 탭 시 노출 toast
-    @State private var busyToastMessage: String? = nil
-
     private enum Layout {
         static let topPadding: CGFloat            = 219
         static let imageWidth: CGFloat            = 260
@@ -82,13 +79,8 @@ struct MakeAlbumLoadingView: View {
                 Spacer(minLength: Layout.bodyToButtonMinSpacing)
 
                 // 화면 숨기기 버튼
-                // isCreating: 버튼 비활성화 + 탭 시 toast 노출
                 Button {
-                    if isCreating {
-                        busyToastMessage = "생성 요청중입니다 잠시 기다려주세요"
-                    } else {
-                        onHide()
-                    }
+                    onHide()
                 } label: {
                     Text("화면 숨기기")
                         .font(Font.setPretendard(weight: .semiBold, size: Layout.buttonFontSize))
@@ -131,20 +123,6 @@ struct MakeAlbumLoadingView: View {
                 }
             }
         }
-        // 요청 진행 중 버튼 탭 시 toast
-        .overlay(alignment: .bottom) {
-            if let message = busyToastMessage {
-                AppToastView(message: message)
-                    .padding(.bottom, 40)
-                    .transition(.move(edge: .bottom).combined(with: .opacity))
-                    .onAppear {
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 2) {
-                            busyToastMessage = nil
-                        }
-                    }
-            }
-        }
-        .animation(.easeInOut(duration: 0.2), value: busyToastMessage)
     }
 }
 
