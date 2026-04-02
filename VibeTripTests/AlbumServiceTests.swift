@@ -268,4 +268,76 @@ final class AlbumServiceTests: XCTestCase {
         XCTAssertEqual(response.albumId, 7)
         XCTAssertEqual(mockAPIClient.uploadCallCount, 1)
     }
+
+    // MARK: - saveLog: 성공
+
+    // 성공 시 performUpload 1회 호출
+    func test_saveLog_success_callsPerformUploadOnce() async throws {
+        mockAPIClient.performUploadResult = .success(())
+        let request = AlbumLogRequest(albumId: "42", logText: "여행 기록", photoDataList: [])
+
+        try await sut.saveLog(request: request)
+
+        XCTAssertEqual(mockAPIClient.performUploadCallCount, 1)
+    }
+
+    // 올바른 엔드포인트 경로로 요청되는지 검증
+    func test_saveLog_success_usesCorrectEndpointPath() async throws {
+        mockAPIClient.performUploadResult = .success(())
+        let request = AlbumLogRequest(albumId: "42", logText: "여행 기록", photoDataList: [])
+
+        try await sut.saveLog(request: request)
+
+        XCTAssertEqual(mockAPIClient.capturedEndpoints.last?.path, "/api/v1/albums/42/album-logs")
+    }
+
+    // 이미지 포함 시 formData에 images 파트가 이미지 수만큼 추가되는지 검증
+    func test_saveLog_withPhotos_appendsImageParts() async throws {
+        mockAPIClient.performUploadResult = .success(())
+        let request = AlbumLogRequest(
+            albumId: "1",
+            logText: "사진 있는 로그",
+            photoDataList: [Data([0x01, 0x02]), Data([0x03, 0x04])]
+        )
+
+        try await sut.saveLog(request: request)
+
+        let imageParts = mockAPIClient.capturedFormData?.parts.filter { $0.name == "images" } ?? []
+        XCTAssertEqual(imageParts.count, 2)
+    }
+
+    // MARK: - saveLog: 서버 에러
+
+    // 서버 에러 응답 -> APIClientError.serverError throw
+    func test_saveLog_serverError_throwsServerError() async throws {
+        mockAPIClient.performUploadResult = .failure(APIClientError.serverError(.e400))
+        let request = AlbumLogRequest(albumId: "1", logText: "테스트", photoDataList: [])
+
+        do {
+            try await sut.saveLog(request: request)
+            XCTFail("서버 에러가 throw되어야 합니다")
+        } catch APIClientError.serverError(let code) {
+            XCTAssertEqual(code, .e400)
+        } catch {
+            XCTFail("예상치 못한 에러: \(error)")
+        }
+    }
+
+    // MARK: - saveLog: 네트워크 에러
+
+    // 네트워크 연결 불가 -> APIClientError.networkError throw
+    func test_saveLog_networkError_throwsNetworkError() async throws {
+        let urlError = URLError(.notConnectedToInternet)
+        mockAPIClient.performUploadResult = .failure(APIClientError.networkError(urlError))
+        let request = AlbumLogRequest(albumId: "1", logText: "테스트", photoDataList: [])
+
+        do {
+            try await sut.saveLog(request: request)
+            XCTFail("네트워크 에러가 throw되어야 합니다")
+        } catch APIClientError.networkError(let error) {
+            XCTAssertEqual(error.code, .notConnectedToInternet)
+        } catch {
+            XCTFail("예상치 못한 에러: \(error)")
+        }
+    }
 }
