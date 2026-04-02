@@ -308,8 +308,7 @@ struct MyPageView: View {
                 HStack {
                     Text("회원탈퇴")
                         .font(Font.setPretendard(weight: .semiBold, size: 16))
-                    // TODO: Assets에 withdrawalRed 색상 추가 후 Color.withdrawalRed로 교체
-                        .foregroundStyle(Color(.systemRed))
+                        .foregroundStyle(Color(.textPrimary))
                     Spacer()
                 }
                 .frame(height: Constants.rowHeight)

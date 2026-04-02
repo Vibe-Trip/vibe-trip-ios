@@ -12,6 +12,11 @@ struct LoginView: View {
 
     @StateObject private var viewModel = LoginViewModel()
     @EnvironmentObject private var appState: AppState
+
+    private enum Constants {
+        static let toastBottomPadding: CGFloat = 10
+        static let toastAnimationDuration: Double = 3.0
+    }
     
     var body: some View {
         VStack(spacing: 0) {
@@ -38,13 +43,25 @@ struct LoginView: View {
         }
         // 토스트 오버레이
         .overlay(alignment: .bottom) {
-            if case .toast(let message) = viewModel.errorState {
+            if let toastPayload = appState.toastPayload {
+                AppToastView(message: toastPayload.message, systemImageName: toastPayload.systemImageName)
+                    .padding(.bottom, Constants.toastBottomPadding)
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+                    .onAppear {
+                        DispatchQueue.main.asyncAfter(deadline: .now() + Constants.toastAnimationDuration) {
+                            withAnimation {
+                                appState.consumeToast()
+                            }
+                        }
+                    }
+            } else if case .toast(let message) = viewModel.errorState {
                 AppToastView(message: message)
-                    .padding(.bottom, 40)
+                    .padding(.bottom, Constants.toastBottomPadding)
                     .transition(.move(edge: .bottom).combined(with: .opacity))
             }
         }
         .animation(.easeInOut(duration: 0.3), value: viewModel.errorState)
+        .animation(.easeInOut(duration: 0.3), value: appState.toastPayload)
         // 타임아웃 팝업
         .alert("로그인 실패", isPresented: Binding(
             get: { if case .retryPopup = viewModel.errorState { return true }; return false },
@@ -224,6 +241,9 @@ struct LoginView: View {
 }
 
 #Preview {
-    LoginView()
-        .environmentObject(AppState())
+    let appState = AppState()
+    appState.toastPayload = AppToastPayload(message: "로그아웃이 완료되었습니다", systemImageName: nil)
+
+    return LoginView()
+        .environmentObject(appState)
 }

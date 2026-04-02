@@ -19,7 +19,6 @@ import UserNotifications
     @Published private(set) var albumCount: Int = 0
     @Published private(set) var logCount: Int = 0
     @Published private(set) var isNotificationEnabled: Bool
-    @Published var isLogoutAlertPresented: Bool = false
     @Published var isWithdrawalAlertPresented: Bool = false
     @Published var isMailPresented: Bool = false
     @Published private(set) var toastMessage: String?
@@ -77,6 +76,7 @@ import UserNotifications
     func logout(appState: AppState) {
         // 로컬 인증 정보 제거 후 로그인 화면으로 복귀
         try? keychainService.clear()
+        appState.showToast(message: "로그아웃이 완료되었습니다", systemImageName: nil)
         appState.isLoggedIn = false
     }
     
