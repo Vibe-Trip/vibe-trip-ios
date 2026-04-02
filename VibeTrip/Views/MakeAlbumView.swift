@@ -74,6 +74,7 @@ struct MakeAlbumView: View {
                     // 선택 입력 뷰
                     MakeAlbumOptionalInputContent(
                         viewModel: viewModel,
+                        keyboardHeight: keyboardHeight,
                         onCreateTap: {
                             // 앨범 생성하기 탭 시 API 호출 진입
                             viewModel.submitAlbum(
@@ -180,7 +181,7 @@ struct MakeAlbumView: View {
     
     // 키보드가 올라와 있으면 키보드 바로 위에, 그렇지 않으면 하단에서 고정 여백으로 표시
     private var keyboardAwareToastPadding: CGFloat {
-        keyboardHeight > 0 ? keyboardHeight + 32 : 104
+        keyboardHeight > 0 ? keyboardHeight + 32 : 96
     }
     
     // 뒤로 가기 탭 처리: 단계에 따라 동작이 다름
@@ -366,7 +367,7 @@ private struct MakeAlbumRequiredInputContent: View {
                 title: "다음으로",
                 isEnabled: viewModel.isRequiredInputValid,
                 action: onNextTap,
-                bottomSpacing: keyboardHeight > 0 ? 12 : 16
+                bottomSpacing: keyboardHeight > 0 ? 20 : 0
             )
         }
     }
@@ -403,180 +404,196 @@ private struct MakeAlbumRequiredInputContent: View {
 // MARK: - 선택 입력 뷰
 
 private struct MakeAlbumOptionalInputContent: View {
+    private enum ScrollTarget {
+        static let commentary = "albumCommentarySection"
+    }
     
     @ObservedObject var viewModel: MakeAlbumViewModel
     @FocusState private var isCommentaryFocused: Bool
     
+    let keyboardHeight: CGFloat
     let onCreateTap: () -> Void
     
     var body: some View {
-        VStack(spacing: 0) {
-            ScrollView(showsIndicators: false) {
-                VStack(alignment: .leading, spacing: 20) {
-                    
-                    // MARK: - 장르 선택
-                    
-                    VStack(alignment: .leading, spacing: 8) {
-                        HStack(alignment: .top) {
-                            VStack(alignment: .leading, spacing: 4) {
-                                HStack(alignment: .firstTextBaseline, spacing: 4) {
-                                    Text("장르 선택")
-                                        .font(Font.setPretendard(weight: .semiBold, size: 16))
-                                        .foregroundStyle(Color.textPrimary)
+        ZStack(alignment: .bottom) {
+            ScrollViewReader { proxy in
+                ScrollView(showsIndicators: false) {
+                    VStack(alignment: .leading, spacing: 20) {
+                        
+                        // MARK: - 장르 선택
+                        
+                        VStack(alignment: .leading, spacing: 8) {
+                            HStack(alignment: .top) {
+                                VStack(alignment: .leading, spacing: 4) {
+                                    HStack(alignment: .firstTextBaseline, spacing: 4) {
+                                        Text("장르 선택")
+                                            .font(Font.setPretendard(weight: .semiBold, size: 16))
+                                            .foregroundStyle(Color.textPrimary)
+                                        
+                                        Text("선택 입력")
+                                            .font(Font.setPretendard(weight: .medium, size: 12))
+                                            .foregroundStyle(Color.textSecondary)
+                                    }
                                     
-                                    Text("선택 입력")
+                                    Text(viewModel.genreHelperText)
                                         .font(Font.setPretendard(weight: .medium, size: 12))
                                         .foregroundStyle(Color.textSecondary)
                                 }
                                 
-                                Text(viewModel.genreHelperText)
+                                Spacer()
+                                
+                                // 장르 설명 모달 버튼
+                                Button(action: {
+                                    viewModel.isGenreDescriptionPresented = true
+                                }) {
+                                    Image(systemName: "info.circle.fill")
+                                        .font(.system(size: 18))
+                                        .foregroundStyle(Color.appPrimary.opacity(0.6))
+                                }
+                                .buttonStyle(.plain)
+                            }
+                            
+                            // 장르 목록: 가사 포함 여부에 따라 분기
+                            LazyVGrid(
+                                columns: [
+                                    GridItem(.flexible(), spacing: 4),
+                                    GridItem(.flexible(), spacing: 4),
+                                    GridItem(.flexible(), spacing: 4)
+                                ],
+                                alignment: .leading,
+                                spacing: 8
+                            ) {
+                                ForEach(viewModel.displayedGenres) { genre in
+                                    Button(action: {
+                                        viewModel.toggleGenre(genre)
+                                    }) {
+                                        Text(genre.rawValue)
+                                            .font(Font.setPretendard(weight: .medium, size: 16))
+                                            .foregroundStyle(Color.textPrimary)
+                                            .frame(maxWidth: .infinity)
+                                            .frame(height: 52)
+                                            .background(
+                                                RoundedRectangle(cornerRadius: 8)
+                                                    .fill(
+                                                        viewModel.album.selectedGenre == genre
+                                                        ? Color.chipSelectedBackground
+                                                        : Color.chipUnselectedBackground
+                                                    )
+                                            )
+                                            .overlay(
+                                                RoundedRectangle(cornerRadius: 8)
+                                                    .stroke(
+                                                        viewModel.album.selectedGenre == genre
+                                                        ? Color.appPrimary.opacity(0.35)
+                                                        : Color.fieldBorder,
+                                                        lineWidth: 1
+                                                    )
+                                            )
+                                            .shadow(color: .black.opacity(0.06), radius: 1.5, x: 0, y: 1)
+                                    }
+                                    .buttonStyle(.plain)
+                                }
+                            }
+                        }
+                        
+                        // MARK: - 앨범 코멘터리
+                        
+                        VStack(alignment: .leading, spacing: 8) {
+                            HStack(alignment: .firstTextBaseline, spacing: 4) {
+                                Text("앨범 코멘터리")
+                                    .font(Font.setPretendard(weight: .semiBold, size: 16))
+                                    .foregroundStyle(Color.textPrimary)
+                                
+                                Text("선택 입력")
                                     .font(Font.setPretendard(weight: .medium, size: 12))
                                     .foregroundStyle(Color.textSecondary)
                             }
                             
-                            Spacer()
-                            
-                            // 장르 설명 모달 버튼
-                            Button(action: {
-                                viewModel.isGenreDescriptionPresented = true
-                            }) {
-                                Image(systemName: "info.circle.fill")
-                                    .font(.system(size: 18))
-                                    .foregroundStyle(Color.appPrimary.opacity(0.6))
-                            }
-                            .buttonStyle(.plain)
-                        }
-                        
-                        // 장르 목록: 가사 포함 여부에 따라 분기
-                        LazyVGrid(
-                            columns: [
-                                GridItem(.flexible(), spacing: 4),
-                                GridItem(.flexible(), spacing: 4),
-                                GridItem(.flexible(), spacing: 4)
-                            ],
-                            alignment: .leading,
-                            spacing: 8
-                        ) {
-                            ForEach(viewModel.displayedGenres) { genre in
-                                Button(action: {
-                                    viewModel.toggleGenre(genre)
-                                }) {
-                                    Text(genre.rawValue)
-                                        .font(Font.setPretendard(weight: .medium, size: 16))
-                                        .foregroundStyle(Color.textPrimary)
-                                        .frame(maxWidth: .infinity)
-                                        .frame(height: 52)
-                                        .background(
-                                            RoundedRectangle(cornerRadius: 8)
-                                                .fill(
-                                                    viewModel.album.selectedGenre == genre
-                                                    ? Color.chipSelectedBackground
-                                                    : Color.chipUnselectedBackground
-                                                )
-                                        )
-                                        .overlay(
-                                            RoundedRectangle(cornerRadius: 8)
-                                                .stroke(
-                                                    viewModel.album.selectedGenre == genre
-                                                    ? Color.appPrimary.opacity(0.35)
-                                                    : Color.fieldBorder,
-                                                    lineWidth: 1
-                                                )
-                                        )
-                                        .shadow(color: .black.opacity(0.06), radius: 1.5, x: 0, y: 1)
-                                }
-                                .buttonStyle(.plain)
-                            }
-                        }
-                    }
-                    
-                    // MARK: - 앨범 코멘터리
-                    
-                    VStack(alignment: .leading, spacing: 8) {
-                        HStack(alignment: .firstTextBaseline, spacing: 4) {
-                            Text("앨범 코멘터리")
-                                .font(Font.setPretendard(weight: .semiBold, size: 16))
-                                .foregroundStyle(Color.textPrimary)
-                            
-                            Text("선택 입력")
-                                .font(Font.setPretendard(weight: .medium, size: 12))
-                                .foregroundStyle(Color.textSecondary)
-                        }
-                        
-                        // placeholder 및 글자 수 카운터 오버레이
-                        ZStack(alignment: .topLeading) {
-                            TextEditor(
-                                text: Binding(
-                                    get: { viewModel.album.albumCommentary },
-                                    set: { viewModel.updateAlbumCommentary($0) }
+                            // placeholder 및 글자 수 카운터 오버레이
+                            ZStack(alignment: .topLeading) {
+                                TextEditor(
+                                    text: Binding(
+                                        get: { viewModel.album.albumCommentary },
+                                        set: { viewModel.updateAlbumCommentary($0) }
+                                    )
                                 )
-                            )
-                            .font(Font.setPretendard(weight: .medium, size: 16))
-                            .foregroundColor(Color.textPrimary)
-                            .scrollContentBackground(.hidden)
-                            .padding(.horizontal, 12)
-                            .padding(.top, 8)
-                            .frame(height: 220)
-                            .background(Color.fieldBackground)
-                            .clipShape(RoundedRectangle(cornerRadius: 8))
-                            .overlay(
-                                RoundedRectangle(cornerRadius: 8)
-                                    .stroke(Color.fieldBorder, lineWidth: 1)
-                            )
-                            .shadow(color: .black.opacity(0.06), radius: 1.5, x: 0, y: 1)
-                            // 키보드 비활성화
-                            .focused($isCommentaryFocused)
-                            // 키보드 비활성화 버튼
-                            .toolbar {
-                                ToolbarItemGroup(placement: .keyboard) {
-                                    Spacer()
-                                    Button("완료") {
-                                        isCommentaryFocused = false
+                                .font(Font.setPretendard(weight: .medium, size: 16))
+                                .foregroundColor(Color.textPrimary)
+                                .scrollContentBackground(.hidden)
+                                .padding(.horizontal, 12)
+                                .padding(.top, 8)
+                                .frame(height: 220)
+                                .background(Color.fieldBackground)
+                                .clipShape(RoundedRectangle(cornerRadius: 8))
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: 8)
+                                        .stroke(Color.fieldBorder, lineWidth: 1)
+                                )
+                                .shadow(color: .black.opacity(0.06), radius: 1.5, x: 0, y: 1)
+                                // 키보드 비활성화
+                                .focused($isCommentaryFocused)
+                                // 키보드 비활성화 버튼
+                                .toolbar {
+                                    ToolbarItemGroup(placement: .keyboard) {
+                                        Spacer()
+                                        Button("완료") {
+                                            isCommentaryFocused = false
+                                        }
                                     }
                                 }
-                            }
-                            
-                            if viewModel.album.albumCommentary.isEmpty {
-                                Text("어떤 분위기의 노래를 만들고 싶나요?\n지금 느끼는 감정을 기록해보세요.")
-                                    .font(Font.setPretendard(weight: .medium, size: 16))
-                                    .foregroundStyle(Color.textSecondary)
-                                    .padding(.horizontal, 16)
-                                    .padding(.top, 20)
-                                // 터치 비활성화
-                                    .allowsHitTesting(false)
-                            }
-                            
-                            // 글자 수 카운터
-                            VStack {
-                                Spacer()
                                 
-                                HStack {
+                                if viewModel.album.albumCommentary.isEmpty {
+                                    Text("어떤 분위기의 노래를 만들고 싶나요?\n지금 느끼는 감정을 기록해보세요.")
+                                        .font(Font.setPretendard(weight: .medium, size: 16))
+                                        .foregroundStyle(Color.textSecondary)
+                                        .padding(.horizontal, 16)
+                                        .padding(.top, 20)
+                                    // 터치 비활성화
+                                        .allowsHitTesting(false)
+                                }
+                                
+                                // 글자 수 카운터
+                                VStack {
                                     Spacer()
                                     
-                                    Text("\(viewModel.album.albumCommentary.count)/500")
-                                        .font(Font.setPretendard(weight: .medium, size: 12))
-                                        .foregroundStyle(Color.textSecondary)
-                                        .padding(.trailing, 14)
-                                        .padding(.bottom, 14)
+                                    HStack {
+                                        Spacer()
+                                        
+                                        Text("\(viewModel.album.albumCommentary.count)/500")
+                                            .font(Font.setPretendard(weight: .medium, size: 12))
+                                            .foregroundStyle(Color.textSecondary)
+                                            .padding(.trailing, 14)
+                                            .padding(.bottom, 14)
+                                    }
                                 }
+                                .frame(height: 220)
+                                // 터치 비활성화
+                                .allowsHitTesting(false)
                             }
-                            .frame(height: 220)
-                            // 터치 비활성화
-                            .allowsHitTesting(false)
+                        }
+                        .id(ScrollTarget.commentary)
+                    }
+                    .padding(.horizontal, 20)
+                    .padding(.top, 24)
+                    .padding(.bottom, 140)
+                }
+                .onChange(of: isCommentaryFocused) { _, isFocused in
+                    guard isFocused else { return }
+                    Task {
+                        try? await Task.sleep(for: .milliseconds(150))
+                        withAnimation(.easeInOut(duration: 0.2)) {
+                            proxy.scrollTo(ScrollTarget.commentary, anchor: .top)
                         }
                     }
                 }
-                .padding(.horizontal, 20)
-                .padding(.top, 24)
-                .padding(.bottom, 24)
+                .scrollDisabled(true)
             }
-        }
-        .safeAreaInset(edge: .bottom, spacing: 0) {
+
             MakeAlbumBottomButton(
                 title: "앨범 생성하기",
                 isEnabled: true,
                 action: onCreateTap,
-                bottomSpacing: 16
+                bottomSpacing: keyboardHeight > 0 ? 44 : 0
             )
         }
     }
