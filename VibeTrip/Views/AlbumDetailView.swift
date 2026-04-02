@@ -6,6 +6,78 @@
 //
 
 import SwiftUI
+import Combine
+
+// MARK: - AlbumDetailViewModel
+
+@MainActor final class AlbumDetailViewModel: ObservableObject {
+
+    @Published private(set) var logs: [AlbumLogEntry] = []
+    @Published private(set) var isLoading: Bool = false
+    @Published private(set) var hasNext: Bool = false
+
+    private let albumId: String
+    private var cursor: Int? = nil
+    private let limit = 20
+    private let service: AlbumServiceProtocol
+
+    init(albumId: String, service: AlbumServiceProtocol = AlbumService()) {
+        self.albumId = albumId
+        self.service = service
+    }
+
+    func loadInitialLogs() async {
+        guard !isLoading else { return }
+        cursor = nil
+        logs = []
+        await fetchLogs()
+    }
+
+    func loadMoreIfNeeded(lastId: Int) async {
+        guard hasNext, !isLoading, logs.last?.id == lastId else { return }
+        await fetchLogs()
+    }
+
+    private func fetchLogs() async {
+        isLoading = true
+        defer { isLoading = false }
+        do {
+            let payload = try await service.fetchAlbumLogs(
+                albumId: albumId, cursor: cursor, limit: limit
+            )
+            logs.append(contentsOf: payload.content)
+            hasNext = payload.hasNext
+            cursor = payload.content.last?.id
+        } catch {
+            // TODO: 에러 토스트 처리 (로그 수정/삭제 작업 시 함께 정리)
+        }
+    }
+
+    // postedAt(ISO8601) 기준 날짜별 그룹핑
+    // 반환: [(dateLabel: "3월 25일 화요일", logs: [AlbumLogEntry])]
+    var groupedLogs: [(dateLabel: String, logs: [AlbumLogEntry])] {
+        let isoFormatter = ISO8601DateFormatter()
+        isoFormatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        let labelFormatter = DateFormatter()
+        labelFormatter.locale = Locale(identifier: "ko_KR")
+        labelFormatter.dateFormat = "M월 d일 EEEE"
+
+        let grouped = Dictionary(grouping: logs) { entry -> String in
+            guard let date = isoFormatter.date(from: entry.postedAt) else { return "" }
+            return labelFormatter.string(from: date)
+        }
+
+        return grouped.compactMap { label, items -> (String, [AlbumLogEntry])? in
+            guard !label.isEmpty else { return nil }
+            return (label, items)
+        }
+        .sorted { lhs, rhs in
+            guard let l = isoFormatter.date(from: lhs.1.first!.postedAt),
+                  let r = isoFormatter.date(from: rhs.1.first!.postedAt) else { return false }
+            return l > r
+        }
+    }
+}
 
 // MARK: - AlbumDetailView
 // contentState에 따라 스크롤 활성화 여부 분기
@@ -21,6 +93,8 @@ struct AlbumDetailView: View {
     private let onDeleteAlbumTap: () -> Void
     private let onReportTap: () -> Void
     
+    @StateObject private var logViewModel: AlbumDetailViewModel
+
     // 앨범 옵션 팝업 표시 여부
     @State private var isAlbumMenuVisible: Bool = false
 
@@ -61,6 +135,7 @@ struct AlbumDetailView: View {
         self.onDeleteAlbumTap = onDeleteAlbumTap
         self.onReportTap = onReportTap
         _isMusicPlaying = State(initialValue: displayModel.isMusicPlaying)
+        _logViewModel = StateObject(wrappedValue: AlbumDetailViewModel(albumId: String(displayModel.albumId)))
     }
     
     // MARK: - Body
@@ -89,7 +164,7 @@ struct AlbumDetailView: View {
                         contentSection
                     }
                 }
-                .scrollDisabled(displayModel.contentState == .empty)
+                .scrollDisabled(logViewModel.logs.isEmpty)
                 .ignoresSafeArea(edges: .top)
                 .background(Color.white.ignoresSafeArea())
                 .onPreferenceChange(ScrollOffsetKey.self) { scrollOffset = $0 }
@@ -135,6 +210,7 @@ struct AlbumDetailView: View {
         .fullScreenCover(isPresented: $isWritingLog) {
             AlbumLogView(albumId: String(displayModel.albumId), mode: .create)
         }
+        .task { await logViewModel.loadInitialLogs() }
     }
 }
 
@@ -271,19 +347,21 @@ private extension AlbumDetailView {
         .padding(.bottom, Constants.actionsBottomPadding)
     }
     
-    // contentState에 따라 빈 상태 or 로그 피드 표시
+    // ViewModel 상태에 따라 빈 상태 / 로딩 / 로그 피드 표시
     @ViewBuilder
     var contentSection: some View {
-        switch displayModel.contentState {
-        case .empty:
+        if !logViewModel.logs.isEmpty {
+            AlbumDetailLogFeedSection(viewModel: logViewModel)
+        } else if logViewModel.isLoading {
+            ProgressView()
+                .frame(maxWidth: .infinity)
+                .padding(.top, Constants.emptyStateTopPadding)
+        } else {
             AlbumDetailEmptyStateSection()
                 .padding(.top, Constants.emptyStateTopPadding)
                 .padding(.horizontal, Constants.horizontalPadding)
                 .frame(maxWidth: .infinity)
                 .frame(minHeight: Constants.emptyStateMinHeight, alignment: .top)
-            
-        case .hasLogs:
-            AlbumDetailLogFeedSection()
         }
     }
     
@@ -737,51 +815,29 @@ private struct AlbumDetailLogMenuPopup: View {
 // MARK: - AlbumDetailLogFeedSection
 
 private struct AlbumDetailLogFeedSection: View {
-    
-    // 더미 데이터
-    private let dateGroups: [(label: String, items: [LogItemDummy])] = [
-        (
-            label: "3월 25일 화요일",
-            items: [
-                LogItemDummy(
-                    id: 1,
-                    dateLabel: "2026년 3월 25일",
-                    text: "이것은 더미 데이터 입니다. 여기서 뭐라고 더 말을 해야 할지 모르겠네요. 제가 만약 2줄이 넘는다면 보이지 않을 거에요. 그러니 우리 더보기로 만나요.이제 접어줘요.",
-                    imageCount: 3
-                ),
-                LogItemDummy(
-                    id: 2,
-                    dateLabel: "2026년 3월 25일",
-                    text: "이것은 더미 데이터 입니다. 여기서 뭐라고 더 말을 해야 할지 모르겠네요. 제가 만약 2줄이 넘는다면 보이지 않을 거에요. 그러니 우리 더보기로 만나요. 이제 접어줘요.",
-                    imageCount: 0
-                )
-            ]
-        ),
-        (
-            label: "3월 24일 월요일",
-            items: [
-                LogItemDummy(
-                    id: 3,
-                    dateLabel: "2026년 3월 24일",
-                    text: "안녕하세요? 저는 더미 데이터입니다. 이번에 저는 딱 2줄이 되어 볼거에요. 아직 아니네요 좀 더 작성할게요.",
-                    imageCount: 2
-                )
-            ]
-        )
-    ]
-    
+
+    @ObservedObject var viewModel: AlbumDetailViewModel
+
     private enum Constants {
         static let horizontalPadding: CGFloat = 20
         static let topPadding: CGFloat = 8
         static let bottomPadding: CGFloat = 40
     }
-    
+
     var body: some View {
+        let groups = viewModel.groupedLogs
+        let lastEntryId = viewModel.logs.last?.id
+
         VStack(alignment: .leading, spacing: 20) {
-            ForEach(dateGroups.indices, id: \.self) { groupIndex in
+            ForEach(groups.indices, id: \.self) { groupIndex in
                 AlbumDetailLogDateGroup(
-                    label: dateGroups[groupIndex].label,
-                    items: dateGroups[groupIndex].items
+                    label: groups[groupIndex].dateLabel,
+                    entries: groups[groupIndex].logs,
+                    lastEntryId: lastEntryId,
+                    onLastAppear: {
+                        guard let id = lastEntryId else { return }
+                        await viewModel.loadMoreIfNeeded(lastId: id)
+                    }
                 )
             }
         }
@@ -797,17 +853,23 @@ private struct AlbumDetailLogFeedSection: View {
 
 private struct AlbumDetailLogDateGroup: View {
     let label: String
-    let items: [LogItemDummy]
-    
+    let entries: [AlbumLogEntry]
+    let lastEntryId: Int?
+    let onLastAppear: (() async -> Void)?
+
     private enum Constants {
         /// 로그 카드 간 간격
         static let itemSpacing: CGFloat = 20
     }
-    
+
     var body: some View {
         VStack(alignment: .leading, spacing: Constants.itemSpacing) {
-            ForEach(items.indices, id: \.self) { index in
-                AlbumDetailLogItemCard(item: items[index])
+            ForEach(entries) { entry in
+                AlbumDetailLogItemCard(
+                    entry: entry,
+                    isLast: entry.id == lastEntryId,
+                    onLastAppear: onLastAppear
+                )
             }
         }
     }
@@ -817,11 +879,13 @@ private struct AlbumDetailLogDateGroup: View {
 // 개별 로그 아이템 카드
 
 private struct AlbumDetailLogItemCard: View {
-    let item: LogItemDummy
-    
+    let entry: AlbumLogEntry
+    let isLast: Bool
+    let onLastAppear: (() async -> Void)?
+
     /// 로그 옵션 팝업 표시 여부
     @State private var isMenuVisible: Bool = false
-    
+
     private enum Constants {
         static let dateFontSize: CGFloat = 14
         static let menuIconSize: CGFloat = 16
@@ -832,13 +896,24 @@ private struct AlbumDetailLogItemCard: View {
         static let menuTrailingPadding: CGFloat = 17
         static let labelColor = Color(red: 0.74, green: 0.75, blue: 0.76)
     }
-    
+
+    /// postedAt ISO8601 → "yyyy년 M월 d일" 포맷
+    private var dateLabel: String {
+        let isoFormatter = ISO8601DateFormatter()
+        isoFormatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        let displayFormatter = DateFormatter()
+        displayFormatter.locale = Locale(identifier: "ko_KR")
+        displayFormatter.dateFormat = "yyyy년 M월 d일"
+        guard let date = isoFormatter.date(from: entry.postedAt) else { return entry.postedAt }
+        return displayFormatter.string(from: date)
+    }
+
     var body: some View {
         ZStack(alignment: .topTrailing) {
             VStack(alignment: .leading, spacing: Constants.contentSpacing) {
                 // 날짜 + 로그 옵션 버튼
                 HStack {
-                    Text(item.dateLabel)
+                    Text(dateLabel)
                         .font(.setPretendard(weight: .medium, size: Constants.dateFontSize))
                         .foregroundStyle(Constants.labelColor)
                     Spacer()
@@ -859,14 +934,14 @@ private struct AlbumDetailLogItemCard: View {
                 }
                 
                 // 이미지 슬라이더 (이미지 있을 때만)
-                if item.imageCount > 0 {
-                    AlbumDetailLogImageSlider(imageCount: item.imageCount)
+                if !entry.images.isEmpty {
+                    AlbumDetailLogImageSlider(images: entry.images)
                 }
-                
+
                 // 텍스트 + 더보기/접기
-                AlbumDetailLogTextSection(text: item.text)
+                AlbumDetailLogTextSection(text: entry.description)
             }
-            
+
             // 팝업 표시 시: 외부 탭 dismiss 영역 + 팝업
             if isMenuVisible {
                 // 카드 범위 내 외부 탭 감지
@@ -877,7 +952,7 @@ private struct AlbumDetailLogItemCard: View {
                             isMenuVisible = false
                         }
                     }
-                
+
                 // 수정 및 삭제 팝업
                 AlbumDetailLogMenuPopup(
                     onEditLog: {
@@ -897,6 +972,10 @@ private struct AlbumDetailLogItemCard: View {
                 .padding(.trailing, Constants.menuTrailingPadding)
             }
         }
+        .onAppear {
+            guard isLast else { return }
+            Task { await onLastAppear?() }
+        }
     }
 }
 
@@ -904,10 +983,10 @@ private struct AlbumDetailLogItemCard: View {
 // 이미지 슬라이더
 
 private struct AlbumDetailLogImageSlider: View {
-    let imageCount: Int
-    
+    let images: [AlbumLogImage]
+
     @State private var currentIndex: Int = 0
-    
+
     private enum Constants {
         static let cornerRadius: CGFloat = 12
         static let dotSize: CGFloat = 6
@@ -921,30 +1000,41 @@ private struct AlbumDetailLogImageSlider: View {
             (UIScreen.main.bounds.width - 40) * 3 / 4
         }
     }
-    
+
     var body: some View {
         ZStack(alignment: .bottom) {
             // 이미지 슬라이더
             TabView(selection: $currentIndex) {
-                ForEach(0..<imageCount, id: \.self) { index in
-                    // 이미지 로드 실패 시 placeholder 표시
-                    ZStack {
-                        Color.secondary.opacity(0.12)
-                        Image(systemName: "photo")
-                            .font(.system(size: Constants.placeholderIconSize))
-                            .foregroundStyle(Color.placeholderSymbol)
+                ForEach(images.indices, id: \.self) { index in
+                    AsyncImage(url: images[index].imageUrl) { phase in
+                        switch phase {
+                        case .success(let image):
+                            image
+                                .resizable()
+                                .scaledToFill()
+                        default:
+                            // 로드 중 / 실패 시 placeholder 표시
+                            ZStack {
+                                Color.secondary.opacity(0.12)
+                                Image(systemName: "photo")
+                                    .font(.system(size: Constants.placeholderIconSize))
+                                    .foregroundStyle(Color.placeholderSymbol)
+                            }
+                        }
                     }
+                    .frame(maxWidth: .infinity, maxHeight: Constants.sliderHeight)
+                    .clipped()
                     .tag(index)
                 }
             }
             .tabViewStyle(.page(indexDisplayMode: .never))
             .frame(height: Constants.sliderHeight)
             .clipShape(RoundedRectangle(cornerRadius: Constants.cornerRadius))
-            
+
             // 커스텀 페이지 인디케이터
-            if imageCount > 1 {
+            if images.count > 1 {
                 HStack(spacing: Constants.dotSpacing) {
-                    ForEach(0..<imageCount, id: \.self) { index in
+                    ForEach(images.indices, id: \.self) { index in
                         Circle()
                             .frame(width: Constants.dotSize, height: Constants.dotSize)
                             .foregroundStyle(
@@ -1068,16 +1158,6 @@ private struct AlbumDetailLogTextSection: View {
             if contentWidth == 0 { contentWidth = w }
         }
     }
-}
-
-// MARK: - LogItemDummy
-// 더미 데이터 구조체
-
-private struct LogItemDummy {
-    let id: Int
-    let dateLabel: String
-    let text: String
-    let imageCount: Int
 }
 
 // MARK: - AlbumDetailDisplayModel
