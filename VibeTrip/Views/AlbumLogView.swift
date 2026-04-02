@@ -65,7 +65,7 @@ struct AlbumLogView: View {
             wrappedValue: AlbumLogViewModel(
                 albumId: albumId,
                 mode: mode,
-                service: MockAlbumService() // TODO: 서버 확정 후 AlbumService()로 교체
+                service: AlbumService()
             )
         )
     }
@@ -136,6 +136,10 @@ struct AlbumLogView: View {
         )
         .onChange(of: photoPickerItems) { _, items in
             loadPhotos(from: items)
+        }
+        .onChange(of: viewModel.isSaved) { _, saved in
+            guard saved else { return }
+            dismiss()
         }
         .onChange(of: viewModel.toastMessage) { _, message in
             guard message != nil else { return }
