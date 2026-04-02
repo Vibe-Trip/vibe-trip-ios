@@ -247,6 +247,87 @@ final class AlbumServiceTests: XCTestCase {
         XCTAssertFalse(result.hasNext)
     }
 
+    // MARK: - fetchAlbumLogs 성공
+
+    // 정상 응답 -> AlbumLogListPayload 반환
+    func test_fetchAlbumLogs_success_returnsPayload() async throws {
+        let expected = AlbumLogListPayload(
+            content: [
+                AlbumLogEntry(
+                    id: 101,
+                    description: "로그",
+                    postedAt: "2026-01-13T12:00:00Z",
+                    images: []
+                )
+            ],
+            hasNext: true
+        )
+        mockAPIClient.requestResult = .success(expected)
+
+        let result = try await sut.fetchAlbumLogs(albumId: "42", cursor: nil, limit: 20)
+
+        XCTAssertEqual(result.content.count, 1)
+        XCTAssertEqual(result.content.first?.id, 101)
+        XCTAssertTrue(result.hasNext)
+        XCTAssertEqual(mockAPIClient.requestCallCount, 1)
+    }
+
+    // albumId가 path에 올바르게 포함되는지 검증
+    func test_fetchAlbumLogs_path_containsAlbumId() async throws {
+        mockAPIClient.requestResult = .success(
+            AlbumLogListPayload(content: [], hasNext: false)
+        )
+
+        _ = try await sut.fetchAlbumLogs(albumId: "99", cursor: nil, limit: 20)
+
+        XCTAssertEqual(
+            mockAPIClient.capturedEndpoints.first?.path,
+            "/api/v1/albums/99/album-logs"
+        )
+    }
+
+    // limit 값이 쿼리 파라미터로 전달되는지 검증
+    func test_fetchAlbumLogs_limit_isPassedAsQueryItem() async throws {
+        mockAPIClient.requestResult = .success(
+            AlbumLogListPayload(content: [], hasNext: false)
+        )
+
+        _ = try await sut.fetchAlbumLogs(albumId: "1", cursor: nil, limit: 20)
+
+        let items = mockAPIClient.capturedEndpoints.first?.queryItems ?? []
+        let limitItem = items.first { $0.name == "limit" }
+        XCTAssertEqual(limitItem?.value, "20")
+    }
+
+    // cursor 값이 있을 때만 쿼리 파라미터로 전달되는지 검증
+    func test_fetchAlbumLogs_cursor_isPassedOnlyWhenProvided() async throws {
+        mockAPIClient.requestResult = .success(
+            AlbumLogListPayload(content: [], hasNext: false)
+        )
+
+        _ = try await sut.fetchAlbumLogs(albumId: "1", cursor: nil, limit: 20)
+        _ = try await sut.fetchAlbumLogs(albumId: "1", cursor: 555, limit: 20)
+
+        let firstItems = mockAPIClient.capturedEndpoints[0].queryItems ?? []
+        let secondItems = mockAPIClient.capturedEndpoints[1].queryItems ?? []
+        XCTAssertNil(firstItems.first { $0.name == "cursor" })
+        XCTAssertEqual(secondItems.first { $0.name == "cursor" }?.value, "555")
+    }
+
+    // 서버 에러 응답 -> APIClientError.serverError throw
+    func test_fetchAlbumLogs_serverError_throwsServerError() async throws {
+        mockAPIClient.requestResult = .failure(APIClientError.serverError(.e400))
+
+        do {
+            _ = try await sut.fetchAlbumLogs(albumId: "1", cursor: nil, limit: 20)
+            XCTFail("서버 에러가 throw되어야 합니다")
+        } catch APIClientError.serverError(let code) {
+            XCTAssertEqual(code, .e400)
+        } catch {
+            XCTFail("예상치 못한 에러: \(error)")
+        }
+    }
+
     // MARK: - vocalGender 없음
 
     // vocalGender nil -> 서버에 "N"으로 전달

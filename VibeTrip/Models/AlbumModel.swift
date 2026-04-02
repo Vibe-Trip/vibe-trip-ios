@@ -99,7 +99,7 @@ struct AlbumLog: Decodable {
 
 // MARK: - AlbumListPayload
 
-// 앨범 목록 응답 래퍼 (커서 기반 페이지네이션)
+// 앨범 목록 응답 래퍼
 struct AlbumListPayload: Decodable {
     let content: [AlbumCard] // "content"
     let totalCount: Int
@@ -128,6 +128,31 @@ struct AlbumLogRequest {
     let albumId: String
     let logText: String
     let photoDataList: [Data]
+}
+
+// MARK: - AlbumLogEntry
+
+// 로그 목록 아이템 (GET /api/v1/albums/{albumId}/album-logs)
+struct AlbumLogEntry: Identifiable, Decodable {
+    let id: Int
+    let description: String
+    let postedAt: String        // ISO8601 date-time — ViewModel에서 파싱
+    let images: [AlbumLogImage]
+}
+
+// MARK: - AlbumLogImage
+
+// 로그 첨부 이미지
+struct AlbumLogImage: Decodable {
+    let imageUrl: URL
+}
+
+// MARK: - AlbumLogListPayload
+
+// 로그 목록 응답 래퍼 (커서 기반 페이지네이션)
+struct AlbumLogListPayload: Decodable {
+    let content: [AlbumLogEntry]
+    let hasNext: Bool
 }
 
 // MARK: - AlbumError
@@ -164,6 +189,29 @@ extension AlbumCard {
             startDate: "2025-06-01", endDate: "2025-06-07",
             coverImageUrl: nil
         ),
+    ]
+}
+
+extension AlbumLogEntry {
+    static let mockItems: [AlbumLogEntry] = [
+        .init(
+            id: 1,
+            description: "도톤보리 야경이 정말 아름다웠다. 네온사인 불빛이 강물에 반사되던 그 순간이 잊혀지지 않는다.",
+            postedAt: "2026-01-13T21:00:00Z",
+            images: []
+        ),
+        .init(
+            id: 2,
+            description: "신사이바시에서 쇼핑을 실컷 했다. 발이 아플 정도로 걸었지만 너무 즐거웠다.",
+            postedAt: "2026-01-13T14:30:00Z",
+            images: []
+        ),
+        .init(
+            id: 3,
+            description: "오사카 성 아침 산책. 조용하고 평화로운 시간이었다.",
+            postedAt: "2026-01-12T09:00:00Z",
+            images: []
+        )
     ]
 }
 
