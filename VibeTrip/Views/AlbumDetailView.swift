@@ -15,6 +15,10 @@ import Combine
     @Published private(set) var logs: [AlbumLogEntry] = []
     @Published private(set) var isLoading: Bool = false
     @Published private(set) var hasNext: Bool = false
+    @Published private(set) var showDeleteConfirm: Bool = false
+    @Published private(set) var isDeleting: Bool = false
+    @Published private(set) var deleteError: String? = nil
+    @Published private(set) var didDeleteAlbum: Bool = false
 
     private let albumId: String
     private var cursor: Int? = nil
@@ -43,6 +47,21 @@ import Combine
         cursor = nil
         logs = []
         await fetchLogs()
+    }
+
+    func requestDeleteAlbum() {
+        showDeleteConfirm = true
+    }
+
+    func confirmDeleteAlbum() async {
+        isDeleting = true
+        defer { isDeleting = false }
+        do {
+            try await service.deleteAlbum(albumId: albumId)
+            didDeleteAlbum = true
+        } catch {
+            deleteError = "앨범 삭제에 실패했습니다."
+        }
     }
 
     func loadMoreIfNeeded(lastId: Int) async {
