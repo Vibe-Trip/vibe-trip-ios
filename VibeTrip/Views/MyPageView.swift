@@ -46,7 +46,7 @@ struct MyPageView: View {
         static let secondaryLabelColor = Color(red: 0.6, green: 0.62, blue: 0.64)
         static let termsURL = URL(string: "https://www.notion.so/RETRIP-3366aa129c8e8046a8f0e90d7b1d78cb?source=copy_link")!
         static let privacyURL = URL(string: "https://www.notion.so/RETRIP-3366aa129c8e8014bf10c55c890f67ad?source=copy_link")!
-        static let openSourceURL = URL(string: "https://example.com/licenses")!
+        static let openSourceURL = URL(string: "https://www.notion.so/RETRIP-3376aa129c8e8088bf16dccfaa73ef4d?source=copy_link")!
         static let supportEmail = "vibetrip26@gmail.com"
         static let mailSubject = "[RETRIP 문의]"
     }
