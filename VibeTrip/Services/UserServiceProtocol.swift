@@ -17,12 +17,15 @@ protocol UserServiceProtocol {
 // Mock 서비스 (Preview / 테스트용)
 final class MockUserService: UserServiceProtocol {
 
+    var stubbedError: Error? = nil
+
     func fetchProfile() async throws -> UserProfile {
+        if let error = stubbedError { throw error }
         return UserProfile.mock
     }
 
     func deleteAccount() async throws {
-        // No-op
+        if let error = stubbedError { throw error }
     }
 }
 #endif

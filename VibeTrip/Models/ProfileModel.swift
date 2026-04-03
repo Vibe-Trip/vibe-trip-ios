@@ -8,22 +8,30 @@
 import Foundation
 
 // 사용자 프로필 모델
-struct UserProfile {
-    let userId: String
+struct UserProfile: Decodable {
     let nickname: String
-    let profileImageUrl: String?
     let email: String?
-    let provider: String  // Kakao or Apple
+    let profileImageUrl: String?
+    let albumCount: Int
+    let albumLogCount: Int
+
+    private enum CodingKeys: String, CodingKey {
+        case nickname       = "name"
+        case email
+        case profileImageUrl = "profileImage"
+        case albumCount
+        case albumLogCount
+    }
 }
 
 #if DEBUG
 extension UserProfile {
     static let mock = UserProfile(
-        userId: "mock-user-001",
         nickname: "여행자",
-        profileImageUrl: nil,
         email: "traveler@example.com",
-        provider: "KAKAO"
+        profileImageUrl: nil,
+        albumCount: 3,
+        albumLogCount: 12
     )
 }
 #endif

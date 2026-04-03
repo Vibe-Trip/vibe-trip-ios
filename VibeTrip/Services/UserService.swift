@@ -7,12 +7,17 @@
 
 import Foundation
 
-// TODO: 백엔드 API 연동 시 실제 구현 필요
 final class UserService: UserServiceProtocol {
 
+    private let apiClient: APIClientProtocol
+
+    init(apiClient: APIClientProtocol = APIClient.shared) {
+        self.apiClient = apiClient
+    }
+
     func fetchProfile() async throws -> UserProfile {
-        // TODO: 프로필 GET 앤드포인트 변경
-        throw URLError(.unsupportedURL)
+        let endpoint = APIEndpoint(path: "/api/v1/members/profile", method: .get)
+        return try await apiClient.request(endpoint)
     }
 
     func deleteAccount() async throws {

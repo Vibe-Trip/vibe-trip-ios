@@ -55,7 +55,10 @@ import UserNotifications
         defer { isLoading = false }
         do {
             // 현재 사용자 프로필 조회
-            userProfile = try await userService.fetchProfile()
+            let profile = try await userService.fetchProfile()
+            userProfile = profile
+            albumCount = profile.albumCount
+            logCount = profile.albumLogCount
         } catch {
             showToast("프로필을 불러오지 못했어요.")
         }
