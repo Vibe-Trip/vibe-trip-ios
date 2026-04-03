@@ -21,7 +21,7 @@ final class UserService: UserServiceProtocol {
     }
 
     func deleteAccount() async throws {
-        // TODO: 계정 DELETE 앤드포인트 변경
-        throw URLError(.unsupportedURL)
+        let endpoint = APIEndpoint(path: "/api/v1/members/me/withdraw", method: .delete)
+        try await apiClient.perform(endpoint)
     }
 }
