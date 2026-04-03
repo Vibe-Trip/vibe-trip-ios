@@ -259,11 +259,11 @@ struct AlbumDetailView: View {
     
     @EnvironmentObject private var musicService: BackgroundMusicService
     
-    // 스크롤 offset: ScrollOffsetKey로 감지
-    @State private var scrollOffset: CGFloat = 0
-    
-    // 네비게이션 바 진입 시점 계산에 사용
-    @State private var titleGlobalMinY: CGFloat = .greatestFiniteMagnitude
+    // UIScrollView KVO로 감지한 contentOffset.y (스크롤 이벤트와 동일 사이클 반영)
+    @State private var scrollContentOffset: CGFloat = 0
+
+    // 타이틀 텍스트의 초기 global Y (스크롤 = 0 기준, 1회만 측정)
+    @State private var titleContentY: CGFloat = .greatestFiniteMagnitude
     
     //최상단 이동 버튼 표시 -> 블러 네비게이션 바 전환 시
     private var showScrollToTop: Bool { overlayOpacity < 1 }
@@ -297,17 +297,13 @@ struct AlbumDetailView: View {
             ScrollViewReader { proxy in
                 ScrollView(showsIndicators: false) {
                     VStack(spacing: 0) {
-                        // 스크롤 offset 감지 + 최상단 이동 앵커
-                        GeometryReader { geo in
-                            Color.clear
-                                .preference(
-                                    key: ScrollOffsetKey.self,
-                                    value: geo.frame(in: .global).minY
-                                )
-                        }
-                        .frame(height: 0)
-                        .id("scrollTop")
-                        
+                        // 최상단 이동 앵커 + KVO 기반 스크롤 offset 감지
+                        Color.clear
+                            .frame(height: 0)
+                            .id("scrollTop")
+                        ScrollOffsetObserver(contentOffset: $scrollContentOffset)
+                            .frame(height: 0)
+
                         coverImageSection
                         actionButtonsSection
                         contentSection
@@ -316,7 +312,6 @@ struct AlbumDetailView: View {
                 .scrollDisabled(logViewModel.logs.isEmpty)
                 .ignoresSafeArea(edges: .top)
                 .background(Color.white.ignoresSafeArea())
-                .onPreferenceChange(ScrollOffsetKey.self) { scrollOffset = $0 }
                 .overlay(alignment: .bottomTrailing) {
                     scrollToTopButton {
                         withAnimation(.easeInOut(duration: 0.5)) {
@@ -506,8 +501,9 @@ private extension AlbumDetailView {
     }
     
     // 타이틀 텍스트 및 네비게이션 바 하단의 거리
+    // titleContentY(초기 global Y) - scrollContentOffset = 현재 프레임의 타이틀 global Y
     var titleNavOffset: CGFloat {
-        titleGlobalMinY - navBarBottom
+        (titleContentY - scrollContentOffset) - navBarBottom
     }
     
     // 투명 오버레이 투명도
@@ -583,7 +579,10 @@ private extension AlbumDetailView {
                     .onGeometryChange(for: CGFloat.self) {
                         $0.frame(in: .global).minY
                     } action: { minY in
-                        titleGlobalMinY = minY
+                        // 스크롤 = 0 기준 초기 위치 1회만 측정
+                        // 이후 위치 계산은 scrollContentOffset(KVO)으로 처리
+                        guard titleContentY == .greatestFiniteMagnitude else { return }
+                        titleContentY = minY
                     }
                 
                 /// 여행지
