@@ -167,7 +167,7 @@ struct AlbumLogView: View {
         .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillHideNotification)) { _ in
             keyboardHeight = 0
         }
-        .sheet(isPresented: $isPhotoPickerPresented) {
+        .sheet(isPresented: $isPhotoPickerPresented) {  // TODO: 사진 업로드 시 뷰 탈출 이슈 발생할 경우 .sheet -> .fullScreenCover 교체
             // OrderedPhotoPicker: 선택 순서 -> 번호로 보여주고 UIImage 배열 반환
             OrderedPhotoPicker(
                 isPresented: $isPhotoPickerPresented,

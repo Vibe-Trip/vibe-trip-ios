@@ -166,6 +166,9 @@ import Combine
             let payload = try await service.fetchAlbumLogs(
                 albumId: albumId, cursor: cursor, limit: limit
             )
+            for log in payload.content {
+                print("[AlbumLog] id:\(log.id) postedAt:\(log.postedAt) parsedDate:\(String(describing: Self.parseISO8601Date(log.postedAt)))")
+            }
             logs.append(contentsOf: payload.content)
             hasNext = payload.hasNext
             cursor = payload.content.last?.id
@@ -198,8 +201,21 @@ import Combine
     }
 
     static func parseISO8601Date(_ value: String) -> Date? {
-        isoFormatterWithFractionalSeconds.date(from: value)
-            ?? isoFormatter.date(from: value)
+        if let date = isoFormatterWithFractionalSeconds.date(from: value) { return date }
+        if let date = isoFormatter.date(from: value) { return date }
+        // timezone 없는 포맷 대응 (Spring Boot LocalDateTime 등)
+        let fallback = DateFormatter()
+        fallback.locale = Locale(identifier: "en_US_POSIX")
+        for format in [
+            "yyyy-MM-dd'T'HH:mm:ss.SSSSSS",
+            "yyyy-MM-dd'T'HH:mm:ss.SSS",
+            "yyyy-MM-dd'T'HH:mm:ss"
+        ] {
+            fallback.dateFormat = format
+            if let date = fallback.date(from: value) { return date }
+        }
+        print("[AlbumDetailViewModel] postedAt 파싱 실패: \(value)")
+        return nil
     }
 }
 
