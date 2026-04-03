@@ -519,4 +519,82 @@ final class AlbumServiceTests: XCTestCase {
             XCTFail("예상치 못한 에러: \(error)")
         }
     }
+
+    // MARK: - updateLog: 헬퍼
+
+    private func makeUpdateRequest(newPhotoDataList: [Data] = []) -> AlbumLogUpdateRequest {
+        AlbumLogUpdateRequest(
+            albumId: "42",
+            albumLogId: 101,
+            logText: "수정된 기록",
+            newPhotoDataList: newPhotoDataList
+        )
+    }
+
+    // MARK: - updateLog: 성공
+
+    // 성공 시 performUpload 1회 호출
+    func test_updateLog_success_callsPerformUploadOnce() async throws {
+        mockAPIClient.performUploadResult = .success(())
+
+        try await sut.updateLog(request: makeUpdateRequest())
+
+        XCTAssertEqual(mockAPIClient.performUploadCallCount, 1)
+    }
+
+    // albumId, albumLogId가 path에 올바르게 포함되는지 검증
+    func test_updateLog_success_usesCorrectEndpointPath() async throws {
+        mockAPIClient.performUploadResult = .success(())
+
+        try await sut.updateLog(request: makeUpdateRequest())
+
+        XCTAssertEqual(
+            mockAPIClient.capturedEndpoints.last?.path,
+            "/api/v1/albums/42/album-logs/101"
+        )
+    }
+
+    // 새 이미지 포함 시 formData에 newImages 파트가 이미지 수만큼 추가되는지 검증
+    func test_updateLog_withNewPhotos_appendsNewImageParts() async throws {
+        mockAPIClient.performUploadResult = .success(())
+        let request = makeUpdateRequest(newPhotoDataList: [Data([0x01]), Data([0x02])])
+
+        try await sut.updateLog(request: request)
+
+        let imageParts = mockAPIClient.capturedFormData?.parts.filter { $0.name == "newImages" } ?? []
+        XCTAssertEqual(imageParts.count, 2)
+    }
+
+    // MARK: - updateLog: 서버 에러
+
+    // 서버 에러 응답 -> APIClientError.serverError throw
+    func test_updateLog_serverError_throwsServerError() async throws {
+        mockAPIClient.performUploadResult = .failure(APIClientError.serverError(.e400))
+
+        do {
+            try await sut.updateLog(request: makeUpdateRequest())
+            XCTFail("서버 에러가 throw되어야 합니다")
+        } catch APIClientError.serverError(let code) {
+            XCTAssertEqual(code, .e400)
+        } catch {
+            XCTFail("예상치 못한 에러: \(error)")
+        }
+    }
+
+    // MARK: - updateLog: 네트워크 에러
+
+    // 네트워크 연결 불가 -> APIClientError.networkError throw
+    func test_updateLog_networkError_throwsNetworkError() async throws {
+        let urlError = URLError(.notConnectedToInternet)
+        mockAPIClient.performUploadResult = .failure(APIClientError.networkError(urlError))
+
+        do {
+            try await sut.updateLog(request: makeUpdateRequest())
+            XCTFail("네트워크 에러가 throw되어야 합니다")
+        } catch APIClientError.networkError(let error) {
+            XCTAssertEqual(error.code, .notConnectedToInternet)
+        } catch {
+            XCTFail("예상치 못한 에러: \(error)")
+        }
+    }
 }
