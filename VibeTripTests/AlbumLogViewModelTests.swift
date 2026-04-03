@@ -10,15 +10,23 @@ import XCTest
 
 // MARK: - StubAlbumLogService
 
-// 로그 저장 결과만 제어하는 Stub
+// 로그 저장/수정 결과를 제어하는 Stub
 fileprivate final class StubAlbumLogService: AlbumServiceProtocol {
 
     var saveResult: Result<Void, Error> = .success(())
     private(set) var saveCallCount = 0
 
+    var updateResult: Result<Void, Error> = .success(())
+    private(set) var updateCallCount = 0
+
     func saveLog(request: AlbumLogRequest) async throws {
         saveCallCount += 1
         if case .failure(let e) = saveResult { throw e }
+    }
+
+    func updateLog(request: AlbumLogUpdateRequest) async throws {
+        updateCallCount += 1
+        if case .failure(let e) = updateResult { throw e }
     }
 
     func fetchAlbums(cursor: Int?, limit: Int) async throws -> AlbumListPayload { fatalError("미사용") }
@@ -127,5 +135,91 @@ final class AlbumLogViewModelTests: XCTestCase {
         sut.addPhotos(images)
 
         XCTAssertNotNil(sut.toastMessage)
+    }
+}
+
+// MARK: - AlbumLogViewModelEditTests
+
+@MainActor
+final class AlbumLogViewModelEditTests: XCTestCase {
+
+    private var stub: StubAlbumLogService!
+    private var sut: AlbumLogViewModel!
+
+    private let mockEntry = AlbumLogEntry(
+        id: 99,
+        description: "기존 텍스트",
+        postedAt: "2026-01-13T12:00:00Z",
+        images: []
+    )
+
+    override func setUp() async throws {
+        try await super.setUp()
+        stub = StubAlbumLogService()
+        sut = AlbumLogViewModel(albumId: "1", mode: .edit(mockEntry), service: stub)
+    }
+
+    override func tearDown() async throws {
+        stub = nil
+        sut = nil
+        try await super.tearDown()
+    }
+
+    // MARK: - saveLog
+
+    // 수정 저장 성공 -> updateLog 1회 호출
+    func test_saveLog_editMode_success_callsUpdateLogOnce() async {
+        stub.updateResult = .success(())
+        sut.logText = "수정된 텍스트"
+
+        await sut.saveLog()
+
+        XCTAssertEqual(stub.updateCallCount, 1)
+    }
+
+    // 수정 저장 성공 -> isSaved == true
+    func test_saveLog_editMode_success_isSavedBecomesTrue() async {
+        stub.updateResult = .success(())
+        sut.logText = "수정된 텍스트"
+
+        await sut.saveLog()
+
+        XCTAssertTrue(sut.isSaved)
+    }
+
+    // 수정 저장 실패 -> 에러 토스트 메시지 설정
+    func test_saveLog_editMode_failure_showsToastMessage() async {
+        stub.updateResult = .failure(APIClientError.serverError(.e400))
+        sut.logText = "수정된 텍스트"
+
+        await sut.saveLog()
+
+        XCTAssertNotNil(sut.toastMessage)
+    }
+
+    // MARK: - hasUnsavedChanges
+
+    // 텍스트 동일 + 새 사진 없음 -> 변경 없음
+    func test_hasUnsavedChanges_editMode_noChanges_returnsFalse() {
+        // logText는 init 시 entry.description으로 pre-fill됨
+        XCTAssertFalse(sut.hasUnsavedChanges)
+    }
+
+    // 텍스트 변경 -> 변경 있음
+    func test_hasUnsavedChanges_editMode_textChanged_returnsTrue() {
+        sut.logText = "변경된 텍스트"
+
+        XCTAssertTrue(sut.hasUnsavedChanges)
+    }
+
+    // MARK: - removePhoto
+
+    // 새 사진 추가 후 제거 -> selectedPhotos에서 삭제됨
+    func test_removePhoto_editMode_newPhoto_removesPhoto() {
+        sut.addPhotos([UIImage()])
+
+        sut.removePhoto(at: 0)
+
+        XCTAssertTrue(sut.selectedPhotos.isEmpty)
     }
 }
