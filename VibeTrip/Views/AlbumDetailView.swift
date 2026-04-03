@@ -251,9 +251,10 @@ struct AlbumDetailView: View {
     // 음악 공유 시트 표시 여부
     @State private var downloadedMusicURL: URL? = nil
 
-    // 로그 작성 화면 표시 여부
-    @State private var isWritingLog: Bool = false
-    // 로그 저장 성공 여부 -> onDismiss에서 재조회 여부 판단
+    // 로그 작성/수정 화면 전환 상태 (nil: 미표시)
+    @State private var logPresentation: LogPresentationState? = nil
+
+    // 실제 저장 완료 여부: onDismiss 재조회 조건 판단
     @State private var didSaveLog: Bool = false
     
     @EnvironmentObject private var musicService: BackgroundMusicService
@@ -406,18 +407,20 @@ struct AlbumDetailView: View {
         .animation(.easeInOut(duration: 0.2), value: isStorageFullToastVisible)
         .navigationBarBackButtonHidden(true)
         .toolbar(.hidden, for: .navigationBar)
-        .fullScreenCover(isPresented: $isWritingLog, onDismiss: {
-            // 저장 성공 시에만 목록 재조회
-            Task { @MainActor in    /// 현재 뷰 업데이트 사이클 이후에 상태 변경
-                if didSaveLog {
-                    didSaveLog = false
-                    await logViewModel.loadInitialLogs()
-                }
+        .fullScreenCover(item: $logPresentation, onDismiss: {
+            // 목록 재조회: 저장이 발생한 경우만
+            if didSaveLog {
+                Task { await logViewModel.loadInitialLogs() }
+
             }
-        }) {
-            AlbumLogView(albumId: String(displayModel.albumId), mode: .create, onSaved: {
-                didSaveLog = true
-            })
+            didSaveLog = false
+        }) { state in
+            switch state {
+            case .create:
+                AlbumLogView(albumId: String(displayModel.albumId), mode: .create, onSaved: { didSaveLog = true })
+            case .edit(let entry):
+                AlbumLogView(albumId: String(displayModel.albumId), mode: .edit(entry), onSaved: { didSaveLog = true })
+            }
         }
         // 신고 바텀시트
         .sheet(isPresented: $isReportSheetPresented) {
@@ -644,7 +647,7 @@ private extension AlbumDetailView {
             AlbumDetailActionButton(
                 title: "로그 작성",
                 systemImageName: "pencil.line",
-                action: { isWritingLog = true }
+                action: { logPresentation = .create }
             )
         }
         .padding(.horizontal, Constants.horizontalPadding)
@@ -655,7 +658,7 @@ private extension AlbumDetailView {
     @ViewBuilder
     var contentSection: some View {
         if !logViewModel.logs.isEmpty {
-            AlbumDetailLogFeedSection(viewModel: logViewModel)
+            AlbumDetailLogFeedSection(viewModel: logViewModel, onEdit: { logPresentation = .edit($0) })
         } else if logViewModel.isLoading {
             ProgressView()
                 .frame(maxWidth: .infinity)
@@ -745,7 +748,7 @@ private extension AlbumDetailView {
         // 커버 이미지
         static let coverWidth: CGFloat = 402
         static let coverHeight: CGFloat = 460
-        static let coverBottomCornerRadius: CGFloat = 32
+        static let coverBottomCornerRadius: CGFloat = 28
         static let placeholderIconSize: CGFloat = 44
         
         // 앨범 정보 텍스트
@@ -780,6 +783,24 @@ private extension AlbumDetailView {
         static let scrollToTopTrailingPadding: CGFloat = 20
         static let scrollToTopBottomPadding: CGFloat = 40
         static let scrollToTopAnimationDuration: Double = 0.2
+    }
+}
+
+// MARK: - LogPresentationState
+// 로그 작성/수정 화면 전환 상태
+
+private extension AlbumDetailView {
+
+    enum LogPresentationState: Identifiable {
+        case create
+        case edit(AlbumLogEntry)
+
+        var id: String {
+            switch self {
+            case .create:           return "create"
+            case .edit(let entry):  return "edit-\(entry.id)"
+            }
+        }
     }
 }
 
@@ -960,10 +981,9 @@ private struct AlbumMenuItemButtonStyle: ButtonStyle {
 }
 
 // MARK: - LogMenuItemButtonStyle
-// GestureState + simultaneousGesture 방식: 탭 상태 직접 추적
 
 private struct LogMenuItemButtonStyle: ButtonStyle {
-    
+
     private enum Constants {
         static let horizontalPadding: CGFloat = 16
         static let verticalPadding: CGFloat = 8
@@ -971,33 +991,15 @@ private struct LogMenuItemButtonStyle: ButtonStyle {
         static let highlightBackground = Color(red: 0.92, green: 0.92, blue: 0.98)
         static let animationDuration: Double = 0.1
     }
-    
+
     func makeBody(configuration: Configuration) -> some View {
-        InnerBody(configuration: configuration)
-    }
-    
-    // GestureState를 사용하기 위해 별도 View로 분리
-    private struct InnerBody: View {
-        let configuration: ButtonStyleConfiguration
-        @GestureState private var isPressed: Bool = false
-        
-        var body: some View {
-            configuration.label
-                .padding(.horizontal, Constants.horizontalPadding)
-                .padding(.vertical, Constants.verticalPadding)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .background(isPressed ? Constants.highlightBackground : Color.clear)
-                .cornerRadius(Constants.cornerRadius)
-                .animation(
-                    .easeInOut(duration: Constants.animationDuration),
-                    value: isPressed
-                )
-                // 버튼 탭 액션을 유지하면서 press 상태만 별도 추적
-                .simultaneousGesture(
-                    DragGesture(minimumDistance: 0)
-                        .updating($isPressed) { _, state, _ in state = true }
-                )
-        }
+        configuration.label
+            .padding(.horizontal, Constants.horizontalPadding)
+            .padding(.vertical, Constants.verticalPadding)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(configuration.isPressed ? Constants.highlightBackground : Color.clear)
+            .cornerRadius(Constants.cornerRadius)
+            .animation(.easeInOut(duration: Constants.animationDuration), value: configuration.isPressed)
     }
 }
 
@@ -1121,6 +1123,7 @@ private struct AlbumDetailLogMenuPopup: View {
 private struct AlbumDetailLogFeedSection: View {
 
     @ObservedObject var viewModel: AlbumDetailViewModel
+    let onEdit: (AlbumLogEntry) -> Void
 
     private enum Constants {
         static let horizontalPadding: CGFloat = 20
@@ -1144,7 +1147,8 @@ private struct AlbumDetailLogFeedSection: View {
                     },
                     onDeleteLog: { logId in
                         viewModel.requestDeleteLog(id: logId)
-                    }
+                    },
+                    onEdit: onEdit
                 )
             }
         }
@@ -1164,6 +1168,7 @@ private struct AlbumDetailLogDateGroup: View {
     let lastEntryId: Int?
     let onLastAppear: (() async -> Void)?
     let onDeleteLog: (Int) -> Void
+    let onEdit: (AlbumLogEntry) -> Void
 
     private enum Constants {
         /// 로그 카드 간 간격
@@ -1177,7 +1182,8 @@ private struct AlbumDetailLogDateGroup: View {
                     entry: entry,
                     isLast: entry.id == lastEntryId,
                     onLastAppear: onLastAppear,
-                    onDeleteLog: onDeleteLog
+                    onDeleteLog: onDeleteLog,
+                    onEdit: onEdit
                 )
             }
         }
@@ -1192,6 +1198,7 @@ private struct AlbumDetailLogItemCard: View {
     let isLast: Bool
     let onLastAppear: (() async -> Void)?
     let onDeleteLog: (Int) -> Void
+    let onEdit: (AlbumLogEntry) -> Void
 
     /// 로그 옵션 팝업 표시 여부
     @State private var isMenuVisible: Bool = false
@@ -1266,10 +1273,8 @@ private struct AlbumDetailLogItemCard: View {
                 // 수정 및 삭제 팝업
                 AlbumDetailLogMenuPopup(
                     onEditLog: {
-                        withAnimation(.easeInOut(duration: Constants.menuAnimationDuration)) {
-                            isMenuVisible = false
-                        }
-                        // TODO: 로그 수정 화면으로 이동
+                        isMenuVisible = false
+                        onEdit(entry)
                     },
                     onDeleteLog: {
                         withAnimation(.easeInOut(duration: Constants.menuAnimationDuration)) {

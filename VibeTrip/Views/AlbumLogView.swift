@@ -14,6 +14,9 @@ struct AlbumLogView: View {
     @StateObject private var viewModel: AlbumLogViewModel
     @Environment(\.dismiss) private var dismiss
 
+    // 저장 완료 시 호출 (목록 재조회 여부 판단에 사용)
+    private let onSaved: (() -> Void)?
+
     // TextEditor 포커스 제어 (scrollDismissesKeyboard 연동)
     @FocusState private var isFocused: Bool
 
@@ -62,10 +65,7 @@ struct AlbumLogView: View {
 
     // MARK: - Init
 
-    // 저장 성공 시 상위 뷰에 알리는 콜백
-    var onSaved: () -> Void
-
-    init(albumId: String, mode: AlbumLogViewModel.LogViewMode, onSaved: @escaping () -> Void = {}) {
+    init(albumId: String, mode: AlbumLogViewModel.LogViewMode, onSaved: (() -> Void)? = nil) {
         self.onSaved = onSaved
         _viewModel = StateObject(
             wrappedValue: AlbumLogViewModel(
@@ -179,7 +179,7 @@ struct AlbumLogView: View {
         }
         .onChange(of: viewModel.isSaved) { _, saved in
             guard saved else { return }
-            onSaved()
+            onSaved?()
             dismiss()
         }
         .onChange(of: viewModel.toastMessage) { _, message in
@@ -428,7 +428,7 @@ private extension AlbumLogView {
 #if DEBUG
 #Preview("로그 수정 모드") {
     NavigationStack {
-        AlbumLogView(albumId: "1", mode: .edit(AlbumLog.mock))
+        AlbumLogView(albumId: "1", mode: .edit(AlbumLogEntry.mock))
     }
 }
 #endif
