@@ -105,7 +105,7 @@ final class MakeAlbumViewModel: ObservableObject {
         case .include:
             return "미선택 시 장르는 Pop으로 선택됩니다"
         case .exclude:
-            return "미선택 시 장르는 Classical로 선택됩니다"
+            return "미선택 시 장르는 Lofi로 선택됩니다"
         }
     }
     
@@ -115,12 +115,12 @@ final class MakeAlbumViewModel: ObservableObject {
     }
     
     var defaultGenre: AlbumGenre {
-        album.lyricsOption == .include ? .pop : .classical
+        album.lyricsOption == .include ? .pop : .loFi
     }
     
     // 장르 설명 모달 데이터
     var genreDescriptions: [GenreDescriptionModel] {
-        displayedGenres.map { GenreDescriptionModel(genre: $0, description: $0.descriptionText) }
+        displayedGenres.map { GenreDescriptionModel(genre: $0, description: $0.descriptionText(for: album.lyricsOption)) }
     }
     
     // 선택한 사진의 용량 및 디코딩 가능 여부 검증

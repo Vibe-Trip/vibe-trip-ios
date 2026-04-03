@@ -7,11 +7,18 @@
 
 import SwiftUI
 import AuthenticationServices
+import SafariServices
+
+private struct SafariItem: Identifiable {
+    let id = UUID()
+    let url: URL
+}
 
 struct LoginView: View {
 
     @StateObject private var viewModel = LoginViewModel()
     @EnvironmentObject private var appState: AppState
+    @State private var safariItem: SafariItem?
 
     private enum Constants {
         static let toastBottomPadding: CGFloat = 10
@@ -104,6 +111,10 @@ struct LoginView: View {
             if newVal == .some(false) {
                 viewModel.isLoggedIn = false
             }
+        }
+        .sheet(item: $safariItem) { item in
+            SafariView(url: item.url)
+                .ignoresSafeArea()
         }
     }
     
@@ -213,9 +224,8 @@ struct LoginView: View {
 
     // MARK: - Terms Caption
 
-    // TODO: 실제 URL로 교체
-    private let termsURL = URL(string: "https://retrip.kr/terms")!  // 서비스 이용 약관
-    private let privacyURL = URL(string: "https://retrip.kr/privacy")! // 개인정보 처리방침
+    private let termsURL = URL(string: "https://www.notion.so/RETRIP-3366aa129c8e8046a8f0e90d7b1d78cb?source=copy_link")!
+    private let privacyURL = URL(string: "https://www.notion.so/RETRIP-3366aa129c8e8014bf10c55c890f67ad?source=copy_link")!
 
     private var captionAttributedText: AttributedString {
         var prefix  = AttributedString("회원가입 시 RETRIP 서비스 필수 동의 항목인 \n")
@@ -237,7 +247,19 @@ struct LoginView: View {
             .multilineTextAlignment(.center)
             .lineSpacing(3.6)
             .tint(.white)
+            .environment(\.openURL, OpenURLAction { url in
+                safariItem = SafariItem(url: url)
+                return .handled
+            })
     }
+}
+
+private struct SafariView: UIViewControllerRepresentable {
+    let url: URL
+    func makeUIViewController(context: Context) -> SFSafariViewController {
+        SFSafariViewController(url: url)
+    }
+    func updateUIViewController(_ uiViewController: SFSafariViewController, context: Context) {}
 }
 
 #Preview {

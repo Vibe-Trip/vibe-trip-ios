@@ -25,6 +25,9 @@ struct MainPageView: View {
     @State private var dragOffset: CGFloat      = 0
     @State private var isDragging: Bool         = false
     @State private var selectedAlbum: AlbumCard? = nil
+
+    // 신고 완료 토스트
+    @State private var showReportToast: Bool = false
     
     // MARK: - 캐러셀 Layout Constants
     
@@ -55,9 +58,32 @@ struct MainPageView: View {
         .fullScreenCover(item: $selectedAlbum) { album in
             AlbumDetailView(
                 displayModel: album.toDisplayModel(),
-                onBackTap: { selectedAlbum = nil }
+                onBackTap: { selectedAlbum = nil },
+                onReportTap: {
+                    selectedAlbum = nil  // fullScreenCover 닫기 (메인 복귀)
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                        withAnimation(.easeInOut(duration: 0.2)) {
+                            showReportToast = true
+                        }
+                    }
+                }
             )
         }
+        .overlay(alignment: .bottom) {
+            if showReportToast {
+                AppToastView(message: "신고처리가 완료되었습니다.")
+                    .padding(.bottom, 88)
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+                    .onAppear {
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
+                            withAnimation(.easeInOut(duration: 0.2)) {
+                                showReportToast = false
+                            }
+                        }
+                    }
+            }
+        }
+        .animation(.easeInOut(duration: 0.2), value: showReportToast)
     }
     
     // MARK: - 빈 상태 UI

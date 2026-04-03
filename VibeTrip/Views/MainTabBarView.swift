@@ -55,9 +55,6 @@ struct MainTabBarView: View {
     private enum Constants {
         static let hideLoadingToastBottomPadding: CGFloat = 88
         static let hideLoadingToastAnimationDuration: Double = 3.0
-        static let makeAlbumEntryPopupDismissKey = "shouldShowMakeAlbumEntryPopup"
-        static let makeAlbumEntryPopupTitle = "AI 음악을 만들까요?"
-        static let makeAlbumEntryPopupMessage = "사진을 분석해 어울리는 노래를 만듭니다.\n데이터는 보안이 강화된 AI 엔진을 통해 분석되며\n음악 생성에만 활용됩니다."
     }
 
     // 현재 선택된 탭 (기본값: 홈)
@@ -71,10 +68,7 @@ struct MainTabBarView: View {
     @State private var albumLoadingError: MakeAlbumViewModel.AlbumCreationLoadingError? = nil  // 에러 팝업 종류
     @State private var albumRetryAction: (() -> Void)? = nil                                  // 네트워크 오류 재시도 클로저
     @State private var hiddenLoadingToastMessage: String? = nil
-    @State private var isMakeAlbumEntryPopupPresented = false
-    @State private var doNotShowMakeAlbumEntryPopupAgain = false
-    // 앨범 만들기 팝업 재노출 여부: 앱 로컬에 저장
-    @AppStorage(Constants.makeAlbumEntryPopupDismissKey) private var shouldShowMakeAlbumEntryPopup = true
+    @State private var hiddenLoadingToastShowsIcon = false
 
     @EnvironmentObject private var appState: AppState
 
@@ -150,6 +144,7 @@ struct MainTabBarView: View {
                         withAnimation(.easeInOut(duration: 0.24)) {
                             isPresentingLoadingView = false
                             isPresentingMakeAlbum = false
+                            hiddenLoadingToastShowsIcon = false
                             hiddenLoadingToastMessage = "음악을 백그라운드에서 만들고 있어요. \n알림 리스트에서 확인해 보세요!"
                         }
                         DispatchQueue.main.asyncAfter(deadline: .now() + 0.18) {
@@ -193,7 +188,8 @@ struct MainTabBarView: View {
             if let hiddenLoadingToastMessage {
                 VStack {
                     Spacer()
-                    AppToastView(message: hiddenLoadingToastMessage, systemImageName: nil)
+                    AppToastView(message: hiddenLoadingToastMessage,
+                                 systemImageName: hiddenLoadingToastShowsIcon ? "exclamationmark.circle" : nil)
                         .padding(.bottom, Constants.hideLoadingToastBottomPadding)
                         .transition(.move(edge: .bottom).combined(with: .opacity))
                         .onAppear {
@@ -207,32 +203,10 @@ struct MainTabBarView: View {
                 .zIndex(3)
             }
 
-            if isMakeAlbumEntryPopupPresented {
-                ExitPopupView(
-                    title: Constants.makeAlbumEntryPopupTitle,
-                    message: Constants.makeAlbumEntryPopupMessage,
-                    onCancel: {
-                        isMakeAlbumEntryPopupPresented = false
-                        doNotShowMakeAlbumEntryPopupAgain = false
-                    },
-                    onConfirm: {
-                        if doNotShowMakeAlbumEntryPopupAgain {
-                            shouldShowMakeAlbumEntryPopup = false
-                        }
-                        isMakeAlbumEntryPopupPresented = false
-                        doNotShowMakeAlbumEntryPopupAgain = false
-                        presentMakeAlbumFlow()
-                    },
-                    doNotShowAgain: $doNotShowMakeAlbumEntryPopupAgain
-                )
-                .transition(.opacity)
-                .zIndex(4)
-            }
         }
         .animation(.easeInOut(duration: 0.24), value: isPresentingMakeAlbum)
         .animation(.easeInOut(duration: 0.22), value: isTabBarHidden)
         .animation(.easeInOut(duration: 0.2), value: hiddenLoadingToastMessage)
-        .animation(.easeInOut(duration: 0.2), value: isMakeAlbumEntryPopupPresented)
         // 알림 탭 시, 화면 이동
         .onChange(of: appState.pendingNotificationAction) { _, action in
             guard let action else { return }
@@ -278,6 +252,8 @@ struct MainTabBarView: View {
         withAnimation(.easeInOut(duration: 0.24)) {
             isPresentingLoadingView = false
             isPresentingMakeAlbum = false
+            hiddenLoadingToastShowsIcon = true
+            hiddenLoadingToastMessage = "앨범 생성이 취소되었습니다."
         }
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.18) {
             withAnimation(.easeInOut(duration: 0.22)) {
@@ -300,16 +276,6 @@ struct MainTabBarView: View {
 
     private func handleMakeAlbumTabTap() {
         guard !isPresentingMakeAlbum else { return }
-
-        // 최초 진입 전 안내 팝업을 보여주고, 사용자가 다시 보지 않기를 선택하면 이후 생략
-        if shouldShowMakeAlbumEntryPopup {
-            doNotShowMakeAlbumEntryPopupAgain = false
-            withAnimation(.easeInOut(duration: 0.2)) {
-                isMakeAlbumEntryPopupPresented = true
-            }
-            return
-        }
-
         presentMakeAlbumFlow()
     }
 }
