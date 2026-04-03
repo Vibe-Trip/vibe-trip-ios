@@ -39,7 +39,7 @@ struct EditAlbumView: View {
     private var genreHelperText: String {
         lyricsOption == .include
             ? "미선택 시 장르는 Pop으로 선택됩니다"
-            : "미선택 시 장르는 Classical로 선택됩니다"
+            : "미선택 시 장르는 Lofi로 선택됩니다"
     }
 
     // 가사 포함 여부에 따라 장르 목록 분기
@@ -49,7 +49,7 @@ struct EditAlbumView: View {
 
     // GenreDescriptionModalView에 전달할 장르 설명 데이터
     private var genreDescriptions: [GenreDescriptionModel] {
-        displayedGenres.map { GenreDescriptionModel(genre: $0, description: $0.descriptionText) }
+        displayedGenres.map { GenreDescriptionModel(genre: $0, description: $0.descriptionText(for: lyricsOption)) }
     }
 
     // 앨범 생성 플로우를 벗어날 때 호출되는 콜백

@@ -35,7 +35,7 @@ enum LyricsOption: String, CaseIterable, Identifiable {
         case .include:
             return "Pop"
         case .exclude:
-            return "Classical"
+            return "Lofi"
         }
     }
 }
@@ -61,28 +61,27 @@ enum VocalGender: String, CaseIterable, Identifiable {
 enum AlbumGenre: String, CaseIterable, Identifiable {
     case pop = "Pop"
     case kPop = "K-Pop"
-    case ballad = "Ballad"
-    case hipHop = "HipHop"
+    case jPop = "J-Pop"
+    case latin = "Latin"
     case rnb = "R&B"
     case rock = "Rock"
-    case cityPop = "City Pop"
-    case edm = "EDM"
-    case latinPop = "Latin Pop"
     case country = "Country"
+    case acoustic = "Acoustic"
     case indie = "Indie"
-    case gospel = "Gospel"
+    case ballad = "Ballad"
     case classical = "Classical"
-    case loFi = "Lo-fi"
     case jazz = "Jazz"
+    case loFi = "Lofi"
     case ambient = "Ambient"
     case cinematic = "Cinematic"
     case newAge = "New Age"
-    case acoustic = "Acoustic"
-    case electronic = "Electronic"
+    case chillout = "Chillout"
     case bossaNova = "Bossa Nova"
-    case chillHop = "Chill-hop"
     case tropicalHouse = "Tropical House"
-    case techno = "Techno"
+    case postRock = "Post-Rock"
+    case classicSolo = "Classic Solo"
+    case acousticFolk = "Acoustic Folk"
+    case deepHouse = "Deep House"
 
     var id: String { rawValue }
 
@@ -91,34 +90,34 @@ enum AlbumGenre: String, CaseIterable, Identifiable {
         [
             .pop,
             .kPop,
-            .ballad,
-            .hipHop,
+            .jPop,
+            .latin,
             .rnb,
             .rock,
-            .cityPop,
-            .edm,
-            .latinPop,
             .country,
+            .acoustic,
             .indie,
-            .gospel
+            .ballad,
+            .classical,
+            .jazz
         ]
     }
 
     // 장르(가사 포함X)
     static var instrumentalGenres: [AlbumGenre] {
         [
-            .classical,
             .loFi,
-            .jazz,
             .ambient,
             .cinematic,
             .newAge,
-            .acoustic,
-            .electronic,
+            .chillout,
+            .jazz,
             .bossaNova,
-            .chillHop,
             .tropicalHouse,
-            .techno
+            .postRock,
+            .classicSolo,
+            .acousticFolk,
+            .deepHouse
         ]
     }
 }
