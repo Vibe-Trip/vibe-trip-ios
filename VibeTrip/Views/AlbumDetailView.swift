@@ -53,6 +53,16 @@ import Combine
         showDeleteConfirm = true
     }
 
+    // confirmationDialog 바인딩 setter에서 다이얼로그 닫힘 시 호출
+    func dismissDeleteConfirm() {
+        showDeleteConfirm = false
+    }
+
+    // alert 바인딩 setter에서 에러 alert 닫힘 시 호출
+    func dismissDeleteError() {
+        deleteError = nil
+    }
+
     func confirmDeleteAlbum() async {
         isDeleting = true
         defer { isDeleting = false }
@@ -263,6 +273,36 @@ struct AlbumDetailView: View {
             .presentationDragIndicator(.hidden)
         }
         .task { await logViewModel.loadInitialLogs() }
+        // 삭제 확인 다이얼로그: 삭제 선택 시 API 호출
+        .confirmationDialog(
+            "앨범을 삭제할까요?",
+            isPresented: Binding(
+                get: { logViewModel.showDeleteConfirm },
+                set: { if !$0 { logViewModel.dismissDeleteConfirm() } }
+            ),
+            titleVisibility: .visible
+        ) {
+            Button("삭제", role: .destructive) {
+                Task { await logViewModel.confirmDeleteAlbum() }
+            }
+            Button("취소", role: .cancel) {}
+        }
+        // 삭제 실패 시 에러 메시지 alert
+        .alert(
+            "삭제 실패",
+            isPresented: Binding(
+                get: { logViewModel.deleteError != nil },
+                set: { if !$0 { logViewModel.dismissDeleteError() } }
+            )
+        ) {
+            Button("확인", role: .cancel) {}
+        } message: {
+            Text(logViewModel.deleteError ?? "")
+        }
+        // 삭제 성공 시: fullScreenCover 닫기
+        .onChange(of: logViewModel.didDeleteAlbum) { _, didDelete in
+            if didDelete { onDeleteAlbumTap() }
+        }
     }
 }
 
@@ -470,7 +510,7 @@ private extension AlbumDetailView {
                 },
                 onDeleteAlbum: {
                     isAlbumMenuVisible = false
-                    onDeleteAlbumTap()
+                    logViewModel.requestDeleteAlbum()
                 },
                 onReport: {
                     isAlbumMenuVisible = false
