@@ -336,18 +336,19 @@ struct AlbumDetailView: View {
                     Image(systemName: "ellipsis")
                         .font(.system(size: Constants.navIconSize, weight: .semibold))
                         .foregroundStyle(Color.textPrimary)
+                        .frame(width: Constants.navTouchTargetSize, height: Constants.navTouchTargetSize)
                 }
             }
             .opacity(1 - overlayOpacity)
-            .allowsHitTesting(overlayOpacity < 1)
-            
+            .allowsHitTesting(!isOverlayActive)
+
             // 투명 네비게이션 바
             AlbumDetailNavigationOverlay(
                 onBackTap: onBackTap,
                 onMoreTap: showAlbumMenu
             )
             .opacity(overlayOpacity)
-            .allowsHitTesting(overlayOpacity > 0)
+            .allowsHitTesting(isOverlayActive)
             
             // 앨범 옵션 팝업
             if isAlbumMenuVisible {
@@ -516,6 +517,10 @@ private extension AlbumDetailView {
         if titleNavOffset <= 0 { return 0 }
         return Double(titleNavOffset / fadeWindow)
     }
+
+    // hitTest 전환 기준: opacity 연속값 대신 명확한 임계값으로 스냅
+    // 전환 구간(0 < opacity < 1)에서 두 네비게이션 바가 동시에 터치를 받는 문제 방지
+    private var isOverlayActive: Bool { titleNavOffset > 15 }
     
     // 앨범 삭제 실패 토스트 표시 후 자동 숨김
     func showDeleteAlbumToast() {
@@ -774,6 +779,7 @@ private extension AlbumDetailView {
         
         // 블러 네비게이션 바 trailing 아이콘 크기
         static let navIconSize: CGFloat = 20
+        static let navTouchTargetSize: CGFloat = 44
         
         // 최상단 이동 버튼
         // 버튼 표시 scrollOffset 기준 값
