@@ -10,7 +10,7 @@ import Foundation
 // MARK: - Decodable 확장 (MakeAlbumModel에 정의된 enum 재사용)
 
 extension AlbumGenre: Decodable {
-
+    
     // 서버 전송용 enum 값
     var serverValue: String {
         switch self {
@@ -44,7 +44,7 @@ extension AlbumGenre: Decodable {
 extension LyricsOption: Decodable {}
 
 extension VocalGender: Decodable {
-
+    
     // 서버 전송용 enum 값
     var serverValue: String {
         switch self {
@@ -59,12 +59,12 @@ extension VocalGender: Decodable {
 // 메인 페이지 앨범 목록 카드 모델 (GET /api/v1/albums)
 struct AlbumCard: Identifiable, Decodable {
     let id: Int             // "albumId": 페이지네이션 cursor값
-    let title: String
+    let title: String?      // nil: 서버에서 타이틀 생성 중 상태
     let location: String    // "region"
     let startDate: String   // "travelStartDate"
     let endDate: String     // "travelEndDate"
     let coverImageUrl: URL?
-
+    
     // Swift 프로퍼티명 <-> 서버 필드명 매핑
     enum CodingKeys: String, CodingKey {
         case id = "albumId"
@@ -186,6 +186,13 @@ extension AlbumCard {
             id: 3, title: "파리 에펠탑",
             location: "프랑스 파리",
             startDate: "2025-06-01", endDate: "2025-06-07",
+            coverImageUrl: nil
+        ),
+        // title: nil -> 타이틀 생성 중 skeleton UI 테스트용
+        .init(
+            id: 4, title: nil,
+            location: "한국 제주도",
+            startDate: "2026-04-01", endDate: "2026-04-03",
             coverImageUrl: nil
         ),
     ]
