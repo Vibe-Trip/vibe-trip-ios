@@ -150,6 +150,18 @@ struct AlbumCardView: View {
     }
 }
 
+// MARK: - SkeletonTitleView
+
+// 타이틀 생성 중 표시용 skeleton 뷰 
+private struct SkeletonTitleView: View {
+    var body: some View {
+        ZStack {}
+            .frame(width: 220, height: 26)
+            .background(.black.opacity(0.08))
+            .cornerRadius(999)
+    }
+}
+
 // MARK: - Preview
 
 #Preview {
