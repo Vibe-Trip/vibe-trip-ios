@@ -59,6 +59,10 @@ struct MainPageView: View {
             AlbumDetailView(
                 displayModel: album.toDisplayModel(),
                 onBackTap: { selectedAlbum = nil },
+                onDeleteAlbumTap: {
+                    viewModel.removeAlbum(id: album.id)
+                    selectedAlbum = nil
+                },
                 onReportTap: {
                     selectedAlbum = nil  // fullScreenCover 닫기 (메인 복귀)
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
