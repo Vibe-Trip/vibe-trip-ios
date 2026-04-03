@@ -6,7 +6,6 @@
 //
 
 import SwiftUI
-import PhotosUI
 
 // MARK: - AlbumLogView
 
@@ -18,12 +17,11 @@ struct AlbumLogView: View {
     // TextEditor 포커스 제어 (scrollDismissesKeyboard 연동)
     @FocusState private var isFocused: Bool
 
-    // 사진 슬라이드
+    // 보고 있는 사진 위치 관리
     @State private var currentPhotoIndex: Int = 0
-
-    // PhotosPicker 표시 여부
+    
+    // PhotoPicker 표시 여부
     @State private var isPhotoPickerPresented: Bool = false
-    @State private var photoPickerItems: [PhotosPickerItem] = []
 
     // 토스트 제어
     @State private var isToastVisible: Bool = false
@@ -31,6 +29,7 @@ struct AlbumLogView: View {
     private enum Constants {
         static let photoAreaHeight: CGFloat = 272
         static let photoCornerRadius: CGFloat = 12
+        static let photoTopSpacing: CGFloat = 26
         
         static let contentHorizontalPadding: CGFloat = 20
         static let dateHeaderVerticalPadding: CGFloat = 16
@@ -132,14 +131,15 @@ struct AlbumLogView: View {
         .navigationBarBackButtonHidden(true)
         .toolbar(.hidden, for: .navigationBar)  // 시스템 네비게이션바 숨김
         .background(Color.white)
-        .photosPicker(
-            isPresented: $isPhotoPickerPresented,
-            selection: $photoPickerItems,
-            maxSelectionCount: max(1, 5 - viewModel.selectedPhotos.count),
-            matching: .images
-        )
-        .onChange(of: photoPickerItems) { _, items in
-            loadPhotos(from: items)
+        .sheet(isPresented: $isPhotoPickerPresented) {
+            // OrderedPhotoPicker: 선택 순서 -> 번호로 보여주고 UIImage 배열 반환
+            OrderedPhotoPicker(
+                isPresented: $isPhotoPickerPresented,
+                maxSelectionCount: max(1, 5 - viewModel.selectedPhotos.count)
+            ) { images in
+                viewModel.addPhotos(images)
+            }
+            .ignoresSafeArea()
         }
         .onChange(of: viewModel.isSaved) { _, saved in
             guard saved else { return }
@@ -178,10 +178,27 @@ private extension AlbumLogView {
     var photoArea: some View {
         TabView(selection: $currentPhotoIndex) {
             ForEach(viewModel.selectedPhotos.indices, id: \.self) { index in
-                Image(uiImage: viewModel.selectedPhotos[index])
-                    .resizable()
-                    .scaledToFill()
-                    .tag(index)
+                GeometryReader { geometry in
+                    Image(uiImage: viewModel.selectedPhotos[index])
+                        .resizable()
+                        .frame(
+                            width: geometry.size.width,
+                            height: geometry.size.height
+                        )
+                        // 이미지 영역 전체에서 컨텍스트 메뉴가 열리도록 터치 범위를 지정
+                        .contentShape(Rectangle())
+                        // 길게 누르면 프리뷰와 삭제 메뉴를 표시
+                        .contextMenu {
+                            Button(role: .destructive) {
+                                removePhoto(at: index)
+                            } label: {
+                                Label("삭제", systemImage: "trash")
+                            }
+                        } preview: {
+                            photoPreview(for: index)
+                        }
+                }
+                .tag(index)
             }
         }
         .tabViewStyle(.page(indexDisplayMode: .never))
@@ -194,6 +211,7 @@ private extension AlbumLogView {
             }
         }
         .clipShape(RoundedRectangle(cornerRadius: Constants.photoCornerRadius))
+        .padding(.top, Constants.photoTopSpacing)
         .padding(.horizontal, Constants.contentHorizontalPadding)
     }
 
@@ -323,28 +341,36 @@ private extension AlbumLogView {
         }
     }
     
-    func loadPhotos(from items: [PhotosPickerItem]) {
-        guard !items.isEmpty else { return }
-        Task {
-            var images: [UIImage] = []
-            for item in items {
-                if let data = try? await item.loadTransferable(type: Data.self),
-                   let image = UIImage(data: data) {
-                    images.append(image)
-                }
-            }
-            viewModel.addPhotos(images)
-            // 재선택 가능하도록 items 초기화
-            photoPickerItems = []
-        }
-    }
-
+    // 토스트를 잠시 보여준 뒤 자동으로 숨김 처리
     func showToast() {
         withAnimation { isToastVisible = true }
         Task {
             try? await Task.sleep(nanoseconds: UInt64(Constants.toastDuration * 1_000_000_000))
             withAnimation { isToastVisible = false }
             viewModel.consumeToast()
+        }
+    }
+
+    // 컨텍스트 메뉴 -> 프리뷰
+    @ViewBuilder
+    func photoPreview(for index: Int) -> some View {
+        if viewModel.selectedPhotos.indices.contains(index) {
+            Image(uiImage: viewModel.selectedPhotos[index])
+                .resizable()
+                .scaledToFit()
+                .frame(maxWidth: .infinity, maxHeight: .infinity)
+                .background(Color.black)
+        }
+    }
+
+    // 선택한 사진을 즉시 제거하고 현재 페이지 인덱스를 보정
+    func removePhoto(at index: Int) {
+        viewModel.removePhoto(at: index)
+
+        if viewModel.selectedPhotos.isEmpty {
+            currentPhotoIndex = 0
+        } else {
+            currentPhotoIndex = min(currentPhotoIndex, viewModel.selectedPhotos.count - 1)
         }
     }
 }
