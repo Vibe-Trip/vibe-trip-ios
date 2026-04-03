@@ -68,6 +68,7 @@ struct MainTabBarView: View {
     @State private var albumLoadingError: MakeAlbumViewModel.AlbumCreationLoadingError? = nil  // 에러 팝업 종류
     @State private var albumRetryAction: (() -> Void)? = nil                                  // 네트워크 오류 재시도 클로저
     @State private var hiddenLoadingToastMessage: String? = nil
+    @State private var hiddenLoadingToastShowsIcon = false
 
     @EnvironmentObject private var appState: AppState
 
@@ -143,6 +144,7 @@ struct MainTabBarView: View {
                         withAnimation(.easeInOut(duration: 0.24)) {
                             isPresentingLoadingView = false
                             isPresentingMakeAlbum = false
+                            hiddenLoadingToastShowsIcon = false
                             hiddenLoadingToastMessage = "음악을 백그라운드에서 만들고 있어요. \n알림 리스트에서 확인해 보세요!"
                         }
                         DispatchQueue.main.asyncAfter(deadline: .now() + 0.18) {
@@ -186,7 +188,8 @@ struct MainTabBarView: View {
             if let hiddenLoadingToastMessage {
                 VStack {
                     Spacer()
-                    AppToastView(message: hiddenLoadingToastMessage, systemImageName: nil)
+                    AppToastView(message: hiddenLoadingToastMessage,
+                                 systemImageName: hiddenLoadingToastShowsIcon ? "exclamationmark.circle" : nil)
                         .padding(.bottom, Constants.hideLoadingToastBottomPadding)
                         .transition(.move(edge: .bottom).combined(with: .opacity))
                         .onAppear {
@@ -249,6 +252,8 @@ struct MainTabBarView: View {
         withAnimation(.easeInOut(duration: 0.24)) {
             isPresentingLoadingView = false
             isPresentingMakeAlbum = false
+            hiddenLoadingToastShowsIcon = true
+            hiddenLoadingToastMessage = "앨범 생성이 취소되었습니다."
         }
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.18) {
             withAnimation(.easeInOut(duration: 0.22)) {
