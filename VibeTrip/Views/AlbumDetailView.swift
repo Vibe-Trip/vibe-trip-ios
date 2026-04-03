@@ -113,6 +113,9 @@ struct AlbumDetailView: View {
     // 앨범 옵션 팝업 표시 여부
     @State private var isAlbumMenuVisible: Bool = false
 
+    // 신고 바텀시트 표시 여부
+    @State private var isReportSheetPresented: Bool = false
+
     // 로그 작성 화면 표시 여부
     @State private var isWritingLog: Bool = false
     
@@ -227,6 +230,18 @@ struct AlbumDetailView: View {
             Task { await logViewModel.loadInitialLogs() }
         }) {
             AlbumLogView(albumId: String(displayModel.albumId), mode: .create)
+        }
+        // 신고 바텀시트
+        .sheet(isPresented: $isReportSheetPresented) {
+            ReportBottomSheetView(isPresented: $isReportSheetPresented) { reason in
+                isReportSheetPresented = false
+                // TODO: 신고하기 API 연동
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
+                    onReportTap()  // 시트 닫힘 후 메인 이동 + 토스트
+                }
+            }
+            .presentationDetents([.height(286)])
+            .presentationDragIndicator(.hidden)
         }
         .task { await logViewModel.loadInitialLogs() }
     }
@@ -440,7 +455,7 @@ private extension AlbumDetailView {
                 },
                 onReport: {
                     isAlbumMenuVisible = false
-                    onReportTap()
+                    isReportSheetPresented = true
                 }
             )
             .padding(.top, Constants.menuTopPadding)
