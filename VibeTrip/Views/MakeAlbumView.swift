@@ -13,14 +13,25 @@ import UIKit
 @MainActor
 struct MakeAlbumView: View {
     
+    private enum Constants {
+        static let entryPopupDismissKey = "shouldShowMakeAlbumEntryPopup"
+        static let entryPopupTitle = "AI 음악을 만들까요?"
+        static let entryPopupMessage = "사진을 분석해 어울리는 노래를 만듭니다.\n데이터는 보안이 강화된 AI 엔진을 통해 분석되며\n음악 생성에만 활용됩니다."
+    }
+
     // 앨범 생성 데이터 및 UI 상태 관리
     @StateObject private var viewModel: MakeAlbumViewModel
 
     // 토스트 메시지의 하단 여백: 키보드 높이에 따라 동적으로 계산
     @State private var keyboardHeight: CGFloat = 0
-    
+
     // 사진 선택 시트 표시 여부
     @State private var isPhotoPickerPresented = false
+
+    // 앨범 생성 전 안내 팝업
+    @AppStorage(Constants.entryPopupDismissKey) private var shouldShowEntryPopup = true
+    @State private var isEntryPopupPresented = false
+    @State private var doNotShowEntryPopupAgain = false
     
     // 앨범 생성 플로우를 벗어날 때 호출되는 콜백
     private let onExit: () -> Void
@@ -76,13 +87,19 @@ struct MakeAlbumView: View {
                         viewModel: viewModel,
                         keyboardHeight: keyboardHeight,
                         onCreateTap: {
-                            // 앨범 생성하기 탭 시 API 호출 진입
-                            viewModel.submitAlbum(
-                                onStarted: onCreationStarted,
-                                onSuccess: onCreationSuccess,
-                                onNetworkError: onNetworkError,
-                                onFatalError: onFatalError
-                            )
+                            if shouldShowEntryPopup {
+                                doNotShowEntryPopupAgain = false
+                                withAnimation(.easeInOut(duration: 0.2)) {
+                                    isEntryPopupPresented = true
+                                }
+                            } else {
+                                viewModel.submitAlbum(
+                                    onStarted: onCreationStarted,
+                                    onSuccess: onCreationSuccess,
+                                    onNetworkError: onNetworkError,
+                                    onFatalError: onFatalError
+                                )
+                            }
                         }
                     )
                 case .loading:
@@ -149,6 +166,34 @@ struct MakeAlbumView: View {
                 )
             }
         }
+        // 앨범 생성 전 안내 팝업
+        .overlay {
+            if isEntryPopupPresented {
+                ExitPopupView(
+                    title: Constants.entryPopupTitle,
+                    message: Constants.entryPopupMessage,
+                    onCancel: {
+                        isEntryPopupPresented = false
+                        doNotShowEntryPopupAgain = false
+                    },
+                    onConfirm: {
+                        if doNotShowEntryPopupAgain {
+                            shouldShowEntryPopup = false
+                        }
+                        isEntryPopupPresented = false
+                        doNotShowEntryPopupAgain = false
+                        viewModel.submitAlbum(
+                            onStarted: onCreationStarted,
+                            onSuccess: onCreationSuccess,
+                            onNetworkError: onNetworkError,
+                            onFatalError: onFatalError
+                        )
+                    },
+                    doNotShowAgain: $doNotShowEntryPopupAgain
+                )
+            }
+        }
+        .animation(.easeInOut(duration: 0.2), value: isEntryPopupPresented)
         // 토스트 애니메이션
         .animation(.easeInOut(duration: 0.2), value: viewModel.toastMessage)
         .onChange(of: viewModel.toastMessage) { _, newValue in
