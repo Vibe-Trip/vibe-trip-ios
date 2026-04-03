@@ -89,9 +89,11 @@ struct AlbumLogView: View {
 
                     textEditorArea
                 }
+                // 빈 영역 탭으로 키보드 비활성화
+                .contentShape(Rectangle())
             }
             .scrollDismissesKeyboard(.interactively)
-            .onTapGesture { isFocused = false }     // 빈 영역 탭 시 키보드 해제
+            .onTapGesture { isFocused = false }     // 화면 탭 시 키보드 해제
             .safeAreaInset(edge: .top, spacing: 0) { // bottomToolbar 영역 확보 + 키보드 올라올 때 툴바도 함께 이동
                 // AppNavigationBar: 상단 safe area에 고정
                 // trailing에 저장 버튼 주입
@@ -213,6 +215,12 @@ private extension AlbumLogView {
         .clipShape(RoundedRectangle(cornerRadius: Constants.photoCornerRadius))
         .padding(.top, Constants.photoTopSpacing)
         .padding(.horizontal, Constants.contentHorizontalPadding)
+        // 사진 영역을 탭했을 때도 키보드를 내림
+        .simultaneousGesture(
+            TapGesture().onEnded {
+                isFocused = false
+            }
+        )
     }
 
     // 커스텀 페이지 인디케이터
