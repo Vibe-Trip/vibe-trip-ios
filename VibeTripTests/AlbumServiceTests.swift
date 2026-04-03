@@ -58,8 +58,14 @@ final class MockAPIClient: APIClientProtocol {
         }
     }
 
+    // perform 호출 시 반환할 결과
+    var performResult: Result<Void, Error> = .success(())
+    private(set) var performCallCount = 0
+
     func perform(_ endpoint: APIEndpoint) async throws {
-        fatalError("AlbumServiceTests에서 미사용")
+        performCallCount += 1
+        capturedEndpoints.append(endpoint)
+        if case .failure(let error) = performResult { throw error }
     }
 
     // performUpload 호출 시 반환할 결과
