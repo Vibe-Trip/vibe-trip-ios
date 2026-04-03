@@ -44,9 +44,8 @@ struct MyPageView: View {
         static let sectionHeaderBottomPadding: CGFloat = 4
         static let contentBottomPadding: CGFloat = tabBarHeight + 52
         static let secondaryLabelColor = Color(red: 0.6, green: 0.62, blue: 0.64)
-        // TODO: 실제 URL로 교체 필요
-        static let termsURL = URL(string: "https://example.com/terms")!
-        static let privacyURL = URL(string: "https://example.com/privacy")!
+        static let termsURL = URL(string: "https://www.notion.so/RETRIP-3366aa129c8e8046a8f0e90d7b1d78cb?source=copy_link")!
+        static let privacyURL = URL(string: "https://www.notion.so/RETRIP-3366aa129c8e8014bf10c55c890f67ad?source=copy_link")!
         static let openSourceURL = URL(string: "https://example.com/licenses")!
         static let supportEmail = "vibetrip26@gmail.com"
         static let mailSubject = "[RETRIP 문의]"
@@ -92,25 +91,6 @@ struct MyPageView: View {
         .onAppear {
             Task { await viewModel.loadProfile() }
         }
-        .overlay {
-            // 로그아웃 확인 팝업
-            if viewModel.isLogoutAlertPresented {
-                ExitPopupView(
-                    title: "로그아웃할까요?",
-                    message: "로그아웃하면 다음 접속 시 다시 로그인해야 합니다.",
-                    onCancel: {
-                        viewModel.isLogoutAlertPresented = false
-                    },
-                    onConfirm: {
-                        viewModel.isLogoutAlertPresented = false
-                        viewModel.logout(appState: appState)
-                    },
-                    confirmTitle: "로그아웃"
-                )
-                .transition(.opacity)
-            }
-        }
-        .animation(.easeInOut(duration: 0.2), value: viewModel.isLogoutAlertPresented)
         .overlay {
             // 회원탈퇴 확인 팝업
             if viewModel.isWithdrawalAlertPresented {
@@ -297,7 +277,6 @@ struct MyPageView: View {
                 safariItem = SafariItem(url: Constants.openSourceURL)
             }
             menuRow(title: "문의하기") {
-                //TODO: MFMailComposeViewController 적용
                 viewModel.showMailSheet()
             }
             .frame(height: Constants.rowHeight)
@@ -310,7 +289,7 @@ struct MyPageView: View {
         VStack(spacing: 0) {
             sectionHeader("계정관리")
             Button {
-                viewModel.isLogoutAlertPresented = true
+                viewModel.logout(appState: appState)
             } label: {
                 HStack {
                     Text("로그아웃")
@@ -329,8 +308,7 @@ struct MyPageView: View {
                 HStack {
                     Text("회원탈퇴")
                         .font(Font.setPretendard(weight: .semiBold, size: 16))
-                    // TODO: Assets에 withdrawalRed 색상 추가 후 Color.withdrawalRed로 교체
-                        .foregroundStyle(Color(.systemRed))
+                        .foregroundStyle(Color(.textPrimary))
                     Spacer()
                 }
                 .frame(height: Constants.rowHeight)

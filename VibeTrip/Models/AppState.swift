@@ -26,6 +26,11 @@ enum NotificationNavigationAction: Equatable {
     case openAlbumDetail(albumId: String)
 }
 
+struct AppToastPayload: Equatable {
+    let message: String
+    let systemImageName: String?
+}
+
 // MARK: - AppState
 
 // 앱 전역 상태 — EnvironmentObject로 모든 뷰에서 접근 가능
@@ -42,6 +47,7 @@ enum NotificationNavigationAction: Equatable {
     // 알림 탭 시 이동할 화면
     // NotificationView(세팅) -> MainTabBarView: onChange에서 화면 전환 처리 및 nil 초기화
     @Published var pendingNotificationAction: NotificationNavigationAction? = nil
+    @Published var toastPayload: AppToastPayload? = nil
 
     // APIClient.sessionExpiredPublisher 구독 유지용
     private var cancellables = Set<AnyCancellable>()
@@ -52,5 +58,13 @@ enum NotificationNavigationAction: Equatable {
             .receive(on: DispatchQueue.main)
             .sink { [weak self] in self?.isLoggedIn = false }
             .store(in: &cancellables)
+    }
+
+    func showToast(message: String, systemImageName: String? = "exclamationmark.circle") {
+        toastPayload = AppToastPayload(message: message, systemImageName: systemImageName)
+    }
+
+    func consumeToast() {
+        toastPayload = nil
     }
 }
