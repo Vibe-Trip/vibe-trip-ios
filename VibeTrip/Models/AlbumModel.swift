@@ -151,6 +151,18 @@ struct AlbumLogRequest {
     let photoDataList: [Data]
 }
 
+// MARK: - AlbumLogUpdateRequest
+
+// 로그 수정 요청 모델 (텍스트 + 새 사진)
+// TODO: removeImageIds: GET 응답에 imageId 미포함 -> 구현 후 확인
+
+struct AlbumLogUpdateRequest {
+    let albumId: String
+    let albumLogId: Int
+    let logText: String
+    let newPhotoDataList: [Data]
+}
+
 // MARK: - AlbumLogEntry
 
 // 로그 목록 아이템 (GET /api/v1/albums/{albumId}/album-logs)
@@ -261,6 +273,15 @@ extension AlbumCard {
 }
 
 extension AlbumLogEntry {
+    static var mock: AlbumLogEntry {
+        .init(
+            id: 1,
+            description: "도톤보리 야경이 정말 아름다웠다. 네온사인 불빛이 강물에 반사되던 그 순간이 잊혀지지 않는다.",
+            postedAt: "2026-01-13T21:00:00Z",
+            images: []
+        )
+    }
+
     static let mockItems: [AlbumLogEntry] = [
         .init(
             id: 1,
