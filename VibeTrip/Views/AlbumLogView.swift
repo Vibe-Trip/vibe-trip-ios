@@ -17,6 +17,9 @@ struct AlbumLogView: View {
     // TextEditor 포커스 제어 (scrollDismissesKeyboard 연동)
     @FocusState private var isFocused: Bool
 
+    // 키보드 높이 추적 (커서 추적 스크롤에 사용)
+    @State private var keyboardHeight: CGFloat = 0
+
     // 보고 있는 사진 위치 관리
     @State private var currentPhotoIndex: Int = 0
     
@@ -78,43 +81,65 @@ struct AlbumLogView: View {
     var body: some View {
         ZStack(alignment: .bottom) {
             // 메인 콘텐츠 스크롤 영역
-            ScrollView {
-                VStack(spacing: 0) {
-                    dateHeader
+            ScrollViewReader { proxy in
+                ScrollView {
+                    VStack(spacing: 0) {
+                        dateHeader
 
-                    // 사진이 있을 때만 사진 슬라이드 영역 표시
-                    if !viewModel.selectedPhotos.isEmpty {
-                        photoArea
-                    }
+                        // 사진이 있을 때만 사진 슬라이드 영역 표시
+                        if !viewModel.selectedPhotos.isEmpty {
+                            photoArea
+                        }
 
-                    textEditorArea
-                }
-                // 빈 영역 탭으로 키보드 비활성화
-                .contentShape(Rectangle())
-            }
-            .scrollDismissesKeyboard(.interactively)
-            .onTapGesture { isFocused = false }     // 화면 탭 시 키보드 해제
-            .safeAreaInset(edge: .top, spacing: 0) { // bottomToolbar 영역 확보 + 키보드 올라올 때 툴바도 함께 이동
-                // AppNavigationBar: 상단 safe area에 고정
-                // trailing에 저장 버튼 주입
-                AppNavigationBar(title: navTitle, style: .solidWhite, onBackTap: handleBackButton) {
-                    Button {
-                        Task { await viewModel.saveLog() }
-                    } label: {
-                        Text("저장")
-                            .font(.setPretendard(weight: .semiBold, size: 16))
-                            .foregroundStyle(
-                                viewModel.isSaveEnabled
-                                ? Color.appPrimary
-                                : Color.buttonDisabledForeground
-                            )
+                        textEditorArea
+                            .id("textEditor")   // 커서 추적 스크롤 앵커
                     }
-                    .disabled(!viewModel.isSaveEnabled)
+                    // 빈 영역 탭으로 키보드 비활성화
+                    .contentShape(Rectangle())
+                    // 키보드 높이만큼 여백 추가 -> 커서가 키보드 뒤로 숨지 않게 설정
+                    .padding(.bottom, keyboardHeight)
                 }
-            }
-            .safeAreaInset(edge: .bottom, spacing: 0) {
-                // 하단 툴바
-                bottomToolbar
+                .scrollDismissesKeyboard(.interactively)
+                .onTapGesture { isFocused = false }     // 화면 탭 시 키보드 해제
+                .safeAreaInset(edge: .top, spacing: 0) { // bottomToolbar 영역 확보 + 키보드 올라올 때 툴바도 함께 이동
+                    // AppNavigationBar: 상단 safe area에 고정
+                    // trailing에 저장 버튼 주입
+                    AppNavigationBar(title: navTitle, style: .solidWhite, onBackTap: handleBackButton) {
+                        Button {
+                            Task { await viewModel.saveLog() }
+                        } label: {
+                            Text("저장")
+                                .font(.setPretendard(weight: .semiBold, size: 16))
+                                .foregroundStyle(
+                                    viewModel.isSaveEnabled
+                                    ? Color.appPrimary
+                                    : Color.buttonDisabledForeground
+                                )
+                        }
+                        .disabled(!viewModel.isSaveEnabled)
+                    }
+                }
+                .safeAreaInset(edge: .bottom, spacing: 0) {
+                    // 하단 툴바
+                    bottomToolbar
+                }
+                // 포커스 진입 시: 키보드 올라오는 시간(350ms)을 기다렸다가 스크롤
+                .onChange(of: isFocused) { _, focused in
+                    guard focused else { return }
+                    Task {
+                        try? await Task.sleep(for: .milliseconds(350))
+                        withAnimation(.easeOut(duration: 0.25)) {
+                            proxy.scrollTo("textEditor", anchor: .bottom)
+                        }
+                    }
+                }
+                // 타이핑/줄바꿈 감지: 키보드가 올라와 있을 때만 즉시 커서 위치로 스크롤
+                .onChange(of: viewModel.logText) { _, _ in
+                    guard isFocused, keyboardHeight > 0 else { return }
+                    withAnimation(.easeOut(duration: 0.1)) {
+                        proxy.scrollTo("textEditor", anchor: .bottom)
+                    }
+                }
             }
 
             // 종료 확인 팝업
@@ -133,6 +158,15 @@ struct AlbumLogView: View {
         .navigationBarBackButtonHidden(true)
         .toolbar(.hidden, for: .navigationBar)  // 시스템 네비게이션바 숨김
         .background(Color.white)
+        // 키보드 높이 추적: 최초 등장 및 자동완성 바 높이 변화까지 모두 커버
+        .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillChangeFrameNotification)) { notification in
+            guard let frame = notification.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? CGRect else { return }
+            // frame.height 대신 minY 기준 계산 → 플로팅 키보드 등 엣지 케이스 대응
+            keyboardHeight = max(0, UIScreen.main.bounds.height - frame.minY)
+        }
+        .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillHideNotification)) { _ in
+            keyboardHeight = 0
+        }
         .sheet(isPresented: $isPhotoPickerPresented) {
             // OrderedPhotoPicker: 선택 순서 -> 번호로 보여주고 UIImage 배열 반환
             OrderedPhotoPicker(
