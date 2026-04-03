@@ -26,6 +26,8 @@ protocol AlbumServiceProtocol {
     func fetchAlbumLogs(albumId: String, cursor: Int?, limit: Int) async throws -> AlbumLogListPayload
     /// 로그 등록
     func saveLog(request: AlbumLogRequest) async throws
+    /// 로그 수정
+    func updateLog(request: AlbumLogUpdateRequest) async throws
     /// 단일 앨범 조회 (title·musicUrl null 여부로 생성 완료 감지)
     func fetchAlbum(albumId: Int) async throws -> AlbumDetail
     /// 앨범 로그 삭제
@@ -54,6 +56,11 @@ struct AlbumCreateResponse: Decodable {
 // multipart request 파트
 private struct AlbumLogRegisterRequestBody: Encodable {
     let description: String
+}
+
+private struct AlbumLogUpdateRequestBody: Encodable {
+    let description: String
+    let removeImageIds: [Int64]   // GET 응답: imageId 미포함 -> 항상 [] 전송
 }
 
 private struct AlbumCreateRequestBody: Encodable {
@@ -153,6 +160,20 @@ final class AlbumService: AlbumServiceProtocol {
         try await apiClient.performUpload(endpoint, formData: formData)
     }
 
+    func updateLog(request: AlbumLogUpdateRequest) async throws {
+        let body = AlbumLogUpdateRequestBody(description: request.logText, removeImageIds: [])
+        var formData = MultipartFormData()
+        try formData.append(name: "request", encodable: body)
+        for imageData in request.newPhotoDataList {
+            formData.append(name: "newImages", imageData: imageData)
+        }
+        let endpoint = APIEndpoint(
+            path: "/api/v1/albums/\(request.albumId)/album-logs/\(request.albumLogId)",
+            method: .put
+        )
+        try await apiClient.performUpload(endpoint, formData: formData)
+    }
+
     func deleteAlbumLog(albumId: String, albumLogId: Int) async throws {
         let endpoint = APIEndpoint(
             path: "/api/v1/albums/\(albumId)/album-logs/\(albumLogId)",
@@ -227,6 +248,11 @@ final class MockAlbumService: AlbumServiceProtocol {
     }
     
     func saveLog(request: AlbumLogRequest) async throws {
+        try await Task.sleep(nanoseconds: delay)
+        if let error = simulatedError { throw error }
+    }
+
+    func updateLog(request: AlbumLogUpdateRequest) async throws {
         try await Task.sleep(nanoseconds: delay)
         if let error = simulatedError { throw error }
     }
