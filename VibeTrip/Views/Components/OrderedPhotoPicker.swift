@@ -48,7 +48,6 @@ struct OrderedPhotoPicker: UIViewControllerRepresentable {
         func picker(_ picker: PHPickerViewController, didFinishPicking results: [PHPickerResult]) {
             guard !results.isEmpty else {
                 isPresented = false
-                picker.dismiss(animated: true)
                 return
             }
 
@@ -71,7 +70,6 @@ struct OrderedPhotoPicker: UIViewControllerRepresentable {
             dispatchGroup.notify(queue: .main) {
                 self.onSelect(images.compactMap { $0 })
                 self.isPresented = false
-                picker.dismiss(animated: true)
             }
         }
     }
