@@ -64,4 +64,40 @@ final class UserServiceTests: XCTestCase {
         XCTAssertEqual(mockAPIClient.capturedEndpoints.first?.path, "/api/v1/members/profile")
         XCTAssertEqual(mockAPIClient.capturedEndpoints.first?.method, .get)
     }
+
+    // MARK: - deleteAccount
+
+    // 정상 응답 시 에러 없이 완료
+    func test_deleteAccount_success() async {
+        do {
+            try await sut.deleteAccount()
+        } catch {
+            XCTFail("에러가 발생하면 안 됩니다: \(error)")
+        }
+    }
+
+    // 네트워크 에러 시 throw 확인
+    func test_deleteAccount_networkError() async {
+        mockAPIClient.performResult = .failure(APIClientError.networkError(URLError(.notConnectedToInternet)))
+
+        do {
+            try await sut.deleteAccount()
+            XCTFail("에러가 발생해야 합니다")
+        } catch let error as APIClientError {
+            guard case .networkError = error else {
+                XCTFail("networkError여야 합니다")
+                return
+            }
+        } catch {
+            XCTFail("예상치 못한 에러: \(error)")
+        }
+    }
+
+    // 올바른 엔드포인트(path, method) 호출 확인
+    func test_deleteAccount_callsCorrectEndpoint() async throws {
+        try await sut.deleteAccount()
+
+        XCTAssertEqual(mockAPIClient.capturedEndpoints.last?.path, "/api/v1/members/me/withdraw")
+        XCTAssertEqual(mockAPIClient.capturedEndpoints.last?.method, .delete)
+    }
 }
