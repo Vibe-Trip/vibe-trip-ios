@@ -40,6 +40,7 @@ private final class StubAlbumDetailService: AlbumServiceProtocol {
     func updateAlbum(albumId: String, request: AlbumUpdateRequest) async throws -> AlbumCard { fatalError("미사용") }
     func deleteAlbum(albumId: String) async throws { fatalError("미사용") }
     func saveLog(request: AlbumLogRequest) async throws { fatalError("미사용") }
+    func fetchAlbumTitle(albumId: Int) async throws -> String? { fatalError("미사용") }
 }
 
 // MARK: - AlbumDetailViewModelTests

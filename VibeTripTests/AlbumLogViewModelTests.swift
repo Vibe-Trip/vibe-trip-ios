@@ -27,6 +27,7 @@ fileprivate final class StubAlbumLogService: AlbumServiceProtocol {
     func fetchAlbumLogs(albumId: String, cursor: Int?, limit: Int) async throws -> AlbumLogListPayload { fatalError("미사용") }
     func updateAlbum(albumId: String, request: AlbumUpdateRequest) async throws -> AlbumCard { fatalError("미사용") }
     func deleteAlbum(albumId: String) async throws { fatalError("미사용") }
+    func fetchAlbumTitle(albumId: Int) async throws -> String? { fatalError("미사용") }
 }
 
 // MARK: - AlbumLogViewModelTests

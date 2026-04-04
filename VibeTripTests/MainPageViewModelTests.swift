@@ -39,6 +39,40 @@ private final class StubAlbumService: AlbumServiceProtocol {
     func updateAlbum(albumId: String, request: AlbumUpdateRequest) async throws -> AlbumCard { fatalError("미사용") }
     func deleteAlbum(albumId: String) async throws { fatalError("미사용") }
     func saveLog(request: AlbumLogRequest) async throws { fatalError("미사용") }
+    func fetchAlbumTitle(albumId: Int) async throws -> String? { return nil }
+}
+
+// MARK: - PollingStubAlbumService
+
+// fetchAlbums + fetchAlbumTitle 동시 제어가 필요한 폴링 테스트 전용 Stub
+private final class PollingStubAlbumService: AlbumServiceProtocol {
+
+    // fetchAlbums 반환 앨범 목록
+    var albums: [AlbumCard]
+    // N번째 fetchAlbumTitle 호출부터 타이틀 반환 (기본: 첫 번째 호출에서 반환)
+    var titleReadyAfterAttempts: Int = 1
+    private(set) var titleFetchCounts: [Int: Int] = [:]
+
+    init(albums: [AlbumCard]) {
+        self.albums = albums
+    }
+
+    func fetchAlbums(cursor: Int?, limit: Int) async throws -> AlbumListPayload {
+        AlbumListPayload(content: albums, totalCount: albums.count, hasNext: false)
+    }
+
+    func fetchAlbumTitle(albumId: Int) async throws -> String? {
+        titleFetchCounts[albumId, default: 0] += 1
+        guard titleFetchCounts[albumId]! >= titleReadyAfterAttempts else { return nil }
+        return "폴링 타이틀"
+    }
+
+    func createAlbum(request: AlbumCreateRequest) async throws -> AlbumCreateResponse { fatalError("미사용") }
+    func fetchAlbumLog(albumId: String) async throws -> AlbumLog { fatalError("미사용") }
+    func fetchAlbumLogs(albumId: String, cursor: Int?, limit: Int) async throws -> AlbumLogListPayload { fatalError("미사용") }
+    func updateAlbum(albumId: String, request: AlbumUpdateRequest) async throws -> AlbumCard { fatalError("미사용") }
+    func deleteAlbum(albumId: String) async throws { fatalError("미사용") }
+    func saveLog(request: AlbumLogRequest) async throws { fatalError("미사용") }
 }
 
 // MARK: - MainPageViewModelTests
@@ -213,5 +247,66 @@ final class MainPageViewModelTests: XCTestCase {
         XCTAssertEqual(stub.capturedCursors.count, 3)
         XCTAssertNil(stub.capturedCursors[2])           // 세 번째 요청: cursor nil (리셋 확인)
         XCTAssertEqual(sut.albums.count, 3)
+    }
+
+    // MARK: - 폴링
+
+    // nil-title 앨범 로드 후 폴링 완료 시 해당 앨범의 title이 업데이트됨
+    func test_polling_nilTitleAlbum_titleApplied() async {
+        let nilAlbum = AlbumCard(id: 10, title: nil, location: "제주", startDate: "2026-01-01", endDate: "2026-01-03", coverImageUrl: nil)
+        let stub = PollingStubAlbumService(albums: [nilAlbum])
+        stub.titleReadyAfterAttempts = 1
+        sut = MainPageViewModel(albumService: stub, pollingInterval: 0)
+
+        await sut.loadAlbums()
+        // pollingInterval: 0이어도 Task.sleep + fetchAlbumTitle 호출 등 여러 비동기 단계가 있어
+        // yield 2회로는 부족 → 10ms sleep으로 모든 단계 완료 보장
+        try? await Task.sleep(nanoseconds: 10_000_000)
+
+        XCTAssertEqual(sut.albums.first?.title, "폴링 타이틀")
+    }
+
+    // nil-title 앨범만 업데이트되고 title이 있는 앨범은 변경 없음
+    func test_polling_onlyTargetAlbumUpdated() async {
+        let normalAlbum = AlbumCard(id: 1, title: "기존 타이틀", location: "서울", startDate: "2026-01-01", endDate: "2026-01-02", coverImageUrl: nil)
+        let nilAlbum    = AlbumCard(id: 2, title: nil,        location: "제주", startDate: "2026-01-01", endDate: "2026-01-03", coverImageUrl: nil)
+        let stub = PollingStubAlbumService(albums: [normalAlbum, nilAlbum])
+        stub.titleReadyAfterAttempts = 1
+        sut = MainPageViewModel(albumService: stub, pollingInterval: 0)
+
+        await sut.loadAlbums()
+        try? await Task.sleep(nanoseconds: 10_000_000)
+
+        XCTAssertEqual(sut.albums[0].title, "기존 타이틀")  // 변경 없음
+        XCTAssertEqual(sut.albums[1].title, "폴링 타이틀")  // 폴링으로 업데이트
+    }
+
+    // cancelAllPolling 호출 후 title nil 상태 유지 (폴링 Task 취소됨)
+    func test_cancelAllPolling_preventsUpdate() async {
+        let nilAlbum = AlbumCard(id: 10, title: nil, location: "제주", startDate: "2026-01-01", endDate: "2026-01-03", coverImageUrl: nil)
+        let stub = PollingStubAlbumService(albums: [nilAlbum])
+        stub.titleReadyAfterAttempts = 1
+        sut = MainPageViewModel(albumService: stub, pollingInterval: 0)
+
+        await sut.loadAlbums()
+        sut.cancelAllPolling()       // 폴링 시작 직후 취소
+        try? await Task.sleep(nanoseconds: 10_000_000)
+
+        XCTAssertNil(sut.albums.first?.title)   // 취소됐으므로 여전히 nil
+    }
+
+    // reloadAlbums 호출 시 기존 폴링이 취소되고 새 폴링이 시작됨
+    func test_reloadAlbums_cancelsAndRestarts() async {
+        let nilAlbum = AlbumCard(id: 10, title: nil, location: "제주", startDate: "2026-01-01", endDate: "2026-01-03", coverImageUrl: nil)
+        let stub = PollingStubAlbumService(albums: [nilAlbum])
+        // 2번째 호출부터 타이틀 반환 → reloadAlbums 후 새 폴링에서 반환됨
+        stub.titleReadyAfterAttempts = 2
+        sut = MainPageViewModel(albumService: stub, pollingInterval: 0)
+
+        await sut.loadAlbums()      // 첫 번째 폴링 시작 (1번째 호출: nil 반환)
+        await sut.reloadAlbums()    // 기존 폴링 취소 + 재로드 + 새 폴링 시작 (2번째 호출: 타이틀 반환)
+        try? await Task.sleep(nanoseconds: 10_000_000)
+
+        XCTAssertEqual(sut.albums.first?.title, "폴링 타이틀")
     }
 }

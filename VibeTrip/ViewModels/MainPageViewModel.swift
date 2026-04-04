@@ -33,11 +33,15 @@ final class MainPageViewModel: ObservableObject {
 
     // albumId별 title 폴링 Task (중복 방지)
     private var pollingTasks: [Int: Task<Void, Never>] = [:]
+    // 폴링 간격 (기본 5초, 테스트 시 0으로 주입 가능)
+    private let pollingInterval: UInt64
 
     // MARK: - Init
 
-    nonisolated init(albumService: AlbumServiceProtocol = AlbumService()) {
+    nonisolated init(albumService: AlbumServiceProtocol = AlbumService(),
+                     pollingInterval: UInt64 = 5_000_000_000) {
         self.albumService = albumService
+        self.pollingInterval = pollingInterval
     }
 
     // MARK: - Load
@@ -96,7 +100,7 @@ final class MainPageViewModel: ObservableObject {
     // 타이틀 조회: 5초 간격, 최대 120회(10분)
     private func pollTitle(for albumId: Int) async {
         for _ in 0..<120 {
-            try? await Task.sleep(nanoseconds: 5_000_000_000)
+            try? await Task.sleep(nanoseconds: pollingInterval)
             guard !Task.isCancelled else { return }
             guard let title = try? await albumService.fetchAlbumTitle(albumId: albumId) else { continue }
             applyTitle(title, for: albumId)
