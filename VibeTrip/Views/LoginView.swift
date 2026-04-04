@@ -266,6 +266,6 @@ private struct SafariView: UIViewControllerRepresentable {
     let appState = AppState()
     appState.toastPayload = AppToastPayload(message: "로그아웃이 완료되었습니다", systemImageName: nil)
 
-    return LoginView()
+    LoginView()
         .environmentObject(appState)
 }

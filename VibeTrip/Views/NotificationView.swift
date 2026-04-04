@@ -262,6 +262,7 @@ private struct NotificationRow: View {
         .environmentObject(AppState())
 }
 
+#if DEBUG
 #Preview("알림 있음") {
     let vm = NotificationViewModel(previewNotifications: [
         NotificationItem(
@@ -292,3 +293,4 @@ private struct NotificationRow: View {
     NotificationView(viewModel: vm)
         .environmentObject(AppState())
 }
+#endif
