@@ -17,8 +17,12 @@ import Combine
     @Published private(set) var hasNext: Bool = false
     @Published private(set) var showDeleteConfirm: Bool = false
     @Published private(set) var isDeleting: Bool = false
-    @Published private(set) var deleteError: String? = nil
+    @Published private(set) var deleteAlbumToastMessage: String? = nil
     @Published private(set) var didDeleteAlbum: Bool = false
+    @Published private(set) var pendingDeleteLogId: Int? = nil
+    @Published private(set) var showDeleteLogConfirm: Bool = false
+    @Published private(set) var isDeletingLog: Bool = false
+    @Published private(set) var deleteLogToastMessage: String? = nil
 
     private let albumId: String
     private var cursor: Int? = nil
@@ -37,7 +41,7 @@ import Combine
         return formatter
     }()
 
-    nonisolated init(albumId: String, service: AlbumServiceProtocol = AlbumService()) {
+    init(albumId: String, service: AlbumServiceProtocol = AlbumService()) {
         self.albumId = albumId
         self.service = service
     }
@@ -58,9 +62,8 @@ import Combine
         showDeleteConfirm = false
     }
 
-    // alert 바인딩 setter에서 에러 alert 닫힘 시 호출
-    func dismissDeleteError() {
-        deleteError = nil
+    func consumeDeleteAlbumToast() {
+        deleteAlbumToastMessage = nil
     }
 
     func confirmDeleteAlbum() async {
@@ -70,7 +73,36 @@ import Combine
             try await service.deleteAlbum(albumId: albumId)
             didDeleteAlbum = true
         } catch {
-            deleteError = "앨범 삭제에 실패했습니다."
+            deleteAlbumToastMessage = "앨범 삭제에 실패했습니다."
+        }
+    }
+
+    func requestDeleteLog(id: Int) {
+        pendingDeleteLogId = id
+        showDeleteLogConfirm = true
+    }
+
+    // 팝업 취소 탭: 팝업 비활성화
+    func dismissDeleteLogConfirm() {
+        showDeleteLogConfirm = false
+        pendingDeleteLogId = nil
+    }
+
+    func consumeDeleteLogToast() {
+        deleteLogToastMessage = nil
+    }
+
+    func confirmDeleteLog() async {
+        guard let logId = pendingDeleteLogId else { return }
+        isDeletingLog = true
+        showDeleteLogConfirm = false
+        defer { isDeletingLog = false }
+        do {
+            try await service.deleteAlbumLog(albumId: albumId, albumLogId: logId)
+            pendingDeleteLogId = nil
+            await loadInitialLogs()
+        } catch {
+            deleteLogToastMessage = "로그 삭제에 실패했습니다."
         }
     }
 
@@ -144,6 +176,12 @@ struct AlbumDetailView: View {
 
     // 신고 바텀시트 표시 여부
     @State private var isReportSheetPresented: Bool = false
+
+    // 앨범 삭제 실패 토스트 표시 여부
+    @State private var isDeleteAlbumToastVisible: Bool = false
+
+    // 로그 삭제 실패 토스트 표시 여부
+    @State private var isDeleteLogToastVisible: Bool = false
 
     // 로그 작성 화면 표시 여부
     @State private var isWritingLog: Bool = false
@@ -262,7 +300,38 @@ struct AlbumDetailView: View {
                     onConfirm: { Task { await logViewModel.confirmDeleteAlbum() } }
                 )
             }
+
+            // 로그 삭제 확인 팝업
+            if logViewModel.showDeleteLogConfirm {
+                ExitPopupView(
+                    title: "로그를 삭제하시겠어요?",
+                    onCancel: { logViewModel.dismissDeleteLogConfirm() },
+                    onConfirm: { Task { await logViewModel.confirmDeleteLog() } }
+                )
+            }
+
+            // 앨범 삭제 실패 토스트
+            if isDeleteAlbumToastVisible, let message = logViewModel.deleteAlbumToastMessage {
+                VStack {
+                    Spacer()
+                    AppToastView(message: message)
+                        .padding(.bottom, 40)
+                        .transition(.move(edge: .bottom).combined(with: .opacity))
+                }
+            }
+
+            // 로그 삭제 실패 토스트
+            if isDeleteLogToastVisible, let message = logViewModel.deleteLogToastMessage {
+                VStack {
+                    Spacer()
+                    AppToastView(message: message)
+                        .padding(.bottom, 40)
+                        .transition(.move(edge: .bottom).combined(with: .opacity))
+                }
+            }
         }
+        .animation(.easeInOut(duration: 0.2), value: isDeleteAlbumToastVisible)
+        .animation(.easeInOut(duration: 0.2), value: isDeleteLogToastVisible)
         .navigationBarBackButtonHidden(true)
         .toolbar(.hidden, for: .navigationBar)
         .fullScreenCover(isPresented: $isWritingLog, onDismiss: {
@@ -289,17 +358,15 @@ struct AlbumDetailView: View {
             .presentationDragIndicator(.hidden)
         }
         .task { await logViewModel.loadInitialLogs() }
-        // 삭제 실패 시 에러 메시지 alert
-        .alert(
-            "삭제 실패",
-            isPresented: Binding(
-                get: { logViewModel.deleteError != nil },
-                set: { if !$0 { logViewModel.dismissDeleteError() } }
-            )
-        ) {
-            Button("확인", role: .cancel) {}
-        } message: {
-            Text(logViewModel.deleteError ?? "")
+        // 앨범 삭제 실패 시 토스트 표시
+        .onChange(of: logViewModel.deleteAlbumToastMessage) { _, message in
+            guard message != nil else { return }
+            showDeleteAlbumToast()
+        }
+        // 로그 삭제 실패 시 토스트 표시
+        .onChange(of: logViewModel.deleteLogToastMessage) { _, message in
+            guard message != nil else { return }
+            showDeleteLogToast()
         }
         // 삭제 성공 시: fullScreenCover 닫기
         .onChange(of: logViewModel.didDeleteAlbum) { _, didDelete in
@@ -335,6 +402,26 @@ private extension AlbumDetailView {
         return Double(titleNavOffset / fadeWindow)
     }
     
+    // 앨범 삭제 실패 토스트 표시 후 자동 숨김
+    func showDeleteAlbumToast() {
+        withAnimation { isDeleteAlbumToastVisible = true }
+        Task {
+            try? await Task.sleep(nanoseconds: 3_000_000_000)
+            withAnimation { isDeleteAlbumToastVisible = false }
+            logViewModel.consumeDeleteAlbumToast()
+        }
+    }
+
+    // 로그 삭제 실패 토스트 표시 후 자동 숨김
+    func showDeleteLogToast() {
+        withAnimation { isDeleteLogToastVisible = true }
+        Task {
+            try? await Task.sleep(nanoseconds: 3_000_000_000)
+            withAnimation { isDeleteLogToastVisible = false }
+            logViewModel.consumeDeleteLogToast()
+        }
+    }
+
     // 앨범 메뉴 팝업 표시 헬퍼
     func showAlbumMenu() {
         withAnimation(.easeInOut(duration: Constants.menuAnimationDuration)) {
@@ -931,6 +1018,9 @@ private struct AlbumDetailLogFeedSection: View {
                     onLastAppear: {
                         guard let id = lastEntryId else { return }
                         await viewModel.loadMoreIfNeeded(lastId: id)
+                    },
+                    onDeleteLog: { logId in
+                        viewModel.requestDeleteLog(id: logId)
                     }
                 )
             }
@@ -950,6 +1040,7 @@ private struct AlbumDetailLogDateGroup: View {
     let entries: [AlbumLogEntry]
     let lastEntryId: Int?
     let onLastAppear: (() async -> Void)?
+    let onDeleteLog: (Int) -> Void
 
     private enum Constants {
         /// 로그 카드 간 간격
@@ -962,7 +1053,8 @@ private struct AlbumDetailLogDateGroup: View {
                 AlbumDetailLogItemCard(
                     entry: entry,
                     isLast: entry.id == lastEntryId,
-                    onLastAppear: onLastAppear
+                    onLastAppear: onLastAppear,
+                    onDeleteLog: onDeleteLog
                 )
             }
         }
@@ -976,6 +1068,7 @@ private struct AlbumDetailLogItemCard: View {
     let entry: AlbumLogEntry
     let isLast: Bool
     let onLastAppear: (() async -> Void)?
+    let onDeleteLog: (Int) -> Void
 
     /// 로그 옵션 팝업 표시 여부
     @State private var isMenuVisible: Bool = false
@@ -1059,7 +1152,7 @@ private struct AlbumDetailLogItemCard: View {
                         withAnimation(.easeInOut(duration: Constants.menuAnimationDuration)) {
                             isMenuVisible = false
                         }
-                        // TODO: 로그 삭제 API 호출 후 목록 갱신
+                        onDeleteLog(entry.id)
                     }
                 )
                 .padding(.top, Constants.menuTopOffset)

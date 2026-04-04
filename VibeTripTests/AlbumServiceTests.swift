@@ -480,4 +480,43 @@ final class AlbumServiceTests: XCTestCase {
             XCTFail("예상치 못한 에러: \(error)")
         }
     }
+
+    // MARK: - deleteAlbumLog: 성공
+
+    // 성공 시 perform 1회 호출
+    func test_deleteAlbumLog_success_callsPerformOnce() async throws {
+        mockAPIClient.performResult = .success(())
+
+        try await sut.deleteAlbumLog(albumId: "42", albumLogId: 7)
+
+        XCTAssertEqual(mockAPIClient.performCallCount, 1)
+    }
+
+    // albumId, albumLogId가 path에 올바르게 포함되는지 검증
+    func test_deleteAlbumLog_success_usesCorrectPath() async throws {
+        mockAPIClient.performResult = .success(())
+
+        try await sut.deleteAlbumLog(albumId: "42", albumLogId: 7)
+
+        XCTAssertEqual(
+            mockAPIClient.capturedEndpoints.first?.path,
+            "/api/v1/albums/42/album-logs/7"
+        )
+    }
+
+    // MARK: - deleteAlbumLog: 서버 에러
+
+    // 서버 에러 응답 -> APIClientError.serverError throw
+    func test_deleteAlbumLog_serverError_throwsServerError() async throws {
+        mockAPIClient.performResult = .failure(APIClientError.serverError(.e400))
+
+        do {
+            try await sut.deleteAlbumLog(albumId: "1", albumLogId: 1)
+            XCTFail("서버 에러가 throw되어야 합니다")
+        } catch APIClientError.serverError(let code) {
+            XCTAssertEqual(code, .e400)
+        } catch {
+            XCTFail("예상치 못한 에러: \(error)")
+        }
+    }
 }
