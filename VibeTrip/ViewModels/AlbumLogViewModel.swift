@@ -137,6 +137,7 @@ import UIKit
             try await service.saveLog(request: request)
             isSaved = true
         } catch {
+            print("[AlbumLogViewModel] saveLog 실패 -> albumId: \(albumId), error: \(error)")
             showToast(Constants.saveErrorMessage)
         }
     }

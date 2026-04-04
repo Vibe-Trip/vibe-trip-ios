@@ -37,7 +37,7 @@ import Combine
         return formatter
     }()
 
-    init(albumId: String, service: AlbumServiceProtocol = AlbumService()) {
+    nonisolated init(albumId: String, service: AlbumServiceProtocol = AlbumService()) {
         self.albumId = albumId
         self.service = service
     }
@@ -147,6 +147,8 @@ struct AlbumDetailView: View {
 
     // 로그 작성 화면 표시 여부
     @State private var isWritingLog: Bool = false
+    // 로그 저장 성공 여부 -> onDismiss에서 재조회 여부 판단
+    @State private var didSaveLog: Bool = false
     
     // 재생/일시정지 토글 상태
     // TODO: AVPlayer 연결
@@ -264,10 +266,15 @@ struct AlbumDetailView: View {
         .navigationBarBackButtonHidden(true)
         .toolbar(.hidden, for: .navigationBar)
         .fullScreenCover(isPresented: $isWritingLog, onDismiss: {
-            // 작성 완료 후 목록 재조회
-            Task { await logViewModel.loadInitialLogs() }
+            // 저장 성공 시에만 목록 재조회
+            if didSaveLog {
+                didSaveLog = false
+                Task { await logViewModel.loadInitialLogs() }
+            }
         }) {
-            AlbumLogView(albumId: String(displayModel.albumId), mode: .create)
+            AlbumLogView(albumId: String(displayModel.albumId), mode: .create, onSaved: {
+                didSaveLog = true
+            })
         }
         // 신고 바텀시트
         .sheet(isPresented: $isReportSheetPresented) {
