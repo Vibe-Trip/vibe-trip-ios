@@ -141,7 +141,7 @@ struct MainTabBarView: View {
                     onHide: {
                         // 화면 숨기기: 메인 페이지로 복귀 + 앨범 목록 재조회
                         selectedTab = .home
-                        appState.pendingMainPageReload = true
+                        appState.needsAlbumRefresh = true   /// 메인 페이지 앨범 목록 새로고침 신호: 새 앨범 노출 + 폴링 시작
                         withAnimation(.easeInOut(duration: 0.24)) {
                             isPresentingLoadingView = false
                             isPresentingMakeAlbum = false

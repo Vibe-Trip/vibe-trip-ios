@@ -29,10 +29,19 @@ final class MainPageViewModel: ObservableObject {
 
     private let albumService: AlbumServiceProtocol
 
+    // MARK: - Polling
+
+    // albumId별 title 폴링 Task (중복 방지)
+    private var pollingTasks: [Int: Task<Void, Never>] = [:]
+    // 폴링 간격 (기본 5초, 테스트 시 0으로 주입 가능)
+    private let pollingInterval: UInt64
+
     // MARK: - Init
 
-    nonisolated init(albumService: AlbumServiceProtocol = AlbumService()) {
+    nonisolated init(albumService: AlbumServiceProtocol = AlbumService(),
+                     pollingInterval: UInt64 = 5_000_000_000) {
         self.albumService = albumService
+        self.pollingInterval = pollingInterval
     }
 
     // MARK: - Load
@@ -45,7 +54,13 @@ final class MainPageViewModel: ObservableObject {
         await fetchNextPage()
     }
 
-    // 결과: albums 배열에 누적
+    // 명시적 새로고침 (pendingMainPageReload, 앨범 삭제 후 복귀)
+    func reloadAlbums() async {
+        cancelAllPolling()
+        await loadAlbums()
+    }
+
+    // 결과: albums 배열에 누적, 완료 후 title nil 앨범 폴링 시작
     private func fetchNextPage() async {
         guard hasNext, !isFetching else { return }
         isFetching = true
@@ -57,6 +72,7 @@ final class MainPageViewModel: ObservableObject {
             hasNext = payload.hasNext
             cursor = payload.content.last?.id // 마지막 albumId: 다음 요청 cursor
             errorMessage = nil
+            startPollingIfNeeded()
         } catch {
             errorMessage = "앨범을 불러오지 못했습니다."
         }
@@ -68,4 +84,49 @@ final class MainPageViewModel: ObservableObject {
         await fetchNextPage()
     }
 
+    // MARK: - Polling
+
+    // title nil 앨범에 대해 폴링 Task 시작 (이미 폴링 중이면 스킵)
+    private func startPollingIfNeeded() {
+        for album in albums where album.title == nil {
+            guard pollingTasks[album.id] == nil else { continue }
+            let albumId = album.id
+            pollingTasks[albumId] = Task { [weak self] in
+                await self?.pollTitle(for: albumId)
+            }
+        }
+    }
+
+    // 타이틀 조회: 5초 간격, 최대 120회(10분)
+    private func pollTitle(for albumId: Int) async {
+        for _ in 0..<120 {
+            try? await Task.sleep(nanoseconds: pollingInterval)
+            guard !Task.isCancelled else { return }
+            guard let title = try? await albumService.fetchAlbumTitle(albumId: albumId) else { continue }
+            applyTitle(title, for: albumId)
+            return
+        }
+        pollingTasks[albumId] = nil
+    }
+
+    // 타이틀 수신 시: 해당 앨범 -> albums 배열에서 교체 후 폴링 Task 정리
+    private func applyTitle(_ title: String, for albumId: Int) {
+        guard let idx = albums.firstIndex(where: { $0.id == albumId }) else { return }
+        let old = albums[idx]
+        albums[idx] = AlbumCard(
+            id: old.id,
+            title: title,
+            location: old.location,
+            startDate: old.startDate,
+            endDate: old.endDate,
+            coverImageUrl: old.coverImageUrl
+        )
+        pollingTasks[albumId] = nil
+    }
+
+    // 뷰 사라질 때 모든 폴링 Task 취소
+    func cancelAllPolling() {
+        pollingTasks.values.forEach { $0.cancel() }
+        pollingTasks.removeAll()
+    }
 }

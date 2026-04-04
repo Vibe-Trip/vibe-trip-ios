@@ -12,14 +12,14 @@ import SwiftUI
 struct MainPageView: View {
     
     // MARK: - ViewModel
-    
+
     @StateObject private var viewModel: MainPageViewModel
     @EnvironmentObject private var appState: AppState
     
     init(viewModel: MainPageViewModel = MainPageViewModel()) {
         _viewModel = StateObject(wrappedValue: viewModel)
     }
-    
+
     // MARK: - Carousel State (UI 전용)
 
     @State private var currentIndex: Int        = 0
@@ -29,6 +29,8 @@ struct MainPageView: View {
 
     // 신고 완료 토스트
     @State private var showReportToast: Bool = false
+    // 타이틀 생성 중 앨범 탭 시 표시하는 차단 토스트
+    @State private var showGeneratingToast: Bool = false
     
     // MARK: - 캐러셀 Layout Constants
     
@@ -56,11 +58,13 @@ struct MainPageView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .task { await viewModel.loadAlbums() }
-        // 앨범 생성 화면 숨기기 등 명시적 재조회 요청 처리
-        .onChange(of: appState.pendingMainPageReload) { _, shouldReload in
-            guard shouldReload else { return }
-            appState.pendingMainPageReload = false
-            Task { await viewModel.loadAlbums() }
+.onDisappear { viewModel.cancelAllPolling() }
+        .onChange(of: appState.needsAlbumRefresh) { _, needsReload in
+            guard needsReload else { return }
+            // 중복 트리거 방지를 위해 플래그 먼저 초기화 후 새로고침
+            appState.needsAlbumRefresh = false
+            Task { await viewModel.reloadAlbums() }
+        }
         }
         .fullScreenCover(item: $selectedAlbum) { album in
             AlbumDetailView(
@@ -96,9 +100,18 @@ struct MainPageView: View {
                             }
                         }
                     }
+            } else if showGeneratingToast {
+                // 타이틀 생성 중 앨범 진입 시도 시 차단 안내
+                AppToastView(
+                    message: "앨범을 제작하고 있어요. 잠시만 기다려 주세요!",
+                    systemImageName: "exclamationmark.circle"
+                )
+                .padding(.bottom, 88)
+                .transition(.move(edge: .bottom).combined(with: .opacity))
             }
         }
         .animation(.easeInOut(duration: 0.2), value: showReportToast)
+        .animation(.easeInOut(duration: 0.2), value: showGeneratingToast)
     }
     
     // MARK: - 빈 상태 UI
@@ -193,7 +206,19 @@ struct MainPageView: View {
                             
                             AlbumCardView(album: viewModel.albums[index])
                                 .onTapGesture {
-                                    if isActive { selectedAlbum = viewModel.albums[index] }
+                                    guard isActive else { return }
+                                    let album = viewModel.albums[index]
+                                    if album.title == nil {
+                                        // 타이틀 생성 중 —> 상세페이지 진입 차단 후 토스트 표시
+                                        guard !showGeneratingToast else { return }
+                                        withAnimation { showGeneratingToast = true }
+                                        Task {
+                                            try? await Task.sleep(nanoseconds: 3_000_000_000)
+                                            withAnimation { showGeneratingToast = false }
+                                        }
+                                    } else {
+                                        selectedAlbum = album
+                                    }
                                 }
                                 .offset(
                                     x: CarouselLayout.activeSideSpacing + baseX + dragOffset,
@@ -286,7 +311,7 @@ private extension AlbumCard {
     func toDisplayModel() -> AlbumDetailDisplayModel {
         AlbumDetailDisplayModel(
             albumId: id,
-            title: title,
+            title: title ?? "",  // 상세 진입은 title 확정 후에만 허용 (Step 9에서 보장)
             destination: location,
             dateText: "\(formatDate(startDate)) - \(formatDate(endDate))",
             coverImageUrl: coverImageUrl,
@@ -301,11 +326,22 @@ private extension AlbumCard {
 #if DEBUG
 #Preview("카드 있음") {
     MainPageView(viewModel: MainPageViewModel(albumService: MockAlbumService()))
+        .environmentObject(AppState())
 }
 
 #Preview("빈 상태") {
     let service = MockAlbumService()
     service.isEmpty = true
-    MainPageView(viewModel: MainPageViewModel(albumService: service))
+    return MainPageView(viewModel: MainPageViewModel(albumService: service))
+        .environmentObject(AppState())
+}
+
+#Preview("생성 중 앨범") {
+    let service = MockAlbumService()
+    service.hasGeneratingAlbum = true
+    service.titleReadyAfterAttempts = 2  // 4번째 카드: 2번째 폴링(약 5초)에서 타이틀 반환
+    return MainPageView(viewModel: MainPageViewModel(albumService: service))
+        .environmentObject(AppState())
+}
 }
 #endif

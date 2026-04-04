@@ -53,9 +53,9 @@ struct AppToastPayload: Equatable {
     // nil 초기화: MainTabBarView -> onChange에서 처리
     @Published var pendingTabNavigation: AppTab? = nil
 
-    // 메인페이지 앨범 목록 재조회 요청 (앨범 대기화면 화면 숨기기 시)
-    // MainPageView -> onChange에서 loadAlbums() 호출 후 false 초기화
-    @Published var pendingMainPageReload: Bool = false
+    // 생성 대기 화면: 화면 숨기기 시 MainPageView에 목록 새로고침을 요청하는 신호
+    // MainTabBarView(송신) -> MainPageView(수신), 수신 즉시 false로 초기화
+    @Published var needsAlbumRefresh: Bool = false
 
     // APIClient.sessionExpiredPublisher 구독 유지용
     private var cancellables = Set<AnyCancellable>()

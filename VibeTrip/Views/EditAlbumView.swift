@@ -56,7 +56,7 @@ struct EditAlbumView: View {
     private let onExit: () -> Void
 
     init(album: AlbumCard, onExit: @escaping () -> Void = {}) {
-        _albumTitle = State(initialValue: album.title)
+        _albumTitle = State(initialValue: album.title ?? "")
         _destination = State(initialValue: album.location)
         self.onExit = onExit
     }

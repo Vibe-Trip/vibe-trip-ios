@@ -26,6 +26,9 @@ protocol AlbumServiceProtocol {
     func fetchAlbumLogs(albumId: String, cursor: Int?, limit: Int) async throws -> AlbumLogListPayload
     /// 로그 등록
     func saveLog(request: AlbumLogRequest) async throws
+    /// 앨범 타이틀 생성 완료 여부 조회. nil -> 아직 생성 중
+    // TODO: API 확정 후 AlbumService 구현체 교체
+    func fetchAlbumTitle(albumId: Int) async throws -> String?
     /// 앨범 로그 삭제
     func deleteAlbumLog(albumId: String, albumLogId: Int) async throws
 }
@@ -134,7 +137,12 @@ final class AlbumService: AlbumServiceProtocol {
         let endpoint = APIEndpoint(path: "/api/v1/albums/\(albumId)", method: .delete)
         try await apiClient.perform(endpoint)
     }
-    
+
+    func fetchAlbumTitle(albumId: Int) async throws -> String? {
+        // TODO: 백엔드 API 확정 후 실제 엔드포인트로 교체
+        fatalError("fetchAlbumTitle: 실제 API 미연동")
+    }
+
     func saveLog(request: AlbumLogRequest) async throws {
         let body = AlbumLogRegisterRequestBody(description: request.logText)
         var formData = MultipartFormData()
@@ -167,20 +175,25 @@ final class AlbumService: AlbumServiceProtocol {
 
 #if DEBUG
 final class MockAlbumService: AlbumServiceProtocol {
-    
-    var simulatedError: AlbumError? = nil   // simulatedError: 에러 시나리오 테스트
-    var isEmpty: Bool = false              // isEmpty: 빈 목록 테스트
+
+    var simulatedError: AlbumError? = nil   // 에러 시나리오 테스트
+    var isEmpty: Bool = false              // 빈 목록 테스트
     var delay: UInt64 = 500_000_000       // 응답 지연 시뮬레이션(0.5초)
-    
+
+    // true일 경우, fetchAlbums 결과에 title: nil 앨범 포함 -> skeleton 테스트용
+    var hasGeneratingAlbum: Bool = false
+    // n번째 fetchAlbumTitle 호출부터 타이틀 반환
+    var titleReadyAfterAttempts: Int = 1
+    private var titleFetchCount: [Int: Int] = [:]
+
     func fetchAlbums(cursor: Int?, limit: Int) async throws -> AlbumListPayload {
         try await Task.sleep(nanoseconds: delay)
         if let error = simulatedError { throw error }
         if isEmpty { return AlbumListPayload(content: [], totalCount: 0, hasNext: false) }
-        return AlbumListPayload(
-            content: AlbumCard.mockItems,
-            totalCount: AlbumCard.mockItems.count,
-            hasNext: false
-        )
+        // hasGeneratingAlbum: true -> title nil 앨범(mockItems[3]) 포함
+        var items = Array(AlbumCard.mockItems.prefix(3))
+        if hasGeneratingAlbum { items.append(AlbumCard.mockItems[3]) }
+        return AlbumListPayload(content: items, totalCount: items.count, hasNext: false)
     }
     
     func createAlbum(request: AlbumCreateRequest) async throws -> AlbumCreateResponse {
@@ -217,6 +230,13 @@ final class MockAlbumService: AlbumServiceProtocol {
         if let error = simulatedError { throw error }
     }
 
+    func fetchAlbumTitle(albumId: Int) async throws -> String? {
+        try await Task.sleep(nanoseconds: delay)
+        if let error = simulatedError { throw error }
+        // 호출 횟수 누적 후 titleReadyAfterAttempts 도달 시 타이틀 반환
+        titleFetchCount[albumId, default: 0] += 1
+        guard titleFetchCount[albumId]! >= titleReadyAfterAttempts else { return nil }
+        return "Mock 앨범 타이틀"
     func deleteAlbumLog(albumId: String, albumLogId: Int) async throws {
         try await Task.sleep(nanoseconds: delay)
         if let error = simulatedError { throw error }
