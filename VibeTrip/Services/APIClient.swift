@@ -150,6 +150,15 @@ protocol APIClientProtocol {
     var sessionExpiredPublisher: AnyPublisher<Void, Never> { get }
 }
 
+// MARK: - RefreshResult
+
+// 토큰 갱신 결과: 갱신 성공 / 진짜 만료 / 일시 오류 구분
+private enum RefreshResult {
+    case success          // 갱신 성공
+    case expired          // 서버 401/403: 진짜 만료 -> 로그아웃
+    case transientError   // 네트워크 오류, 5xx 등: 일시 오류 -> 로그아웃X
+}
+
 // MARK: - RefreshActor
 
 // Swift actor: 토큰 갱신 중복 요청을 방지
