@@ -37,7 +37,7 @@ import Combine
         return formatter
     }()
 
-    init(albumId: String, service: AlbumServiceProtocol = AlbumService()) {
+    nonisolated init(albumId: String, service: AlbumServiceProtocol = AlbumService()) {
         self.albumId = albumId
         self.service = service
     }
