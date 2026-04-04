@@ -26,6 +26,8 @@ protocol AlbumServiceProtocol {
     func fetchAlbumLogs(albumId: String, cursor: Int?, limit: Int) async throws -> AlbumLogListPayload
     /// 로그 등록
     func saveLog(request: AlbumLogRequest) async throws
+    /// 앨범 로그 삭제
+    func deleteAlbumLog(albumId: String, albumLogId: Int) async throws
 }
 
 // MARK: - AlbumCreateRequest / AlbumCreateResponse
@@ -144,6 +146,14 @@ final class AlbumService: AlbumServiceProtocol {
         try await apiClient.performUpload(endpoint, formData: formData)
     }
 
+    func deleteAlbumLog(albumId: String, albumLogId: Int) async throws {
+        let endpoint = APIEndpoint(
+            path: "/api/v1/albums/\(albumId)/album-logs/\(albumLogId)",
+            method: .delete
+        )
+        try await apiClient.perform(endpoint)
+    }
+
     // 서버 요구 날짜 포맷
     private static let dateFormatter: DateFormatter = {
         let f = DateFormatter()
@@ -203,6 +213,11 @@ final class MockAlbumService: AlbumServiceProtocol {
     }
     
     func saveLog(request: AlbumLogRequest) async throws {
+        try await Task.sleep(nanoseconds: delay)
+        if let error = simulatedError { throw error }
+    }
+
+    func deleteAlbumLog(albumId: String, albumLogId: Int) async throws {
         try await Task.sleep(nanoseconds: delay)
         if let error = simulatedError { throw error }
     }
