@@ -984,6 +984,7 @@ private struct AlbumDetailLogDateGroup: View {
     let entries: [AlbumLogEntry]
     let lastEntryId: Int?
     let onLastAppear: (() async -> Void)?
+    let onDeleteLog: (Int) -> Void
 
     private enum Constants {
         /// 로그 카드 간 간격
@@ -996,7 +997,8 @@ private struct AlbumDetailLogDateGroup: View {
                 AlbumDetailLogItemCard(
                     entry: entry,
                     isLast: entry.id == lastEntryId,
-                    onLastAppear: onLastAppear
+                    onLastAppear: onLastAppear,
+                    onDeleteLog: onDeleteLog
                 )
             }
         }
@@ -1010,6 +1012,7 @@ private struct AlbumDetailLogItemCard: View {
     let entry: AlbumLogEntry
     let isLast: Bool
     let onLastAppear: (() async -> Void)?
+    let onDeleteLog: (Int) -> Void
 
     /// 로그 옵션 팝업 표시 여부
     @State private var isMenuVisible: Bool = false
@@ -1093,7 +1096,7 @@ private struct AlbumDetailLogItemCard: View {
                         withAnimation(.easeInOut(duration: Constants.menuAnimationDuration)) {
                             isMenuVisible = false
                         }
-                        // TODO: 로그 삭제 API 호출 후 목록 갱신
+                        onDeleteLog(entry.id)
                     }
                 )
                 .padding(.top, Constants.menuTopOffset)
