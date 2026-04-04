@@ -289,6 +289,6 @@ private struct NotificationRow: View {
             isRead: true
         )
     ])
-    return NotificationView(viewModel: vm)
+    NotificationView(viewModel: vm)
         .environmentObject(AppState())
 }

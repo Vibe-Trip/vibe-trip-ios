@@ -357,8 +357,10 @@ private extension AlbumLogView {
     }
 }
 
+#if DEBUG
 #Preview("로그 수정 모드") {
     NavigationStack {
         AlbumLogView(albumId: "1", mode: .edit(AlbumLog.mock))
     }
 }
+#endif

@@ -287,6 +287,7 @@ private extension AlbumCard {
 
 // MARK: - Preview
 
+#if DEBUG
 #Preview("카드 있음") {
     MainPageView(viewModel: MainPageViewModel(albumService: MockAlbumService()))
 }
@@ -294,5 +295,6 @@ private extension AlbumCard {
 #Preview("빈 상태") {
     let service = MockAlbumService()
     service.isEmpty = true
-    return MainPageView(viewModel: MainPageViewModel(albumService: service))
+    MainPageView(viewModel: MainPageViewModel(albumService: service))
 }
+#endif

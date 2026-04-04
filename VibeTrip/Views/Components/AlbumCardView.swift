@@ -152,6 +152,8 @@ struct AlbumCardView: View {
 
 // MARK: - Preview
 
+#if DEBUG
 #Preview {
     AlbumCardView(album: AlbumCard.mockItems[0])
 }
+#endif
