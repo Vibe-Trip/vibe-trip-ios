@@ -12,13 +12,14 @@ import SwiftUI
 struct MainPageView: View {
     
     // MARK: - ViewModel
-    
+
     @StateObject private var viewModel: MainPageViewModel
-    
+    @EnvironmentObject private var appState: AppState
+
     init(viewModel: MainPageViewModel = MainPageViewModel()) {
         _viewModel = StateObject(wrappedValue: viewModel)
     }
-    
+
     // MARK: - Carousel State (UI 전용)
 
     @State private var currentIndex: Int        = 0
@@ -55,6 +56,12 @@ struct MainPageView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .task { await viewModel.loadAlbums() }
+        .onChange(of: appState.pendingMainPageReload) { _, needsReload in
+            guard needsReload else { return }
+            // 중복 트리거 방지를 위해 플래그 먼저 초기화 후 새로고침
+            appState.pendingMainPageReload = false
+            Task { await viewModel.reloadAlbums() }
+        }
         .fullScreenCover(item: $selectedAlbum) { album in
             AlbumDetailView(
                 displayModel: album.toDisplayModel(),
