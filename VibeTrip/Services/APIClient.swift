@@ -169,9 +169,9 @@ private actor RefreshActor {
     private var isRefreshing = false
 
     // 갱신 완료를 기다리는 요청 대기열
-    private var waiters: [CheckedContinuation<Bool, Never>] = []
+    private var waiters: [CheckedContinuation<RefreshResult, Never>] = []
 
-    func refreshIfNeeded(using action: () async -> Bool) async -> Bool {
+    func refreshIfNeeded(using action: () async -> RefreshResult) async -> RefreshResult {
         if isRefreshing {
             // 이미 갱신 진행 중 -> 완료될 때까지 대기 후 같은 결과 수신
             return await withCheckedContinuation { continuation in
@@ -180,13 +180,13 @@ private actor RefreshActor {
         }
 
         isRefreshing = true
-        let success = await action()
+        let result = await action()
 
         // 대기 중이던 요청에 갱신 결과 전달
-        for waiter in waiters { waiter.resume(returning: success) }
+        for waiter in waiters { waiter.resume(returning: result) }
         waiters.removeAll()
         isRefreshing = false
-        return success
+        return result
     }
 }
 
