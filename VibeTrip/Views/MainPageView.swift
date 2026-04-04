@@ -56,6 +56,12 @@ struct MainPageView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .task { await viewModel.loadAlbums() }
+        // 앨범 생성 화면 숨기기 등 명시적 재조회 요청 처리
+        .onChange(of: appState.pendingMainPageReload) { _, shouldReload in
+            guard shouldReload else { return }
+            appState.pendingMainPageReload = false
+            Task { await viewModel.loadAlbums() }
+        }
         .fullScreenCover(item: $selectedAlbum) { album in
             AlbumDetailView(
                 displayModel: album.toDisplayModel(),
