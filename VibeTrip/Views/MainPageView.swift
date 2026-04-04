@@ -58,6 +58,7 @@ struct MainPageView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .task { await viewModel.loadAlbums() }
+        .onDisappear { viewModel.cancelAllPolling() }
         .onChange(of: appState.needsAlbumRefresh) { _, needsReload in
             guard needsReload else { return }
             // 중복 트리거 방지를 위해 플래그 먼저 초기화 후 새로고침
@@ -304,10 +305,20 @@ private extension AlbumCard {
 
 #Preview("카드 있음") {
     MainPageView(viewModel: MainPageViewModel(albumService: MockAlbumService()))
+        .environmentObject(AppState())
 }
 
 #Preview("빈 상태") {
     let service = MockAlbumService()
     service.isEmpty = true
     return MainPageView(viewModel: MainPageViewModel(albumService: service))
+        .environmentObject(AppState())
+}
+
+#Preview("생성 중 앨범") {
+    let service = MockAlbumService()
+    service.hasGeneratingAlbum = true
+    service.titleReadyAfterAttempts = 2  // 4번째 카드: 2번째 폴링(약 5초)에서 타이틀 반환 
+    return MainPageView(viewModel: MainPageViewModel(albumService: service))
+        .environmentObject(AppState())
 }
