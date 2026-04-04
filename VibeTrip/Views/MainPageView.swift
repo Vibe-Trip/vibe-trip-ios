@@ -14,6 +14,7 @@ struct MainPageView: View {
     // MARK: - ViewModel
     
     @StateObject private var viewModel: MainPageViewModel
+    @EnvironmentObject private var appState: AppState
     
     init(viewModel: MainPageViewModel = MainPageViewModel()) {
         _viewModel = StateObject(wrappedValue: viewModel)
@@ -62,6 +63,8 @@ struct MainPageView: View {
                 onDeleteAlbumTap: {
                     viewModel.removeAlbum(id: album.id)
                     selectedAlbum = nil
+                    // 삭제 완료 후 홈 탭으로 강제 이동
+                    appState.pendingTabNavigation = .home
                 },
                 onReportTap: {
                     selectedAlbum = nil  // fullScreenCover 닫기 (메인 복귀)

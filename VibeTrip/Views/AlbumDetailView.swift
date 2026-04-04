@@ -53,7 +53,7 @@ import Combine
         showDeleteConfirm = true
     }
 
-    // confirmationDialog 바인딩 setter에서 다이얼로그 닫힘 시 호출
+    // ExitPopupView 취소 탭 시 팝업 비활성화
     func dismissDeleteConfirm() {
         showDeleteConfirm = false
     }
@@ -251,6 +251,15 @@ struct AlbumDetailView: View {
             if isAlbumMenuVisible {
                 albumMenuOverlay
             }
+
+            // 앨범 삭제 확인 팝업
+            if logViewModel.showDeleteConfirm {
+                ExitPopupView(
+                    title: "앨범을 삭제 하시겠어요?",
+                    onCancel: { logViewModel.dismissDeleteConfirm() },
+                    onConfirm: { Task { await logViewModel.confirmDeleteAlbum() } }
+                )
+            }
         }
         .navigationBarBackButtonHidden(true)
         .toolbar(.hidden, for: .navigationBar)
@@ -273,20 +282,6 @@ struct AlbumDetailView: View {
             .presentationDragIndicator(.hidden)
         }
         .task { await logViewModel.loadInitialLogs() }
-        // 삭제 확인 다이얼로그: 삭제 선택 시 API 호출
-        .confirmationDialog(
-            "앨범을 삭제할까요?",
-            isPresented: Binding(
-                get: { logViewModel.showDeleteConfirm },
-                set: { if !$0 { logViewModel.dismissDeleteConfirm() } }
-            ),
-            titleVisibility: .visible
-        ) {
-            Button("삭제", role: .destructive) {
-                Task { await logViewModel.confirmDeleteAlbum() }
-            }
-            Button("취소", role: .cancel) {}
-        }
         // 삭제 실패 시 에러 메시지 alert
         .alert(
             "삭제 실패",

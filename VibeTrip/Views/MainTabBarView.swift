@@ -239,6 +239,12 @@ struct MainTabBarView: View {
             }
             appState.pendingNotificationAction = nil
         }
+        // 앨범 삭제 등 특정 탭 이동 요청 처리
+        .onChange(of: appState.pendingTabNavigation) { _, tab in
+            guard let tab else { return }
+            selectedTab = tab
+            appState.pendingTabNavigation = nil
+        }
     }
 
     // MARK: - Helpers
