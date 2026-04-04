@@ -13,6 +13,7 @@ import XCTest
 private final class StubAlbumDetailService: AlbumServiceProtocol {
 
     var results: [Result<AlbumLogListPayload, Error>]
+    var deleteResult: Result<Void, Error> = .success(())
     private(set) var callCount = 0
     private(set) var capturedAlbumIds: [String] = []
     private(set) var capturedCursors: [Int?] = []
@@ -34,11 +35,17 @@ private final class StubAlbumDetailService: AlbumServiceProtocol {
         }
     }
 
+    func deleteAlbum(albumId: String) async throws {
+        switch deleteResult {
+        case .success: return
+        case .failure(let error): throw error
+        }
+    }
+
     func fetchAlbums(cursor: Int?, limit: Int) async throws -> AlbumListPayload { fatalError("미사용") }
     func createAlbum(request: AlbumCreateRequest) async throws -> AlbumCreateResponse { fatalError("미사용") }
     func fetchAlbumLog(albumId: String) async throws -> AlbumLog { fatalError("미사용") }
     func updateAlbum(albumId: String, request: AlbumUpdateRequest) async throws -> AlbumCard { fatalError("미사용") }
-    func deleteAlbum(albumId: String) async throws { fatalError("미사용") }
     func saveLog(request: AlbumLogRequest) async throws { fatalError("미사용") }
 }
 
@@ -195,5 +202,105 @@ final class AlbumDetailViewModelTests: XCTestCase {
     func test_parseISO8601Date_withFractionalSeconds_returnsDate() {
         let date = AlbumDetailViewModel.parseISO8601Date("2026-01-13T12:00:00.123Z")
         XCTAssertNotNil(date)
+    }
+
+    // MARK: - requestDeleteAlbum
+
+    // 호출 시 showDeleteConfirm = true -> 확인 다이얼로그 표시 트리거
+    func test_requestDeleteAlbum_setsShowDeleteConfirmTrue() {
+        makeSUT(results: [.success(AlbumLogListPayload(content: [], hasNext: false))])
+
+        sut.requestDeleteAlbum()
+
+        XCTAssertTrue(sut.showDeleteConfirm)
+    }
+
+    // MARK: - dismissDeleteConfirm
+
+    // 호출 시 showDeleteConfirm = false -> 다이얼로그 닫힘 상태로 리셋
+    func test_dismissDeleteConfirm_setsShowDeleteConfirmFalse() {
+        makeSUT(results: [.success(AlbumLogListPayload(content: [], hasNext: false))])
+        sut.requestDeleteAlbum()
+
+        sut.dismissDeleteConfirm()
+
+        XCTAssertFalse(sut.showDeleteConfirm)
+    }
+
+    // MARK: - confirmDeleteAlbum: 성공
+
+    // 성공 시 didDeleteAlbum = true -> View가 화면 닫기 트리거
+    func test_confirmDeleteAlbum_success_setsDidDeleteAlbumTrue() async {
+        makeSUT(results: [.success(AlbumLogListPayload(content: [], hasNext: false))])
+        stub.deleteResult = .success(())
+
+        await sut.confirmDeleteAlbum()
+
+        XCTAssertTrue(sut.didDeleteAlbum)
+    }
+
+    // 성공 시 deleteError = nil -> 에러 alert 미표시
+    func test_confirmDeleteAlbum_success_doesNotSetError() async {
+        makeSUT(results: [.success(AlbumLogListPayload(content: [], hasNext: false))])
+        stub.deleteResult = .success(())
+
+        await sut.confirmDeleteAlbum()
+
+        XCTAssertNil(sut.deleteError)
+    }
+
+    // 성공 후 isDeleting = false -> 로딩 상태 해제
+    func test_confirmDeleteAlbum_success_resetsIsDeleting() async {
+        makeSUT(results: [.success(AlbumLogListPayload(content: [], hasNext: false))])
+        stub.deleteResult = .success(())
+
+        await sut.confirmDeleteAlbum()
+
+        XCTAssertFalse(sut.isDeleting)
+    }
+
+    // MARK: - confirmDeleteAlbum: 실패
+
+    // 실패 시 deleteError 설정 -> 에러 alert 표시 트리거
+    func test_confirmDeleteAlbum_failure_setsDeleteError() async {
+        makeSUT(results: [.success(AlbumLogListPayload(content: [], hasNext: false))])
+        stub.deleteResult = .failure(APIClientError.serverError(.e400))
+
+        await sut.confirmDeleteAlbum()
+
+        XCTAssertNotNil(sut.deleteError)
+    }
+
+    // 실패 시 didDeleteAlbum = false -> 화면 닫기 미트리거
+    func test_confirmDeleteAlbum_failure_doesNotSetDidDeleteAlbum() async {
+        makeSUT(results: [.success(AlbumLogListPayload(content: [], hasNext: false))])
+        stub.deleteResult = .failure(APIClientError.serverError(.e400))
+
+        await sut.confirmDeleteAlbum()
+
+        XCTAssertFalse(sut.didDeleteAlbum)
+    }
+
+    // 실패 후 isDeleting = false -> 로딩 상태 해제
+    func test_confirmDeleteAlbum_failure_resetsIsDeleting() async {
+        makeSUT(results: [.success(AlbumLogListPayload(content: [], hasNext: false))])
+        stub.deleteResult = .failure(APIClientError.networkError(URLError(.notConnectedToInternet)))
+
+        await sut.confirmDeleteAlbum()
+
+        XCTAssertFalse(sut.isDeleting)
+    }
+
+    // MARK: - dismissDeleteError
+
+    // 호출 시 deleteError = nil -> 에러 alert 닫힘 상태로 리셋
+    func test_dismissDeleteError_clearsDeleteError() async {
+        makeSUT(results: [.success(AlbumLogListPayload(content: [], hasNext: false))])
+        stub.deleteResult = .failure(APIClientError.serverError(.e400))
+        await sut.confirmDeleteAlbum()
+
+        sut.dismissDeleteError()
+
+        XCTAssertNil(sut.deleteError)
     }
 }

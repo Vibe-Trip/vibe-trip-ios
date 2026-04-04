@@ -15,6 +15,10 @@ import Combine
     @Published private(set) var logs: [AlbumLogEntry] = []
     @Published private(set) var isLoading: Bool = false
     @Published private(set) var hasNext: Bool = false
+    @Published private(set) var showDeleteConfirm: Bool = false
+    @Published private(set) var isDeleting: Bool = false
+    @Published private(set) var deleteError: String? = nil
+    @Published private(set) var didDeleteAlbum: Bool = false
 
     private let albumId: String
     private var cursor: Int? = nil
@@ -43,6 +47,31 @@ import Combine
         cursor = nil
         logs = []
         await fetchLogs()
+    }
+
+    func requestDeleteAlbum() {
+        showDeleteConfirm = true
+    }
+
+    // ExitPopupView 취소 탭 시 팝업 비활성화
+    func dismissDeleteConfirm() {
+        showDeleteConfirm = false
+    }
+
+    // alert 바인딩 setter에서 에러 alert 닫힘 시 호출
+    func dismissDeleteError() {
+        deleteError = nil
+    }
+
+    func confirmDeleteAlbum() async {
+        isDeleting = true
+        defer { isDeleting = false }
+        do {
+            try await service.deleteAlbum(albumId: albumId)
+            didDeleteAlbum = true
+        } catch {
+            deleteError = "앨범 삭제에 실패했습니다."
+        }
     }
 
     func loadMoreIfNeeded(lastId: Int) async {
@@ -222,6 +251,15 @@ struct AlbumDetailView: View {
             if isAlbumMenuVisible {
                 albumMenuOverlay
             }
+
+            // 앨범 삭제 확인 팝업
+            if logViewModel.showDeleteConfirm {
+                ExitPopupView(
+                    title: "앨범을 삭제 하시겠어요?",
+                    onCancel: { logViewModel.dismissDeleteConfirm() },
+                    onConfirm: { Task { await logViewModel.confirmDeleteAlbum() } }
+                )
+            }
         }
         .navigationBarBackButtonHidden(true)
         .toolbar(.hidden, for: .navigationBar)
@@ -244,6 +282,22 @@ struct AlbumDetailView: View {
             .presentationDragIndicator(.hidden)
         }
         .task { await logViewModel.loadInitialLogs() }
+        // 삭제 실패 시 에러 메시지 alert
+        .alert(
+            "삭제 실패",
+            isPresented: Binding(
+                get: { logViewModel.deleteError != nil },
+                set: { if !$0 { logViewModel.dismissDeleteError() } }
+            )
+        ) {
+            Button("확인", role: .cancel) {}
+        } message: {
+            Text(logViewModel.deleteError ?? "")
+        }
+        // 삭제 성공 시: fullScreenCover 닫기
+        .onChange(of: logViewModel.didDeleteAlbum) { _, didDelete in
+            if didDelete { onDeleteAlbumTap() }
+        }
     }
 }
 
@@ -451,7 +505,7 @@ private extension AlbumDetailView {
                 },
                 onDeleteAlbum: {
                     isAlbumMenuVisible = false
-                    onDeleteAlbumTap()
+                    logViewModel.requestDeleteAlbum()
                 },
                 onReport: {
                     isAlbumMenuVisible = false

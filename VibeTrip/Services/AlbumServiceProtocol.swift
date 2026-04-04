@@ -129,7 +129,8 @@ final class AlbumService: AlbumServiceProtocol {
     }
     
     func deleteAlbum(albumId: String) async throws {
-        fatalError("TODO: 서버 스펙 확정 후 구현")
+        let endpoint = APIEndpoint(path: "/api/v1/albums/\(albumId)", method: .delete)
+        try await apiClient.perform(endpoint)
     }
     
     func saveLog(request: AlbumLogRequest) async throws {

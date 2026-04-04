@@ -15,8 +15,8 @@ struct ExitPopupView: View {
     // 제목
     let title: String
 
-    // 내용
-    let message: String
+    // 내용 (빈 문자열이면 미표시)
+    var message: String = ""
 
     // 취소 탭 핸들러
     let onCancel: () -> Void
@@ -40,7 +40,7 @@ struct ExitPopupView: View {
                 .ignoresSafeArea()
 
             VStack(alignment: .center, spacing: 20) {
-                // 타이틀
+                // 타이틀 (+ message가 있을 때만 본문 표시)
                 VStack(alignment: .center, spacing: 8) {
                     Text(title)
                         .font(Font.setPretendard(weight: .bold, size: 20))
@@ -48,10 +48,12 @@ struct ExitPopupView: View {
                         .foregroundStyle(Color.textPrimary)
                         .frame(maxWidth: .infinity, alignment: .top)
 
-                    Text(message)
-                        .font(Font.setPretendard(weight: .regular, size: 14))
-                        .multilineTextAlignment(.center)
-                        .foregroundStyle(Color.textPrimary)
+                    if !message.isEmpty {
+                        Text(message)
+                            .font(Font.setPretendard(weight: .regular, size: 14))
+                            .multilineTextAlignment(.center)
+                            .foregroundStyle(Color.textPrimary)
+                    }
                 }
 
                 // 체크박스: doNotShowAgain 바인딩이 있을 때만 표시

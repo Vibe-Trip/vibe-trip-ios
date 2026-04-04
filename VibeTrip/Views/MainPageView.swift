@@ -14,6 +14,7 @@ struct MainPageView: View {
     // MARK: - ViewModel
     
     @StateObject private var viewModel: MainPageViewModel
+    @EnvironmentObject private var appState: AppState
     
     init(viewModel: MainPageViewModel = MainPageViewModel()) {
         _viewModel = StateObject(wrappedValue: viewModel)
@@ -55,10 +56,24 @@ struct MainPageView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .task { await viewModel.loadAlbums() }
+        // 앨범 생성 화면 숨기기 등 명시적 재조회 요청 처리
+        .onChange(of: appState.pendingMainPageReload) { _, shouldReload in
+            guard shouldReload else { return }
+            appState.pendingMainPageReload = false
+            Task { await viewModel.loadAlbums() }
+        }
         .fullScreenCover(item: $selectedAlbum) { album in
             AlbumDetailView(
                 displayModel: album.toDisplayModel(),
                 onBackTap: { selectedAlbum = nil },
+                onDeleteAlbumTap: {
+                    selectedAlbum = nil
+                    currentIndex = 0
+                    // 삭제 후 목록 재조회
+                    Task { await viewModel.loadAlbums() }
+                    // 삭제 완료 후 홈 탭으로 강제 이동
+                    appState.pendingTabNavigation = .home
+                },
                 onReportTap: {
                     selectedAlbum = nil  // fullScreenCover 닫기 (메인 복귀)
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {

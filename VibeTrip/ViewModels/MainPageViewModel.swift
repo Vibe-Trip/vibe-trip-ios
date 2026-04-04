@@ -67,4 +67,5 @@ final class MainPageViewModel: ObservableObject {
         guard currentIndex >= albums.count - 2 else { return }
         await fetchNextPage()
     }
+
 }

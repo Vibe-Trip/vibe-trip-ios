@@ -139,8 +139,9 @@ struct MainTabBarView: View {
             if isPresentingLoadingView {
                 MakeAlbumLoadingView(
                     onHide: {
-                        // 화면 숨기기: 두 뷰 닫고 메인 페이지로 복귀
+                        // 화면 숨기기: 메인 페이지로 복귀 + 앨범 목록 재조회
                         selectedTab = .home
+                        appState.pendingMainPageReload = true
                         withAnimation(.easeInOut(duration: 0.24)) {
                             isPresentingLoadingView = false
                             isPresentingMakeAlbum = false
@@ -238,6 +239,12 @@ struct MainTabBarView: View {
                 break
             }
             appState.pendingNotificationAction = nil
+        }
+        // 앨범 삭제 등 특정 탭 이동 요청 처리
+        .onChange(of: appState.pendingTabNavigation) { _, tab in
+            guard let tab else { return }
+            selectedTab = tab
+            appState.pendingTabNavigation = nil
         }
     }
 
