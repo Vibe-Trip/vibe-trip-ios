@@ -307,22 +307,32 @@ final class APIClient: APIClientProtocol {
     // MARK: - 토큰 갱신
 
     // POST /api/v1/auth/refresh 호출: 성공 시 새 토큰 Keychain 저장
-    private func refreshToken() async -> Bool {
-        guard let refreshToken = try? keychain.getRefreshToken() else { return false }
+    private func refreshToken() async -> RefreshResult {
+        guard let refreshToken = try? keychain.getRefreshToken() else { return .expired }
 
         let endpoint = APIEndpoint(path: "/api/v1/auth/refresh", method: .post, requiresAuth: false)
-        guard var request = try? buildJSONRequest(endpoint) else { return false }
+        guard var request = try? buildJSONRequest(endpoint) else { return .transientError }
 
         // 갱신 요청: accessToken 대신 refreshToken 사용
         request.setValue("Bearer \(refreshToken)", forHTTPHeaderField: "Authorization")
 
-        guard let (data, _) = try? await session.data(for: request),
-              let apiResponse = try? JSONDecoder().decode(ApiResponse<AuthToken>.self, from: data),
+        guard let (data, response) = try? await session.data(for: request) else {
+            return .transientError  // 네트워크 오류
+        }
+
+        // 서버 401/403: refreshToken 자체가 만료된 것으로 판단
+        if let httpResponse = response as? HTTPURLResponse,
+           httpResponse.statusCode == 401 || httpResponse.statusCode == 403 {
+            return .expired
+        }
+
+        // 디코딩 실패, resultType != SUCCESS, 5xx 등: 일시 오류로 판단
+        guard let apiResponse = try? JSONDecoder().decode(ApiResponse<AuthToken>.self, from: data),
               apiResponse.resultType == "SUCCESS",
-              let newToken = apiResponse.data else { return false }
+              let newToken = apiResponse.data else { return .transientError }
 
         try? keychain.save(accessToken: newToken.accessToken, refreshToken: newToken.refreshToken)
-        return true
+        return .success
     }
 
     // MARK: - URLRequest 생성 (JSON)
