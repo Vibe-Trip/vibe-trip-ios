@@ -260,7 +260,7 @@ private extension AlbumCard {
     func toDisplayModel() -> AlbumDetailDisplayModel {
         AlbumDetailDisplayModel(
             albumId: id,
-            title: title,
+            title: title ?? "",  // 상세 진입은 title 확정 후에만 허용 (Step 9에서 보장)
             destination: location,
             dateText: "\(formatDate(startDate)) - \(formatDate(endDate))",
             coverImageUrl: coverImageUrl,
