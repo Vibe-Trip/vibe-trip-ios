@@ -94,11 +94,16 @@ struct AlbumCardView: View {
                 
                 // 텍스트 그룹 (커버 이미지 하단 기준 고정 위치)
                 VStack(alignment: .leading, spacing: Layout.textSpacing) {
-                    Text(album.title)
-                        .font(Font.setPretendard(weight: .semiBold, size: 20))
-                        .foregroundStyle(Color.textPrimary)
-                        .lineLimit(1)
-                    
+                    // title: nil -> 생성 중 skeleton 표시,존재 -> 텍스트 표시
+                    if let title = album.title {
+                        Text(title)
+                            .font(Font.setPretendard(weight: .semiBold, size: 20))
+                            .foregroundStyle(Color.textPrimary)
+                            .lineLimit(1)
+                    } else {
+                        SkeletonTitleView()
+                    }
+
                     Text(album.location)
                         .font(Font.setPretendard(weight: .medium, size: 12))
                         .foregroundStyle(Color.textSecondary)
@@ -164,6 +169,11 @@ private struct SkeletonTitleView: View {
 
 // MARK: - Preview
 
-#Preview {
+#Preview("타이틀 완성") {
     AlbumCardView(album: AlbumCard.mockItems[0])
+}
+
+#Preview("타이틀 생성 중") {
+    // mockItems[3]: title nil → skeleton 상태 확인용
+    AlbumCardView(album: AlbumCard.mockItems[3])
 }
