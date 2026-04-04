@@ -683,8 +683,7 @@ private struct MakeAlbumPhotoBox: View {
                             .fill(Color("GrayScale/900"))
 
                         Image(uiImage: image)
-                            .resizable()
-                            .scaledToFill()
+                            .resizable()    /// 비율 유지 채택 시  ->  .scaledToFill()
                             .frame(width: imageWidth, height: imageHeight - 0.5) // 업로드 이미지 높이 조절 -> 박스 벗어남 방지
                             .clipped()
                     }

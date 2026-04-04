@@ -393,23 +393,41 @@ private struct EditAlbumPhotoBox: View {
 
     let image: UIImage?
 
+    private enum Layout {
+        static let containerHeight: CGFloat = 210
+        static let imageWidthRatio: CGFloat = 242.0 / 362.0
+    }
+
     var body: some View {
         ZStack {
             RoundedRectangle(cornerRadius: 12)
                 .fill(Color.fieldBackground)
-                .frame(height: 210)
+                .frame(height: Layout.containerHeight)
                 .overlay(
                     RoundedRectangle(cornerRadius: 12)
+                        .inset(by: 0.5)
                         .stroke(Color.fieldBorder, lineWidth: 1)
                 )
                 .shadow(color: .black.opacity(0.06), radius: 1.5, x: 0, y: 1)
 
             if let image {
-                Image(uiImage: image)
-                    .resizable()
-                    .scaledToFill()
-                    .frame(height: 210)
-                    .clipShape(RoundedRectangle(cornerRadius: 12))
+                GeometryReader { proxy in
+                    let imageWidth = proxy.size.width * Layout.imageWidthRatio
+                    let imageHeight = proxy.size.height
+
+                    ZStack {
+                        // 좌우 여백: GrayScale/900
+                        RoundedRectangle(cornerRadius: 12)
+                            .fill(Color("GrayScale/900"))
+
+                        Image(uiImage: image)
+                            .resizable()    /// 비율 유지 채택 시  ->  .scaledToFill()
+                            .frame(width: imageWidth, height: imageHeight - 0.5)
+                            .clipped()
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
+                }
+                .frame(height: Layout.containerHeight)
             } else {
                 VStack(spacing: 8) {
                     Image(systemName: "camera")
