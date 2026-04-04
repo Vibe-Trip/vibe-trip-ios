@@ -177,6 +177,9 @@ struct AlbumDetailView: View {
     // 신고 바텀시트 표시 여부
     @State private var isReportSheetPresented: Bool = false
 
+    // 앨범 삭제 실패 토스트 표시 여부
+    @State private var isDeleteAlbumToastVisible: Bool = false
+
     // 로그 삭제 실패 토스트 표시 여부
     @State private var isDeleteLogToastVisible: Bool = false
 
@@ -307,6 +310,16 @@ struct AlbumDetailView: View {
                 )
             }
 
+            // 앨범 삭제 실패 토스트
+            if isDeleteAlbumToastVisible, let message = logViewModel.deleteAlbumToastMessage {
+                VStack {
+                    Spacer()
+                    AppToastView(message: message)
+                        .padding(.bottom, 40)
+                        .transition(.move(edge: .bottom).combined(with: .opacity))
+                }
+            }
+
             // 로그 삭제 실패 토스트
             if isDeleteLogToastVisible, let message = logViewModel.deleteLogToastMessage {
                 VStack {
@@ -317,6 +330,7 @@ struct AlbumDetailView: View {
                 }
             }
         }
+        .animation(.easeInOut(duration: 0.2), value: isDeleteAlbumToastVisible)
         .animation(.easeInOut(duration: 0.2), value: isDeleteLogToastVisible)
         .navigationBarBackButtonHidden(true)
         .toolbar(.hidden, for: .navigationBar)
@@ -344,17 +358,10 @@ struct AlbumDetailView: View {
             .presentationDragIndicator(.hidden)
         }
         .task { await logViewModel.loadInitialLogs() }
-        // 앨범 삭제 실패 시 에러 메시지 alert
-        .alert(
-            "삭제 실패",
-            isPresented: Binding(
-                get: { logViewModel.deleteError != nil },
-                set: { if !$0 { logViewModel.dismissDeleteError() } }
-            )
-        ) {
-            Button("확인", role: .cancel) {}
-        } message: {
-            Text(logViewModel.deleteError ?? "")
+        // 앨범 삭제 실패 시 토스트 표시
+        .onChange(of: logViewModel.deleteAlbumToastMessage) { _, message in
+            guard message != nil else { return }
+            showDeleteAlbumToast()
         }
         // 로그 삭제 실패 시 토스트 표시
         .onChange(of: logViewModel.deleteLogToastMessage) { _, message in
@@ -395,6 +402,16 @@ private extension AlbumDetailView {
         return Double(titleNavOffset / fadeWindow)
     }
     
+    // 앨범 삭제 실패 토스트 표시 후 자동 숨김
+    func showDeleteAlbumToast() {
+        withAnimation { isDeleteAlbumToastVisible = true }
+        Task {
+            try? await Task.sleep(nanoseconds: 3_000_000_000)
+            withAnimation { isDeleteAlbumToastVisible = false }
+            logViewModel.consumeDeleteAlbumToast()
+        }
+    }
+
     // 로그 삭제 실패 토스트 표시 후 자동 숨김
     func showDeleteLogToast() {
         withAnimation { isDeleteLogToastVisible = true }
