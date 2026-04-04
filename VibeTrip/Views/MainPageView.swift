@@ -29,6 +29,8 @@ struct MainPageView: View {
 
     // 신고 완료 토스트
     @State private var showReportToast: Bool = false
+    // 타이틀 생성 중 앨범 탭 시 표시하는 차단 토스트
+    @State private var showGeneratingToast: Bool = false
     
     // MARK: - 캐러셀 Layout Constants
     
@@ -56,10 +58,10 @@ struct MainPageView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .task { await viewModel.loadAlbums() }
-        .onChange(of: appState.pendingMainPageReload) { _, needsReload in
+        .onChange(of: appState.needsAlbumRefresh) { _, needsReload in
             guard needsReload else { return }
             // 중복 트리거 방지를 위해 플래그 먼저 초기화 후 새로고침
-            appState.pendingMainPageReload = false
+            appState.needsAlbumRefresh = false
             Task { await viewModel.reloadAlbums() }
         }
         .fullScreenCover(item: $selectedAlbum) { album in
@@ -88,9 +90,18 @@ struct MainPageView: View {
                             }
                         }
                     }
+            } else if showGeneratingToast {
+                // 타이틀 생성 중 앨범 진입 시도 시 차단 안내
+                AppToastView(
+                    message: "앨범을 제작하고 있어요. 잠시만 기다려 주세요!",
+                    systemImageName: "exclamationmark.circle"
+                )
+                .padding(.bottom, 88)
+                .transition(.move(edge: .bottom).combined(with: .opacity))
             }
         }
         .animation(.easeInOut(duration: 0.2), value: showReportToast)
+        .animation(.easeInOut(duration: 0.2), value: showGeneratingToast)
     }
     
     // MARK: - 빈 상태 UI
@@ -174,7 +185,19 @@ struct MainPageView: View {
                             
                             AlbumCardView(album: viewModel.albums[index])
                                 .onTapGesture {
-                                    if isActive { selectedAlbum = viewModel.albums[index] }
+                                    guard isActive else { return }
+                                    let album = viewModel.albums[index]
+                                    if album.title == nil {
+                                        // 타이틀 생성 중 —> 상세페이지 진입 차단 후 토스트 표시
+                                        guard !showGeneratingToast else { return }
+                                        withAnimation { showGeneratingToast = true }
+                                        Task {
+                                            try? await Task.sleep(nanoseconds: 3_000_000_000)
+                                            withAnimation { showGeneratingToast = false }
+                                        }
+                                    } else {
+                                        selectedAlbum = album
+                                    }
                                 }
                                 .offset(
                                     x: CarouselLayout.activeSideSpacing + baseX + dragOffset,
