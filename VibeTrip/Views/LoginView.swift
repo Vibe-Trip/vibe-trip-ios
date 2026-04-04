@@ -264,10 +264,11 @@ private struct SafariView: UIViewControllerRepresentable {
 
 #if DEBUG
 #Preview {
-    let appState = AppState()
-    appState.toastPayload = AppToastPayload(message: "로그아웃이 완료되었습니다", systemImageName: nil)
-
+    @Previewable @StateObject var appState = AppState()
     LoginView()
         .environmentObject(appState)
+        .onAppear {
+            appState.toastPayload = AppToastPayload(message: "로그아웃이 완료되었습니다", systemImageName: nil)
+        }
 }
 #endif
