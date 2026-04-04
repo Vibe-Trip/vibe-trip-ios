@@ -78,6 +78,36 @@ import Combine
         }
     }
 
+    func requestDeleteLog(id: Int) {
+        pendingDeleteLogId = id
+        showDeleteLogConfirm = true
+    }
+
+    // 팝업 취소 탭: 팝업 비활성화
+    func dismissDeleteLogConfirm() {
+        showDeleteLogConfirm = false
+        pendingDeleteLogId = nil
+    }
+
+    // alert 바인딩 setter: 에러 alert 닫힘 시 호출
+    func dismissDeleteLogError() {
+        deleteLogError = nil
+    }
+
+    func confirmDeleteLog() async {
+        guard let logId = pendingDeleteLogId else { return }
+        isDeletingLog = true
+        showDeleteLogConfirm = false
+        defer { isDeletingLog = false }
+        do {
+            try await service.deleteAlbumLog(albumId: albumId, albumLogId: logId)
+            pendingDeleteLogId = nil
+            await loadInitialLogs()
+        } catch {
+            deleteLogError = "로그 삭제에 실패했습니다."
+        }
+    }
+
     func loadMoreIfNeeded(lastId: Int) async {
         guard hasNext, !isLoading, logs.last?.id == lastId else { return }
         await fetchLogs()
