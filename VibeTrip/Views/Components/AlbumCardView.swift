@@ -63,8 +63,7 @@ struct AlbumCardView: View {
             switch phase {
             case .success(let image):
                 image
-                    .resizable()
-                    .scaledToFill()
+                    .resizable()    /// 비율 유지 채택 시  ->  .scaledToFill()
             default:
                 Color.placeholderSymbol
             }

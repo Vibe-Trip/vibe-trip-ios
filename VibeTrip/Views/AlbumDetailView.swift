@@ -338,8 +338,7 @@ private extension AlbumDetailView {
             switch phase {
             case .success(let image):
                 image
-                    .resizable()
-                    .scaledToFill()
+                    .resizable()    /// 비율 유지 채택 시  ->  .scaledToFill()
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .clipped()
             default:
@@ -1043,8 +1042,7 @@ private struct AlbumDetailLogImageSlider: View {
                         switch phase {
                         case .success(let image):
                             image
-                                .resizable()
-                                .scaledToFill()
+                                .resizable()    /// 비율 유지 채택 시  ->  .scaledToFill()
                         default:
                             // 로드 중 / 실패 시 placeholder 표시
                             ZStack {
