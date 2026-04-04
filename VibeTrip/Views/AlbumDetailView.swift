@@ -965,6 +965,9 @@ private struct AlbumDetailLogFeedSection: View {
                     onLastAppear: {
                         guard let id = lastEntryId else { return }
                         await viewModel.loadMoreIfNeeded(lastId: id)
+                    },
+                    onDeleteLog: { logId in
+                        viewModel.requestDeleteLog(id: logId)
                     }
                 )
             }
