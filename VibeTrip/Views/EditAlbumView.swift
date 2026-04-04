@@ -288,13 +288,6 @@ struct EditAlbumView: View {
                 AppNavigationBar(title: "앨범 수정", style: .solidWhite, onBackTap: { isExitAlertPresented = true })
             }
 
-            // 장르 설명 모달
-            if isGenreDescriptionPresented {
-                GenreDescriptionModalView(
-                    descriptions: genreDescriptions,
-                    onClose: { isGenreDescriptionPresented = false }
-                )
-            }
         }
         // 하단 고정 버튼
         .safeAreaInset(edge: .bottom, spacing: 0) {
@@ -305,6 +298,15 @@ struct EditAlbumView: View {
                     // TODO: submitEdit() 연결
                 }
             )
+        }
+        // 장르 설명 모달 (하단 버튼 포함 전체 화면 커버)
+        .overlay {
+            if isGenreDescriptionPresented {
+                GenreDescriptionModalView(
+                    descriptions: genreDescriptions,
+                    onClose: { isGenreDescriptionPresented = false }
+                )
+            }
         }
         // 토스트
         .overlay(alignment: .bottom) {
