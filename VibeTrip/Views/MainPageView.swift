@@ -89,12 +89,23 @@ struct MainPageView: View {
     // MARK: - 빈 상태 UI
     
     private var emptyContent: some View {
-        VStack(spacing: 0) {
-            Spacer()
-            emptyStateView
-            Spacer()
+        ZStack {
+            VStack(spacing: 0) {
+                Spacer()
+                emptyStateView
+                Spacer()
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+
+            AppNavigationBar(style: .transparent) {
+                Image("AppLogo_Home")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 120, height: 30)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .ignoresSafeArea()
     }
     
     private var emptyStateView: some View {
