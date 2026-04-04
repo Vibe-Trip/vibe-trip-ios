@@ -68,8 +68,4 @@ final class MainPageViewModel: ObservableObject {
         await fetchNextPage()
     }
 
-    // 앨범 삭제 완료 후 캐러셀에서 해당 앨범 제거
-    func removeAlbum(id: Int) {
-        albums.removeAll { $0.id == id }
-    }
 }

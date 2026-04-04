@@ -61,8 +61,10 @@ struct MainPageView: View {
                 displayModel: album.toDisplayModel(),
                 onBackTap: { selectedAlbum = nil },
                 onDeleteAlbumTap: {
-                    viewModel.removeAlbum(id: album.id)
                     selectedAlbum = nil
+                    currentIndex = 0
+                    // 삭제 후 목록 재조회
+                    Task { await viewModel.loadAlbums() }
                     // 삭제 완료 후 홈 탭으로 강제 이동
                     appState.pendingTabNavigation = .home
                 },
