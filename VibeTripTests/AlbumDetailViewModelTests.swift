@@ -357,6 +357,7 @@ final class AlbumDetailViewModelTests: XCTestCase {
             .success(AlbumLogListPayload(content: [], hasNext: false))
         ])
         stub.deleteLogResult = .success(())
+        await sut.loadInitialLogs()
         sut.requestDeleteLog(id: 7)
 
         await sut.confirmDeleteLog()
