@@ -276,14 +276,20 @@ final class APIClient: APIClientProtocol {
         }
 
         // 401: RefreshActor로 갱신 중복 방지하며 토큰 갱신
-        let refreshed = await refreshActor.refreshIfNeeded { [weak self] in
-            await self?.refreshToken() ?? false
+        let refreshResult = await refreshActor.refreshIfNeeded { [weak self] in
+            await self?.refreshToken() ?? .expired
         }
 
-        guard refreshed else {
-            // refreshToken도 만료: 세션 만료 발행 후 에러
+        switch refreshResult {
+        case .expired:
+            // refreshToken 만료 확인: 세션 만료 발행 후 에러
             sessionExpiredSubject.send()
             throw APIClientError.sessionExpired
+        case .transientError:
+            // 네트워크/서버 일시 오류: 로그아웃 없이 에러만 전파
+            throw APIClientError.networkError(URLError(.networkConnectionLost))
+        case .success:
+            break
         }
 
         // 갱신 성공: 새 accessToken으로 헤더만 교체 후 재시도
