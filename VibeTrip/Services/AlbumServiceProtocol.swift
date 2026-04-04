@@ -29,6 +29,8 @@ protocol AlbumServiceProtocol {
     /// 앨범 타이틀 생성 완료 여부 조회. nil -> 아직 생성 중
     // TODO: API 확정 후 AlbumService 구현체 교체
     func fetchAlbumTitle(albumId: Int) async throws -> String?
+    /// 앨범 로그 삭제
+    func deleteAlbumLog(albumId: String, albumLogId: Int) async throws
 }
 
 // MARK: - AlbumCreateRequest / AlbumCreateResponse
@@ -132,7 +134,8 @@ final class AlbumService: AlbumServiceProtocol {
     }
     
     func deleteAlbum(albumId: String) async throws {
-        fatalError("TODO: 서버 스펙 확정 후 구현")
+        let endpoint = APIEndpoint(path: "/api/v1/albums/\(albumId)", method: .delete)
+        try await apiClient.perform(endpoint)
     }
 
     func fetchAlbumTitle(albumId: Int) async throws -> String? {
@@ -149,6 +152,14 @@ final class AlbumService: AlbumServiceProtocol {
         }
         let endpoint = APIEndpoint(path: "/api/v1/albums/\(request.albumId)/album-logs", method: .post)
         try await apiClient.performUpload(endpoint, formData: formData)
+    }
+
+    func deleteAlbumLog(albumId: String, albumLogId: Int) async throws {
+        let endpoint = APIEndpoint(
+            path: "/api/v1/albums/\(albumId)/album-logs/\(albumLogId)",
+            method: .delete
+        )
+        try await apiClient.perform(endpoint)
     }
 
     // 서버 요구 날짜 포맷
@@ -226,6 +237,9 @@ final class MockAlbumService: AlbumServiceProtocol {
         titleFetchCount[albumId, default: 0] += 1
         guard titleFetchCount[albumId]! >= titleReadyAfterAttempts else { return nil }
         return "Mock 앨범 타이틀"
+    func deleteAlbumLog(albumId: String, albumLogId: Int) async throws {
+        try await Task.sleep(nanoseconds: delay)
+        if let error = simulatedError { throw error }
     }
 }
 #endif

@@ -410,6 +410,59 @@ final class AlbumServiceTests: XCTestCase {
         }
     }
 
+    // MARK: - deleteAlbum: 성공
+
+    // 성공 시 perform 1회 호출
+    func test_deleteAlbum_success_callsPerformOnce() async throws {
+        mockAPIClient.performResult = .success(())
+
+        try await sut.deleteAlbum(albumId: "42")
+
+        XCTAssertEqual(mockAPIClient.performCallCount, 1)
+    }
+
+    // 올바른 엔드포인트 경로로 요청되는지 검증
+    func test_deleteAlbum_success_usesCorrectPath() async throws {
+        mockAPIClient.performResult = .success(())
+
+        try await sut.deleteAlbum(albumId: "42")
+
+        XCTAssertEqual(mockAPIClient.capturedEndpoints.first?.path, "/api/v1/albums/42")
+    }
+
+    // MARK: - deleteAlbum: 서버 에러
+
+    // 서버 에러 응답 -> APIClientError.serverError throw
+    func test_deleteAlbum_serverError_throwsServerError() async throws {
+        mockAPIClient.performResult = .failure(APIClientError.serverError(.e400))
+
+        do {
+            try await sut.deleteAlbum(albumId: "1")
+            XCTFail("서버 에러가 throw되어야 합니다")
+        } catch APIClientError.serverError(let code) {
+            XCTAssertEqual(code, .e400)
+        } catch {
+            XCTFail("예상치 못한 에러: \(error)")
+        }
+    }
+
+    // MARK: - deleteAlbum: 네트워크 에러
+
+    // 네트워크 연결 불가 -> APIClientError.networkError throw
+    func test_deleteAlbum_networkError_throwsNetworkError() async throws {
+        let urlError = URLError(.notConnectedToInternet)
+        mockAPIClient.performResult = .failure(APIClientError.networkError(urlError))
+
+        do {
+            try await sut.deleteAlbum(albumId: "1")
+            XCTFail("네트워크 에러가 throw되어야 합니다")
+        } catch APIClientError.networkError(let error) {
+            XCTAssertEqual(error.code, .notConnectedToInternet)
+        } catch {
+            XCTFail("예상치 못한 에러: \(error)")
+        }
+    }
+
     // MARK: - saveLog: 네트워크 에러
 
     // 네트워크 연결 불가 -> APIClientError.networkError throw
@@ -423,6 +476,45 @@ final class AlbumServiceTests: XCTestCase {
             XCTFail("네트워크 에러가 throw되어야 합니다")
         } catch APIClientError.networkError(let error) {
             XCTAssertEqual(error.code, .notConnectedToInternet)
+        } catch {
+            XCTFail("예상치 못한 에러: \(error)")
+        }
+    }
+
+    // MARK: - deleteAlbumLog: 성공
+
+    // 성공 시 perform 1회 호출
+    func test_deleteAlbumLog_success_callsPerformOnce() async throws {
+        mockAPIClient.performResult = .success(())
+
+        try await sut.deleteAlbumLog(albumId: "42", albumLogId: 7)
+
+        XCTAssertEqual(mockAPIClient.performCallCount, 1)
+    }
+
+    // albumId, albumLogId가 path에 올바르게 포함되는지 검증
+    func test_deleteAlbumLog_success_usesCorrectPath() async throws {
+        mockAPIClient.performResult = .success(())
+
+        try await sut.deleteAlbumLog(albumId: "42", albumLogId: 7)
+
+        XCTAssertEqual(
+            mockAPIClient.capturedEndpoints.first?.path,
+            "/api/v1/albums/42/album-logs/7"
+        )
+    }
+
+    // MARK: - deleteAlbumLog: 서버 에러
+
+    // 서버 에러 응답 -> APIClientError.serverError throw
+    func test_deleteAlbumLog_serverError_throwsServerError() async throws {
+        mockAPIClient.performResult = .failure(APIClientError.serverError(.e400))
+
+        do {
+            try await sut.deleteAlbumLog(albumId: "1", albumLogId: 1)
+            XCTFail("서버 에러가 throw되어야 합니다")
+        } catch APIClientError.serverError(let code) {
+            XCTAssertEqual(code, .e400)
         } catch {
             XCTFail("예상치 못한 에러: \(error)")
         }

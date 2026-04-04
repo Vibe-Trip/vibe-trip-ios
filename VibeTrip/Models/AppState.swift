@@ -49,6 +49,10 @@ struct AppToastPayload: Equatable {
     @Published var pendingNotificationAction: NotificationNavigationAction? = nil
     @Published var toastPayload: AppToastPayload? = nil
 
+    // 특정 탭으로 강제 이동 요청 -> 앨범 삭제 후 홈 탭 복귀
+    // nil 초기화: MainTabBarView -> onChange에서 처리
+    @Published var pendingTabNavigation: AppTab? = nil
+
     // 생성 대기 화면: 화면 숨기기 시 MainPageView에 목록 새로고침을 요청하는 신호
     // MainTabBarView(송신) -> MainPageView(수신), 수신 즉시 false로 초기화
     @Published var needsAlbumRefresh: Bool = false

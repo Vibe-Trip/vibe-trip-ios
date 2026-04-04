@@ -15,7 +15,7 @@ struct MainPageView: View {
 
     @StateObject private var viewModel: MainPageViewModel
     @EnvironmentObject private var appState: AppState
-
+    
     init(viewModel: MainPageViewModel = MainPageViewModel()) {
         _viewModel = StateObject(wrappedValue: viewModel)
     }
@@ -58,17 +58,26 @@ struct MainPageView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .task { await viewModel.loadAlbums() }
-        .onDisappear { viewModel.cancelAllPolling() }
+.onDisappear { viewModel.cancelAllPolling() }
         .onChange(of: appState.needsAlbumRefresh) { _, needsReload in
             guard needsReload else { return }
             // 중복 트리거 방지를 위해 플래그 먼저 초기화 후 새로고침
             appState.needsAlbumRefresh = false
             Task { await viewModel.reloadAlbums() }
         }
+        }
         .fullScreenCover(item: $selectedAlbum) { album in
             AlbumDetailView(
                 displayModel: album.toDisplayModel(),
                 onBackTap: { selectedAlbum = nil },
+                onDeleteAlbumTap: {
+                    selectedAlbum = nil
+                    currentIndex = 0
+                    // 삭제 후 목록 재조회
+                    Task { await viewModel.loadAlbums() }
+                    // 삭제 완료 후 홈 탭으로 강제 이동
+                    appState.pendingTabNavigation = .home
+                },
                 onReportTap: {
                     selectedAlbum = nil  // fullScreenCover 닫기 (메인 복귀)
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
@@ -108,12 +117,23 @@ struct MainPageView: View {
     // MARK: - 빈 상태 UI
     
     private var emptyContent: some View {
-        VStack(spacing: 0) {
-            Spacer()
-            emptyStateView
-            Spacer()
+        ZStack {
+            VStack(spacing: 0) {
+                Spacer()
+                emptyStateView
+                Spacer()
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+
+            AppNavigationBar(style: .transparent) {
+                Image("AppLogo_Home")
+                    .resizable()
+                    .scaledToFit()
+                    .frame(width: 120, height: 30)
+            }
+            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         }
-        .frame(maxWidth: .infinity, maxHeight: .infinity)
+        .ignoresSafeArea()
     }
     
     private var emptyStateView: some View {
@@ -303,6 +323,7 @@ private extension AlbumCard {
 
 // MARK: - Preview
 
+#if DEBUG
 #Preview("카드 있음") {
     MainPageView(viewModel: MainPageViewModel(albumService: MockAlbumService()))
         .environmentObject(AppState())
@@ -318,7 +339,9 @@ private extension AlbumCard {
 #Preview("생성 중 앨범") {
     let service = MockAlbumService()
     service.hasGeneratingAlbum = true
-    service.titleReadyAfterAttempts = 2  // 4번째 카드: 2번째 폴링(약 5초)에서 타이틀 반환 
+    service.titleReadyAfterAttempts = 2  // 4번째 카드: 2번째 폴링(약 5초)에서 타이틀 반환
     return MainPageView(viewModel: MainPageViewModel(albumService: service))
         .environmentObject(AppState())
 }
+}
+#endif

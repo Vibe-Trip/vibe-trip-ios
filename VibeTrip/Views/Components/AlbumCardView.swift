@@ -63,8 +63,7 @@ struct AlbumCardView: View {
             switch phase {
             case .success(let image):
                 image
-                    .resizable()
-                    .scaledToFill()
+                    .resizable()    /// 비율 유지 채택 시  ->  .scaledToFill()
             default:
                 Color.placeholderSymbol
             }
@@ -169,6 +168,7 @@ private struct SkeletonTitleView: View {
 
 // MARK: - Preview
 
+#if DEBUG
 #Preview("타이틀 완성") {
     AlbumCardView(album: AlbumCard.mockItems[0])
 }
@@ -177,3 +177,4 @@ private struct SkeletonTitleView: View {
     // mockItems[3]: title nil → skeleton 상태 확인용
     AlbumCardView(album: AlbumCard.mockItems[3])
 }
+#endif

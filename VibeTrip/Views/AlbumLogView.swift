@@ -60,7 +60,11 @@ struct AlbumLogView: View {
 
     // MARK: - Init
 
-    init(albumId: String, mode: AlbumLogViewModel.LogViewMode) {
+    // 저장 성공 시 상위 뷰에 알리는 콜백
+    var onSaved: () -> Void
+
+    init(albumId: String, mode: AlbumLogViewModel.LogViewMode, onSaved: @escaping () -> Void = {}) {
+        self.onSaved = onSaved
         _viewModel = StateObject(
             wrappedValue: AlbumLogViewModel(
                 albumId: albumId,
@@ -139,6 +143,7 @@ struct AlbumLogView: View {
         }
         .onChange(of: viewModel.isSaved) { _, saved in
             guard saved else { return }
+            onSaved()
             dismiss()
         }
         .onChange(of: viewModel.toastMessage) { _, message in
@@ -352,8 +357,10 @@ private extension AlbumLogView {
     }
 }
 
+#if DEBUG
 #Preview("로그 수정 모드") {
     NavigationStack {
         AlbumLogView(albumId: "1", mode: .edit(AlbumLog.mock))
     }
 }
+#endif

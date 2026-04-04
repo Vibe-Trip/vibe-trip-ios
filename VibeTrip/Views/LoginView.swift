@@ -262,10 +262,12 @@ private struct SafariView: UIViewControllerRepresentable {
     func updateUIViewController(_ uiViewController: SFSafariViewController, context: Context) {}
 }
 
+#if DEBUG
 #Preview {
     let appState = AppState()
     appState.toastPayload = AppToastPayload(message: "로그아웃이 완료되었습니다", systemImageName: nil)
 
-    return LoginView()
+    LoginView()
         .environmentObject(appState)
 }
+#endif
