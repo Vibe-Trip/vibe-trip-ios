@@ -19,6 +19,10 @@ import Combine
     @Published private(set) var isDeleting: Bool = false
     @Published private(set) var deleteError: String? = nil
     @Published private(set) var didDeleteAlbum: Bool = false
+    @Published private(set) var pendingDeleteLogId: Int? = nil
+    @Published private(set) var showDeleteLogConfirm: Bool = false
+    @Published private(set) var isDeletingLog: Bool = false
+    @Published private(set) var deleteLogError: String? = nil
 
     private let albumId: String
     private var cursor: Int? = nil
