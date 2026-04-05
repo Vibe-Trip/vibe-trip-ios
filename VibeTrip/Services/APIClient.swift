@@ -282,7 +282,8 @@ final class APIClient: APIClientProtocol {
 
         switch refreshResult {
         case .expired:
-            // refreshToken 만료 확인: 세션 만료 발행 후 에러
+            // refreshToken 만료 확인: 만료 토큰 삭제 후 세션 만료 발행
+            try? keychain.clear()
             sessionExpiredSubject.send()
             throw APIClientError.sessionExpired
         case .transientError:
