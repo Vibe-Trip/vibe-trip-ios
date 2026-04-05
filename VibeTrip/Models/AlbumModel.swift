@@ -198,15 +198,35 @@ struct AlbumDetail: Decodable {
     let travelStartDate: String
     let travelEndDate: String
     let musicUrl: URL?        // 생성 전: nil (빈 문자열도 nil로 처리)
+    // 수정 화면 Pre-fill용 필드 (백엔드 단일 앨범 조회 응답에 추가됨)
+    let genre: AlbumGenre?
+    let vocalGender: VocalGender?
+    let withLyrics: Bool
+    let comment: String?
 
     // memberwise init: mock 데이터 생성용
-    init(title: String?, coverImageUrl: URL?, region: String, travelStartDate: String, travelEndDate: String, musicUrl: URL?) {
+    init(
+        title: String?,
+        coverImageUrl: URL?,
+        region: String,
+        travelStartDate: String,
+        travelEndDate: String,
+        musicUrl: URL?,
+        genre: AlbumGenre? = nil,
+        vocalGender: VocalGender? = nil,
+        withLyrics: Bool = false,
+        comment: String? = nil
+    ) {
         self.title = title
         self.coverImageUrl = coverImageUrl
         self.region = region
         self.travelStartDate = travelStartDate
         self.travelEndDate = travelEndDate
         self.musicUrl = musicUrl
+        self.genre = genre
+        self.vocalGender = vocalGender
+        self.withLyrics = withLyrics
+        self.comment = comment
     }
 
     init(from decoder: Decoder) throws {
@@ -221,10 +241,15 @@ struct AlbumDetail: Decodable {
         // URL(string: ""): nil 반환하므로 빈 문자열 자동 처리
         let rawMusicUrl = try container.decodeIfPresent(String.self, forKey: .musicUrl)
         musicUrl = rawMusicUrl.flatMap { $0.isEmpty ? nil : URL(string: $0) }
+        genre = try container.decodeIfPresent(AlbumGenre.self, forKey: .genre)
+        vocalGender = try container.decodeIfPresent(VocalGender.self, forKey: .vocalGender)
+        withLyrics = try container.decodeIfPresent(Bool.self, forKey: .withLyrics) ?? false
+        comment = try container.decodeIfPresent(String.self, forKey: .comment)
     }
 
     private enum CodingKeys: String, CodingKey {
         case title, coverImageUrl, region, travelStartDate, travelEndDate, musicUrl
+        case genre, vocalGender, withLyrics, comment
     }
 }
 
@@ -331,7 +356,11 @@ extension AlbumDetail {
         region: "일본 오사카",
         travelStartDate: "2026-01-12",
         travelEndDate: "2026-01-15",
-        musicUrl: URL(string: "https://example.com/music.mp3")
+        musicUrl: URL(string: "https://example.com/music.mp3"),
+        genre: .jazz,
+        vocalGender: .female,
+        withLyrics: true,
+        comment: "처음 가본 오사카, 도톤보리 야경이 압도적이었다."
     )
     // 둘 다 아직 생성 중
     static let mockPending = AlbumDetail(
@@ -340,7 +369,11 @@ extension AlbumDetail {
         region: "한국 제주도",
         travelStartDate: "2026-04-01",
         travelEndDate: "2026-04-03",
-        musicUrl: nil
+        musicUrl: nil,
+        genre: .loFi,
+        vocalGender: nil,
+        withLyrics: false,
+        comment: nil
     )
 }
 #endif
