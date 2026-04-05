@@ -10,7 +10,17 @@ import Foundation
 // MARK: - Decodable 확장 (MakeAlbumModel에 정의된 enum 재사용)
 
 extension AlbumGenre: Decodable {
-    
+
+    // 서버 응답값 -> enum 역매핑 (단일 앨범 조회 Pre-fill 디코딩용)
+    init(from decoder: Decoder) throws {
+        let container = try decoder.singleValueContainer()
+        let raw = try container.decode(String.self)
+        guard let matched = AlbumGenre.allCases.first(where: { $0.serverValue == raw }) else {
+            throw DecodingError.dataCorruptedError(in: container, debugDescription: "Unknown genre: \(raw)")
+        }
+        self = matched
+    }
+
     // 서버 전송용 enum 값
     var serverValue: String {
         switch self {
@@ -130,16 +140,16 @@ struct AlbumListPayload: Decodable {
 // MARK: - AlbumUpdateRequest
 
 // 앨범 수정 요청 모델
+// TODO: title 서버에 전송 여부 확정
 struct AlbumUpdateRequest {
-    let photoData: Data?
-    let title: String
+    let photoData: Data         // required (미변경 시 기존 URL에서 재다운로드)
     let location: String
     let startDate: Date
     let endDate: Date
     let lyricsOption: LyricsOption
     let vocalGender: VocalGender?
     let genre: AlbumGenre
-    let commentary: String
+    let comment: String
 }
 
 // MARK: - AlbumLogRequest
@@ -242,7 +252,13 @@ struct AlbumDetail: Decodable {
         let rawMusicUrl = try container.decodeIfPresent(String.self, forKey: .musicUrl)
         musicUrl = rawMusicUrl.flatMap { $0.isEmpty ? nil : URL(string: $0) }
         genre = try container.decodeIfPresent(AlbumGenre.self, forKey: .genre)
-        vocalGender = try container.decodeIfPresent(VocalGender.self, forKey: .vocalGender)
+        // 서버: "M"/"F"/"N" -> VocalGender? (N: 가사 없음 -> nil)
+        let rawGender = try container.decodeIfPresent(String.self, forKey: .vocalGender)
+        switch rawGender {
+        case "M": vocalGender = .male
+        case "F": vocalGender = .female
+        default:  vocalGender = nil
+        }
         withLyrics = try container.decodeIfPresent(Bool.self, forKey: .withLyrics) ?? false
         comment = try container.decodeIfPresent(String.self, forKey: .comment)
     }
