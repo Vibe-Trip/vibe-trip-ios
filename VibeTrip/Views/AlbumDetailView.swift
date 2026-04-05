@@ -390,7 +390,9 @@ struct AlbumDetailView: View {
             musicService.play(url: url)
         }
         // 상세 페이지 닫힐 때 음악 정지 + 초기화
+        
         .onDisappear {
+            guard !isWritingLog else { return } // 로그 작성 페이지 fullScreenCover 전환 시 음악 정지 방지
             musicService.stop()
         }
     }
