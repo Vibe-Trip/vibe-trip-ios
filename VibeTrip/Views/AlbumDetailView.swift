@@ -23,8 +23,11 @@ import Combine
     @Published private(set) var showDeleteLogConfirm: Bool = false
     @Published private(set) var isDeletingLog: Bool = false
     @Published private(set) var deleteLogToastMessage: String? = nil
+    @Published private(set) var musicUrl: URL? = nil
+    @Published private(set) var isMusicUrlReady: Bool = false
 
     private let albumId: String
+    private let albumIdInt: Int    // Int 변환값, init에서 1회만 처리
     private var cursor: Int? = nil
     private let limit = 20
     private let service: AlbumServiceProtocol
@@ -43,6 +46,7 @@ import Combine
 
     init(albumId: String, service: AlbumServiceProtocol = AlbumService()) {
         self.albumId = albumId
+        self.albumIdInt = Int(albumId) ?? 0
         self.service = service
     }
 
@@ -51,6 +55,14 @@ import Combine
         cursor = nil
         logs = []
         await fetchLogs()
+    }
+
+    // 상세 진입 시 1회 호출: null -> 버튼 비활성, null X -> isMusicUrlReady = true
+    func loadMusicUrl() async {
+        guard albumIdInt > 0 else { return }
+        guard let detail = try? await service.fetchAlbum(albumId: albumIdInt) else { return }
+        musicUrl = detail.musicUrl
+        isMusicUrlReady = detail.musicUrl != nil
     }
 
     func requestDeleteAlbum() {
@@ -359,7 +371,11 @@ struct AlbumDetailView: View {
             .presentationDetents([.height(286)])
             .presentationDragIndicator(.hidden)
         }
-        .task { await logViewModel.loadInitialLogs() }
+        .task {
+            async let logs: () = logViewModel.loadInitialLogs()
+            async let music: () = logViewModel.loadMusicUrl()
+            _ = await (logs, music)
+        }
         // 앨범 삭제 실패 시 토스트 표시
         .onChange(of: logViewModel.deleteAlbumToastMessage) { _, message in
             guard message != nil else { return }
@@ -373,6 +389,12 @@ struct AlbumDetailView: View {
         // 삭제 성공 시: fullScreenCover 닫기
         .onChange(of: logViewModel.didDeleteAlbum) { _, didDelete in
             if didDelete { onDeleteAlbumTap() }
+        }
+        // 음악 준비 완료 시 자동 재생
+        .onChange(of: logViewModel.isMusicUrlReady) { _, isReady in
+            guard isReady else { return }
+            isMusicPlaying = true
+            // TODO: AVPlayer 연결 시 여기서 player.play() 호출
         }
     }
 }
@@ -513,10 +535,13 @@ private extension AlbumDetailView {
                 showSparkle: true,
                 referenceTitle: "일시정지",
                 action: {
+                    guard logViewModel.isMusicUrlReady else { return }
                     isMusicPlaying.toggle()
                     onMusicButtonTap()
                 }
             )
+            .opacity(logViewModel.isMusicUrlReady ? 1.0 : 0.4)
+            .disabled(!logViewModel.isMusicUrlReady)
             
             /// 로그 작성 버튼
             AlbumDetailActionButton(
