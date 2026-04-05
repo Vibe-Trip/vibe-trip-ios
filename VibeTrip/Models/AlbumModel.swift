@@ -153,14 +153,13 @@ struct AlbumLogRequest {
 
 // MARK: - AlbumLogUpdateRequest
 
-// 로그 수정 요청 모델 (텍스트 + 새 사진)
-// TODO: removeImageIds: GET 응답에 imageId 미포함 -> 구현 후 확인
-
+// 로그 수정 요청 모델 (텍스트 + 새 사진 + 삭제할 이미지 ID)
 struct AlbumLogUpdateRequest {
     let albumId: String
     let albumLogId: Int
     let logText: String
     let newPhotoDataList: [Data]
+    let removeImageIds: [Int]   // 삭제할 기존 이미지 ID 목록
 }
 
 // MARK: - AlbumLogEntry
@@ -177,6 +176,7 @@ struct AlbumLogEntry: Identifiable, Decodable {
 
 // 로그 첨부 이미지
 struct AlbumLogImage: Decodable {
+    let id: Int        // 이미지 식별자 (삭제 시 removeImageIds에 사용)
     let imageUrl: URL
 }
 

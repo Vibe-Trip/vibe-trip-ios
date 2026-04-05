@@ -47,7 +47,7 @@ import Combine
         return formatter
     }()
 
-    init(albumId: String, service: AlbumServiceProtocol = AlbumService()) {
+    @MainActor init(albumId: String, service: AlbumServiceProtocol = AlbumService()) {
         self.albumId = albumId
         self.albumIdInt = Int(albumId) ?? 0
         self.service = service
@@ -480,7 +480,7 @@ struct AlbumDetailView: View {
         // 상세 페이지 닫힐 때 음악 정지 + 초기화
         
         .onDisappear {
-            guard !isWritingLog else { return } // 로그 작성 페이지 fullScreenCover 전환 시 음악 정지 방지
+            guard logPresentation == nil else { return } // 로그 작성/수정 페이지 fullScreenCover 전환 시 음악 정지 방지
             musicService.stop()
         }
     }
