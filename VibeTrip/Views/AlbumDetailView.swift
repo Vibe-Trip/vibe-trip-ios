@@ -721,6 +721,7 @@ private extension AlbumDetailView {
                 .ignoresSafeArea()
             
             AlbumDetailAlbumMenuPopup(
+                isMusicUrlReady: logViewModel.isMusicUrlReady,
                 onDownloadMusic: {
                     isAlbumMenuVisible = false
                     Task { await logViewModel.downloadMusic(albumTitle: displayModel.title) }
@@ -1023,6 +1024,7 @@ private struct AlbumDetailAlbumMenuPopup: View {
         static let itemFontSize: CGFloat = 14
     }
     
+    let isMusicUrlReady: Bool
     let onDownloadMusic: () -> Void
     let onEditAlbum: () -> Void
     let onDeleteAlbum: () -> Void
@@ -1062,6 +1064,7 @@ private struct AlbumDetailAlbumMenuPopup: View {
     
     @ViewBuilder
     private func menuItem(_ item: MenuItem) -> some View {
+        let isDisabled = item == .downloadMusic && !isMusicUrlReady
         Button {
             switch item {
             case .downloadMusic: onDownloadMusic()
@@ -1073,9 +1076,10 @@ private struct AlbumDetailAlbumMenuPopup: View {
             HStack(alignment: .center, spacing: 0) {
                 Text(item.title)
                     .font(.setPretendard(weight: .medium, size: Constants.itemFontSize))
-                    .foregroundStyle(Color.textPrimary)
+                    .foregroundStyle(isDisabled ? Color.buttonDisabledForeground : Color.textPrimary)
             }
         }
+        .disabled(isDisabled)
         .buttonStyle(AlbumMenuItemButtonStyle())
     }
 }
