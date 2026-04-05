@@ -12,52 +12,52 @@ import UIKit
 @MainActor
 struct EditAlbumView: View {
 
-    // MARK: - 더미 데이터
+    // MARK: - ViewModel
 
-    @State private var selectedImage: UIImage?
-    @State private var albumTitle: String
-    @State private var destination: String
-    
-    @State private var stagedStartDate: Date = Date()
-    @State private var stagedEndDate: Date = Date()
-    @State private var formattedDateRange: String = ""
+    @StateObject private var viewModel: EditAlbumViewModel
 
-    
-    @State private var lyricsOption: LyricsOption = .include
-    @State private var vocalGender: VocalGender? = .female
-    @State private var selectedGenre: AlbumGenre? = nil
-    @State private var commentary: String = ""
+    // MARK: - UI 상태 (뷰 레이어 전용)
 
-    // UI 상태
     @State private var isPhotoPickerPresented = false
     @State private var isDatePickerPresented = false
     @State private var isGenreDescriptionPresented = false
     @State private var isExitAlertPresented = false
-    @State private var toastMessage: String?
+    // 날짜 피커 시트 내 임시 날짜 (확정 전 스테이징)
+    @State private var stagedStartDate: Date = Date()
+    @State private var stagedEndDate: Date = Date()
+
+    // 뒤로가기 시 호출 (수정 취소)
+    private let onExit: () -> Void
+
+    // MARK: - Computed
+
+    // 가사 포함 여부에 따라 장르 목록 분기
+    private var displayedGenres: [AlbumGenre] {
+        viewModel.lyricsOption == .include ? AlbumGenre.vocalGenres : AlbumGenre.instrumentalGenres
+    }
 
     // 장르 안내 헬퍼 텍스트
     private var genreHelperText: String {
-        lyricsOption == .include
+        viewModel.lyricsOption == .include
             ? "미선택 시 장르는 Pop으로 선택됩니다"
             : "미선택 시 장르는 Lofi로 선택됩니다"
     }
 
-    // 가사 포함 여부에 따라 장르 목록 분기
-    private var displayedGenres: [AlbumGenre] {
-        lyricsOption == .include ? AlbumGenre.vocalGenres : AlbumGenre.instrumentalGenres
-    }
-
     // GenreDescriptionModalView에 전달할 장르 설명 데이터
     private var genreDescriptions: [GenreDescriptionModel] {
-        displayedGenres.map { GenreDescriptionModel(genre: $0, description: $0.descriptionText(for: lyricsOption)) }
+        displayedGenres.map { GenreDescriptionModel(genre: $0, description: $0.descriptionText(for: viewModel.lyricsOption)) }
     }
 
-    // 앨범 생성 플로우를 벗어날 때 호출되는 콜백
-    private let onExit: () -> Void
+    // 여행기간 표시 텍스트
+    private var formattedDateRange: String {
+        guard viewModel.hasDateSelected else { return "" }
+        return "\(viewModel.startDate.albumDateString) - \(viewModel.endDate.albumDateString)"
+    }
 
-    init(album: AlbumCard, onExit: @escaping () -> Void = {}) {
-        _albumTitle = State(initialValue: album.title ?? "")
-        _destination = State(initialValue: album.location)
+    // MARK: - Init
+
+    init(albumId: Int, onExit: @escaping () -> Void, onSaved: @escaping () -> Void) {
+        _viewModel = StateObject(wrappedValue: EditAlbumViewModel(albumId: albumId, onSaved: onSaved))
         self.onExit = onExit
     }
 
@@ -84,16 +84,16 @@ struct EditAlbumView: View {
                             sectionHeader(title: "사진", subtitle: "필수 선택", isRequired: true)
 
                             Button(action: { isPhotoPickerPresented = true }) {
-                                EditAlbumPhotoBox(image: selectedImage)
+                                EditAlbumPhotoBox(image: viewModel.selectedImage, coverImageUrl: viewModel.coverImageUrl)
                             }
                             .buttonStyle(.plain)
                         }
 
-                        // MARK: - 앨범 제목
+                        // MARK: - 앨범 제목 (UI 표시용, 서버 미전송)
                         VStack(alignment: .leading, spacing: 8) {
                             sectionHeader(title: "앨범 제목", subtitle: "필수 입력 (최대 15자)", isRequired: true)
 
-                            TextField("앨범 제목을 입력해주세요.", text: $albumTitle)
+                            TextField("앨범 제목을 입력해주세요.", text: $viewModel.albumTitle)
                                 .font(Font.setPretendard(weight: .regular, size: 16))
                                 .foregroundColor(Color.textPrimary)
                                 .padding(.horizontal, 16)
@@ -102,11 +102,9 @@ struct EditAlbumView: View {
                                 .clipShape(RoundedRectangle(cornerRadius: 8))
                                 .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.fieldBorder, lineWidth: 1))
                                 .shadow(color: .black.opacity(0.06), radius: 1.5, x: 0, y: 1)
-                                .onChange(of: albumTitle) { _, newValue in
+                                .onChange(of: viewModel.albumTitle) { _, newValue in
                                     let limited = String(newValue.prefix(15))
-                                    if newValue != limited {
-                                        albumTitle = limited
-                                    }
+                                    if newValue != limited { viewModel.albumTitle = limited }
                                 }
                         }
 
@@ -114,7 +112,7 @@ struct EditAlbumView: View {
                         VStack(alignment: .leading, spacing: 8) {
                             sectionHeader(title: "여행지", subtitle: "필수 입력 (최대 25자)", isRequired: true)
 
-                            TextField("여행지의 이름을 입력해주세요.", text: $destination)
+                            TextField("여행지의 이름을 입력해주세요.", text: $viewModel.destination)
                                 .font(Font.setPretendard(weight: .regular, size: 16))
                                 .foregroundColor(Color.textPrimary)
                                 .padding(.horizontal, 16)
@@ -123,11 +121,11 @@ struct EditAlbumView: View {
                                 .clipShape(RoundedRectangle(cornerRadius: 8))
                                 .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.fieldBorder, lineWidth: 1))
                                 .shadow(color: .black.opacity(0.06), radius: 1.5, x: 0, y: 1)
-                                .onChange(of: destination) { _, newValue in
+                                .onChange(of: viewModel.destination) { _, newValue in
                                     let limited = String(newValue.prefix(25))
                                     if newValue != limited {
-                                        destination = limited
-                                        toastMessage = "25자 이상 입력 불가해요."
+                                        viewModel.destination = limited
+                                        viewModel.toastMessage = "25자 이상 입력 불가해요."
                                     }
                                 }
                         }
@@ -136,7 +134,11 @@ struct EditAlbumView: View {
                         VStack(alignment: .leading, spacing: 8) {
                             sectionHeader(title: "여행기간", subtitle: "필수 입력", isRequired: true)
 
-                            Button(action: { isDatePickerPresented = true }) {
+                            Button(action: {
+                                stagedStartDate = viewModel.startDate
+                                stagedEndDate = viewModel.endDate
+                                isDatePickerPresented = true
+                            }) {
                                 HStack {
                                     Text(
                                         formattedDateRange.isEmpty
@@ -169,18 +171,17 @@ struct EditAlbumView: View {
                             MakeAlbumSegmentedControl(
                                 options: LyricsOption.allCases,
                                 title: { $0.title },
-                                selection: lyricsOption,
+                                selection: viewModel.lyricsOption,
                                 onSelect: { option in
-                                    lyricsOption = option
+                                    viewModel.lyricsOption = option
                                     if option == .exclude {
-                                        vocalGender = nil
-                                        // 장르 변경 시 기존 선택 해제
-                                        if let genre = selectedGenre, AlbumGenre.vocalGenres.contains(genre) {
-                                            selectedGenre = nil
+                                        viewModel.vocalGender = nil
+                                        if let genre = viewModel.selectedGenre, AlbumGenre.vocalGenres.contains(genre) {
+                                            viewModel.selectedGenre = nil
                                         }
                                     } else {
-                                        if let genre = selectedGenre, AlbumGenre.instrumentalGenres.contains(genre) {
-                                            selectedGenre = nil
+                                        if let genre = viewModel.selectedGenre, AlbumGenre.instrumentalGenres.contains(genre) {
+                                            viewModel.selectedGenre = nil
                                         }
                                     }
                                 }
@@ -188,15 +189,15 @@ struct EditAlbumView: View {
                         }
 
                         // MARK: - 보컬 성별
-                        if lyricsOption == .include {
+                        if viewModel.lyricsOption == .include {
                             VStack(alignment: .leading, spacing: 8) {
                                 sectionHeader(title: "보컬 성별 선택", subtitle: "필수 선택", isRequired: true)
 
                                 MakeAlbumSegmentedControl(
                                     options: VocalGender.allCases,
                                     title: { $0.title },
-                                    selection: vocalGender,
-                                    onSelect: { vocalGender = $0 }
+                                    selection: viewModel.vocalGender,
+                                    onSelect: { viewModel.vocalGender = $0 }
                                 )
                             }
                             .transition(.opacity)
@@ -243,7 +244,7 @@ struct EditAlbumView: View {
                             ) {
                                 ForEach(displayedGenres) { genre in
                                     Button(action: {
-                                        selectedGenre = selectedGenre == genre ? nil : genre
+                                        viewModel.selectedGenre = viewModel.selectedGenre == genre ? nil : genre
                                     }) {
                                         Text(genre.rawValue)
                                             .font(Font.setPretendard(weight: .medium, size: 16))
@@ -253,7 +254,7 @@ struct EditAlbumView: View {
                                             .background(
                                                 RoundedRectangle(cornerRadius: 8)
                                                     .fill(
-                                                        selectedGenre == genre
+                                                        viewModel.selectedGenre == genre
                                                         ? Color.chipSelectedBackground
                                                         : Color.chipUnselectedBackground
                                                     )
@@ -261,7 +262,7 @@ struct EditAlbumView: View {
                                             .overlay(
                                                 RoundedRectangle(cornerRadius: 8)
                                                     .stroke(
-                                                        selectedGenre == genre
+                                                        viewModel.selectedGenre == genre
                                                         ? Color.appPrimary.opacity(0.35)
                                                         : Color.fieldBorder,
                                                         lineWidth: 1
@@ -275,31 +276,33 @@ struct EditAlbumView: View {
                         }
 
                         // MARK: - 앨범 코멘터리
-                        CommentarySection(commentary: $commentary)
+                        CommentarySection(commentary: $viewModel.commentary)
                     }
                     .padding(.horizontal, 20)
                     .padding(.top, 8)
                     .padding(.bottom, 24)
-                    .animation(.easeInOut(duration: 0.2), value: lyricsOption)
+                    .animation(.easeInOut(duration: 0.2), value: viewModel.lyricsOption)
                 }
             }
             // 네비게이션 바
             .safeAreaInset(edge: .top, spacing: 0) {
-                AppNavigationBar(title: "앨범 수정", style: .solidWhite, onBackTap: { isExitAlertPresented = true })
+                AppNavigationBar(title: "앨범 수정", style: .solidWhite, onBackTap: {
+                    if viewModel.hasChanges {
+                        isExitAlertPresented = true
+                    } else {
+                        onExit()
+                    }
+                })
             }
-
         }
         // 하단 고정 버튼
         .safeAreaInset(edge: .bottom, spacing: 0) {
             EditAlbumBottomButton(
-                // TODO: isEditValid 조건 연결
-                isEnabled: true,
-                action: {
-                    // TODO: submitEdit() 연결
-                }
+                isEnabled: viewModel.isValid && !viewModel.isLoading,
+                action: { Task { await viewModel.submitEdit() } }
             )
         }
-        // 장르 설명 모달 (하단 버튼 포함 전체 화면 커버)
+        // 장르 설명 모달
         .overlay {
             if isGenreDescriptionPresented {
                 GenreDescriptionModalView(
@@ -308,20 +311,20 @@ struct EditAlbumView: View {
                 )
             }
         }
-        // 토스트
+        // 토스트 (viewModel + 입력 검증 공용)
         .overlay(alignment: .bottom) {
-            if let message = toastMessage {
+            if let message = viewModel.toastMessage {
                 AppToastView(message: message)
                     .padding(.bottom, 140)
                     .transition(.move(edge: .bottom).combined(with: .opacity))
             }
         }
-        .animation(.easeInOut(duration: 0.2), value: toastMessage)
-        .onChange(of: toastMessage) { _, newValue in
+        .animation(.easeInOut(duration: 0.2), value: viewModel.toastMessage)
+        .onChange(of: viewModel.toastMessage) { _, newValue in
             guard newValue != nil else { return }
             Task {
                 try? await Task.sleep(for: .seconds(2))
-                toastMessage = nil
+                viewModel.toastMessage = nil
             }
         }
         // 사진 선택 시트
@@ -330,11 +333,11 @@ struct EditAlbumView: View {
                 guard let data else { return }
                 let maxBytes = 10 * 1024 * 1024
                 guard data.count <= maxBytes else {
-                    toastMessage = "10MB 이하의 사진만 올릴 수 있어요"
+                    viewModel.toastMessage = "10MB 이하의 사진만 올릴 수 있어요"
                     return
                 }
                 guard let image = UIImage(data: data) else { return }
-                selectedImage = image
+                viewModel.selectedImage = image
             }
         }
         // 여행기간 선택 시트
@@ -343,12 +346,14 @@ struct EditAlbumView: View {
                 startDate: $stagedStartDate,
                 endDate: $stagedEndDate,
                 onConfirm: {
-                    formattedDateRange = "\(stagedStartDate.albumDateString) - \(stagedEndDate.albumDateString)"
+                    viewModel.startDate = stagedStartDate
+                    viewModel.endDate = stagedEndDate
+                    viewModel.hasDateSelected = true
                     isDatePickerPresented = false
                 }
             )
         }
-        // 화면 이탈 팝업
+        // 변경사항 경고 팝업
         .overlay {
             if isExitAlertPresented {
                 ExitPopupView(
@@ -362,6 +367,7 @@ struct EditAlbumView: View {
                 )
             }
         }
+        .task { await viewModel.load() }
     }
 
     // 섹션 헤더 빌더
@@ -394,6 +400,7 @@ struct EditAlbumView: View {
 private struct EditAlbumPhotoBox: View {
 
     let image: UIImage?
+    let coverImageUrl: URL?     // Pre-fill: 기존 커버 이미지 URL
 
     private enum Layout {
         static let containerHeight: CGFloat = 210
@@ -413,24 +420,50 @@ private struct EditAlbumPhotoBox: View {
                 .shadow(color: .black.opacity(0.06), radius: 1.5, x: 0, y: 1)
 
             if let image {
+                // 새로 선택한 이미지
                 GeometryReader { proxy in
                     let imageWidth = proxy.size.width * Layout.imageWidthRatio
                     let imageHeight = proxy.size.height
 
                     ZStack {
-                        // 좌우 여백: GrayScale/900
                         RoundedRectangle(cornerRadius: 12)
                             .fill(Color("GrayScale/900"))
 
                         Image(uiImage: image)
-                            .resizable()    /// 비율 유지 채택 시  ->  .scaledToFill()
+                            .resizable()
                             .frame(width: imageWidth, height: imageHeight - 0.5)
                             .clipped()
                     }
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
                 }
                 .frame(height: Layout.containerHeight)
+            } else if let coverImageUrl {
+                // Pre-fill: 기존 커버 이미지
+                GeometryReader { proxy in
+                    let imageWidth = proxy.size.width * Layout.imageWidthRatio
+                    let imageHeight = proxy.size.height
+
+                    ZStack {
+                        RoundedRectangle(cornerRadius: 12)
+                            .fill(Color("GrayScale/900"))
+
+                        AsyncImage(url: coverImageUrl) { phase in
+                            switch phase {
+                            case .success(let img):
+                                img.resizable()
+                                    .frame(width: imageWidth, height: imageHeight - 0.5)
+                                    .clipped()
+                            default:
+                                Color.placeholderSymbol
+                                    .frame(width: imageWidth, height: imageHeight - 0.5)
+                            }
+                        }
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
+                }
+                .frame(height: Layout.containerHeight)
             } else {
+                // 사진 미선택 상태
                 VStack(spacing: 8) {
                     Image(systemName: "camera")
                         .font(.system(size: 40, weight: .regular))
@@ -484,9 +517,7 @@ private struct CommentarySection: View {
                     .focused($isFocused)
                     .onChange(of: commentary) { _, newValue in
                         let limited = String(newValue.prefix(maxCount))
-                        if newValue != limited {
-                            commentary = limited
-                        }
+                        if newValue != limited { commentary = limited }
                     }
                     .toolbar {
                         ToolbarItemGroup(placement: .keyboard) {
@@ -564,6 +595,10 @@ private struct EditAlbumBottomButton: View {
 
 #if DEBUG
 #Preview {
-    EditAlbumView(album: .mockItems[0])
+    EditAlbumView(
+        albumId: 1,
+        onExit: {},
+        onSaved: {}
+    )
 }
 #endif
