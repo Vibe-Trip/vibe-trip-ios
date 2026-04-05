@@ -50,7 +50,7 @@ struct MainPageView: View {
     
     var body: some View {
         Group {
-            if viewModel.albums.isEmpty {
+            if viewModel.visibleAlbums.isEmpty {
                 emptyContent
             } else {
                 carouselView
@@ -78,6 +78,9 @@ struct MainPageView: View {
                     appState.pendingTabNavigation = .home
                 },
                 onReportTap: {
+                    if let id = selectedAlbum?.id {
+                        viewModel.hideAlbum(id: id)
+                    }
                     selectedAlbum = nil  // fullScreenCover 닫기 (메인 복귀)
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
                         withAnimation(.easeInOut(duration: 0.2)) {
@@ -184,7 +187,7 @@ struct MainPageView: View {
                 Color(UIColor.systemBackground).ignoresSafeArea()
                 
                 ZStack {
-                    ForEach((0..<viewModel.albums.count).reversed(), id: \.self) { index in
+                    ForEach((0..<viewModel.visibleAlbums.count).reversed(), id: \.self) { index in
                         let rel        = index - currentIndex
                         let isActive   = rel == 0
                         let isNext     = rel == 1
@@ -203,10 +206,10 @@ struct MainPageView: View {
                                 return inactiveTopY
                             }()
                             
-                            AlbumCardView(album: viewModel.albums[index])
+                            AlbumCardView(album: viewModel.visibleAlbums[index])
                                 .onTapGesture {
                                     guard isActive else { return }
-                                    let album = viewModel.albums[index]
+                                    let album = viewModel.visibleAlbums[index]
                                     if album.title == nil {
                                         // 타이틀 생성 중 —> 상세페이지 진입 차단 후 토스트 표시
                                         guard !showGeneratingToast else { return }
@@ -252,7 +255,7 @@ struct MainPageView: View {
                             isDragging   = true
                             let t        = value.translation.width
                             let atStart  = currentIndex == 0 && t > 0
-                            let atEnd    = currentIndex == viewModel.albums.count - 1 && t < 0
+                            let atEnd    = currentIndex == viewModel.visibleAlbums.count - 1 && t < 0
                             dragOffset   = (atStart || atEnd) ? t * 0.2 : t
                         }
                         .onEnded { value in
@@ -262,7 +265,7 @@ struct MainPageView: View {
                             - value.translation.width
                             
                             if dragOffset < -threshold || velocity < -CarouselLayout.swipeVelocityThreshold {
-                                if currentIndex < viewModel.albums.count - 1 { currentIndex += 1 }
+                                if currentIndex < viewModel.visibleAlbums.count - 1 { currentIndex += 1 }
                             } else if dragOffset > threshold || velocity > CarouselLayout.swipeVelocityThreshold {
                                 if currentIndex > 0 { currentIndex -= 1 }
                             }
