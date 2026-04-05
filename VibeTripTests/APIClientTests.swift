@@ -198,37 +198,66 @@ final class APIClientTests: XCTestCase {
     }
     
     // MARK: - 401 -> 토큰 갱신 실패 -> 세션 만료
-    
-    // 갱신 실패 시 sessionExpiredPublisher 발행 + APIClientError.sessionExpired throw
-    func test_401_refreshFailed_publishesSessionExpiredAndThrows() async throws {
+
+    // 갱신 요청에서 서버 401 반환 시 sessionExpiredPublisher 발행 + APIClientError.sessionExpired throw
+    func test_401_refreshExpired_publishesSessionExpiredAndThrows() async throws {
         // 1. 원래 요청: 401
-        // 2. 갱신 요청: 실패 응답
-        let unauthorizedResponse = makeHTTPResponse(statusCode: 401)
-        let refreshFailData = try makeErrorResponse(code: "E2002", message: "토큰 만료")
-        
+        // 2. 갱신 요청: 서버 401 -> refreshToken 만료 확인
         mockSession.responses = [
-            (Data(), unauthorizedResponse),
-            (refreshFailData, makeHTTPResponse(statusCode: 200))
+            (Data(), makeHTTPResponse(statusCode: 401)),
+            (Data(), makeHTTPResponse(statusCode: 401))
         ]
-        
+
         // sessionExpiredPublisher 발행 여부 추적
         var sessionExpiredFired = false
         sut.sessionExpiredPublisher
             .sink { sessionExpiredFired = true }
             .store(in: &cancellables)
-        
+
         let endpoint = APIEndpoint(path: "/api/v1/test", method: .get)
-        
+
         do {
             let _: SampleResponse = try await sut.request(endpoint)
             XCTFail("sessionExpired 에러가 throw되어야 합니다")
         } catch APIClientError.sessionExpired {
             XCTAssertTrue(sessionExpiredFired, "sessionExpiredPublisher가 발행되어야 합니다")
+            // 만료된 토큰이 Keychain에서 삭제됐는지 확인
+            XCTAssertNil(mockKeychain.accessToken, "세션 만료 시 accessToken이 삭제되어야 합니다")
+            XCTAssertNil(mockKeychain.refreshToken, "세션 만료 시 refreshToken이 삭제되어야 합니다")
         } catch {
             XCTFail("예상치 못한 에러: \(error)")
         }
     }
-    
+
+    // MARK: - 401 -> 갱신 일시 오류 -> 로그아웃 없이 네트워크 에러
+
+    // 갱신 요청에서 서버 5xx 반환 시 -> sessionExpiredPublisher 미발행 + APIClientError.networkError throw
+    func test_401_refreshTransientError_doesNotPublishSessionExpired() async throws {
+        // 1. 원래 요청: 401
+        // 2. 갱신 요청: 서버 503 -> 일시 오류
+        mockSession.responses = [
+            (Data(), makeHTTPResponse(statusCode: 401)),
+            (Data(), makeHTTPResponse(statusCode: 503))
+        ]
+
+        // sessionExpiredPublisher가 발행되면 안됨
+        var sessionExpiredFired = false
+        sut.sessionExpiredPublisher
+            .sink { sessionExpiredFired = true }
+            .store(in: &cancellables)
+
+        let endpoint = APIEndpoint(path: "/api/v1/test", method: .get)
+
+        do {
+            let _: SampleResponse = try await sut.request(endpoint)
+            XCTFail("networkError가 throw되어야 합니다")
+        } catch APIClientError.networkError {
+            XCTAssertFalse(sessionExpiredFired, "일시 오류 시 sessionExpiredPublisher가 발행되면 안 됩니다")
+        } catch {
+            XCTFail("예상치 못한 에러: \(error)")
+        }
+    }
+
     // MARK: - perform (응답 바디 없는 요청)
     
     // DELETE 등 Unit 응답 -> 에러 없이 정상 완료
