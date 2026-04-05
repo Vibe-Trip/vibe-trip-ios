@@ -29,6 +29,11 @@ final class MainPageViewModel: ObservableObject {
 
     private let albumService: AlbumServiceProtocol
 
+    // MARK: - Load State
+
+    // 최초 로드 완료 여부 (재진입 시 풀 리셋 방지)
+    private var hasLoaded = false
+
     // MARK: - Polling
 
     // albumId별 title 폴링 Task (중복 방지)
@@ -46,16 +51,19 @@ final class MainPageViewModel: ObservableObject {
 
     // MARK: - Load
 
-    // 화면 진입 시 호출
+    // 화면 진입 시 호출 (재진입 시 스킵)
     func loadAlbums() async {
+        guard !hasLoaded else { return }
+        hasLoaded = true
         cursor = nil
         hasNext = true
         albums = []
         await fetchNextPage()
     }
 
-    // 명시적 새로고침 (pendingMainPageReload, 앨범 삭제 후 복귀)
+    // 명시적 새로고침 (needsAlbumRefresh, 앨범 삭제 후 복귀)
     func reloadAlbums() async {
+        hasLoaded = false
         cancelAllPolling()
         await loadAlbums()
     }
@@ -102,7 +110,8 @@ final class MainPageViewModel: ObservableObject {
         for _ in 0..<120 {
             try? await Task.sleep(nanoseconds: pollingInterval)
             guard !Task.isCancelled else { return }
-            guard let title = try? await albumService.fetchAlbumTitle(albumId: albumId) else { continue }
+            guard let detail = try? await albumService.fetchAlbum(albumId: albumId),
+                  let title = detail.title else { continue }
             applyTitle(title, for: albumId)
             return
         }
