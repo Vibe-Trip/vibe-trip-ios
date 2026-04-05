@@ -69,6 +69,13 @@ struct MainPageView: View {
             AlbumDetailView(
                 displayModel: album.toDisplayModel(),
                 onBackTap: { selectedAlbum = nil },
+                onEditSaved: {
+                    // 수정한 앨범은 음악 재생성 중 -> 폴링 재시작
+                    viewModel.markAlbumNotReady(albumId: album.id)
+                    selectedAlbum = nil
+                    appState.pendingTabNavigation = .home
+                    Task { await viewModel.reloadAlbums() }
+                },
                 onDeleteAlbumTap: {
                     selectedAlbum = nil
                     currentIndex = 0
@@ -206,22 +213,25 @@ struct MainPageView: View {
                                 return inactiveTopY
                             }()
                             
-                            AlbumCardView(album: viewModel.visibleAlbums[index])
-                                .onTapGesture {
-                                    guard isActive else { return }
-                                    let album = viewModel.visibleAlbums[index]
-                                    if album.title == nil {
-                                        // 타이틀 생성 중 —> 상세페이지 진입 차단 후 토스트 표시
-                                        guard !showGeneratingToast else { return }
-                                        withAnimation { showGeneratingToast = true }
-                                        Task {
-                                            try? await Task.sleep(nanoseconds: 3_000_000_000)
-                                            withAnimation { showGeneratingToast = false }
-                                        }
-                                    } else {
-                                        selectedAlbum = album
+                            AlbumCardView(
+                                album: viewModel.visibleAlbums[index],
+                                isReady: viewModel.isReady(for: viewModel.visibleAlbums[index].id)
+                            )
+                            .onTapGesture {
+                                guard isActive else { return }
+                                let album = viewModel.visibleAlbums[index]
+                                if !viewModel.isReady(for: album.id) {
+                                    // 음악 생성 중 -> 상세페이지 진입 차단 후 토스트 표시
+                                    guard !showGeneratingToast else { return }
+                                    withAnimation { showGeneratingToast = true }
+                                    Task {
+                                        try? await Task.sleep(nanoseconds: 3_000_000_000)
+                                        withAnimation { showGeneratingToast = false }
                                     }
+                                } else {
+                                    selectedAlbum = album
                                 }
+                            }
                                 .offset(
                                     x: CarouselLayout.activeSideSpacing + baseX + dragOffset,
                                     y: topY
@@ -341,7 +351,7 @@ private extension AlbumCard {
 #Preview("생성 중 앨범") {
     let service = MockAlbumService()
     service.hasGeneratingAlbum = true
-    service.titleReadyAfterAttempts = 2  // 4번째 카드: 2번째 폴링(약 5초)에서 타이틀 반환
+    service.musicReadyAfterAttempts = 2  // 4번째 카드: 2번째 폴링(약 5초)에서 음악 URL 반환
     return MainPageView(viewModel: MainPageViewModel(albumService: service))
         .environmentObject(AppState())
 }
