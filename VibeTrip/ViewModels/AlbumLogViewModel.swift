@@ -128,13 +128,18 @@ import UIKit
 
     // 특정 인덱스 사진 삭제
     func removePhoto(at index: Int) {
-        guard selectedPhotos.indices.contains(index) else { return }
-        selectedPhotos.remove(at: index)
         if index < existingPhotosCount {
             // 기존 사진 삭제: ID를 removedImageIds에 기록 후 existingImageIds에서 제거
             removedImageIds.append(existingImageIds[index])
             existingImageIds.remove(at: index)
             existingPhotosCount -= 1
+            // selectedPhotos는 비동기 로딩 완료 후에만 존재
+            if selectedPhotos.indices.contains(index) {
+                selectedPhotos.remove(at: index)
+            }
+        } else {
+            guard selectedPhotos.indices.contains(index) else { return }
+            selectedPhotos.remove(at: index)
         }
     }
 
