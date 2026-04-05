@@ -58,6 +58,7 @@ private final class StubAlbumDetailService: AlbumServiceProtocol {
     func fetchAlbumLog(albumId: String) async throws -> AlbumLog { fatalError("미사용") }
     func updateAlbum(albumId: String, request: AlbumUpdateRequest) async throws -> AlbumCard { fatalError("미사용") }
     func saveLog(request: AlbumLogRequest) async throws { fatalError("미사용") }
+    func updateLog(request: AlbumLogUpdateRequest) async throws { fatalError("미사용") }
     var fetchAlbumResult: AlbumDetail = AlbumDetail(
         title: nil, coverImageUrl: nil, region: "",
         travelStartDate: "", travelEndDate: "", musicUrl: nil
@@ -355,11 +356,11 @@ final class AlbumDetailViewModelTests: XCTestCase {
 
     // MARK: - confirmDeleteLog: 성공
 
-    // 성공 시 API 1회 호출 + 목록 재조회
-    func test_confirmDeleteLog_success_callsServiceAndReloads() async {
+    // 성공 시 API 1회 호출 + 해당 로그 로컬 제거
+    func test_confirmDeleteLog_success_callsServiceAndRemovesLocally() async {
+        let entry = AlbumLogEntry(id: 7, description: "로그", postedAt: "2026-01-13T12:00:00Z", images: [])
         makeSUT(results: [
-            .success(AlbumLogListPayload(content: [], hasNext: false)),
-            .success(AlbumLogListPayload(content: [], hasNext: false))
+            .success(AlbumLogListPayload(content: [entry], hasNext: false))
         ])
         stub.deleteLogResult = .success(())
         await sut.loadInitialLogs()
@@ -368,7 +369,8 @@ final class AlbumDetailViewModelTests: XCTestCase {
         await sut.confirmDeleteLog()
 
         XCTAssertEqual(stub.deleteLogCallCount, 1)
-        XCTAssertEqual(stub.callCount, 2) // 초기 + 재조회
+        XCTAssertEqual(stub.callCount, 1)           // 재조회 없이 초기 1회만
+        XCTAssertFalse(sut.logs.contains { $0.id == 7 })    // 로컬에서 제거됨
     }
 
     // 성공 후 상태 초기화

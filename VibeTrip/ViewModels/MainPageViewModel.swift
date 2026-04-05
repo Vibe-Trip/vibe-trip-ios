@@ -19,6 +19,14 @@ final class MainPageViewModel: ObservableObject {
     @Published private(set) var isLoading: Bool = false     // 네트워크 요청 중 여부
     @Published private(set) var errorMessage: String? = nil // 에러 발생 시 메시지
 
+    // 신고로 숨긴 앨범 ID 목록 (클라이언트 인메모리, API 연동 전 목 처리)
+    private var hiddenAlbumIds: Set<Int> = []
+
+    // 신고된 앨범을 제외한 표시용 앨범 목록
+    var visibleAlbums: [AlbumCard] {
+        albums.filter { !hiddenAlbumIds.contains($0.id) }
+    }
+
     // MARK: - Pagination State
 
     private var cursor: Int? = nil       // 다음 요청에 사용할 cursor: 마지막 AlbumId
@@ -131,6 +139,12 @@ final class MainPageViewModel: ObservableObject {
             coverImageUrl: old.coverImageUrl
         )
         pollingTasks[albumId] = nil
+    }
+
+    // 신고된 앨범을 로컬에서 숨김 처리
+    func hideAlbum(id: Int) {
+        // TODO: 신고하기 API 연동 후 서버 요청 추가
+        hiddenAlbumIds.insert(id)
     }
 
     // 뷰 사라질 때 모든 폴링 Task 취소

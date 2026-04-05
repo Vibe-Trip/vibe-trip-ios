@@ -47,7 +47,7 @@ import Combine
         return formatter
     }()
 
-    init(albumId: String, service: AlbumServiceProtocol = AlbumService()) {
+    @MainActor init(albumId: String, service: AlbumServiceProtocol = AlbumService()) {
         self.albumId = albumId
         self.albumIdInt = Int(albumId) ?? 0
         self.service = service
@@ -148,7 +148,7 @@ import Combine
         do {
             try await service.deleteAlbumLog(albumId: albumId, albumLogId: logId)
             pendingDeleteLogId = nil
-            await loadInitialLogs()
+            logs.removeAll { $0.id == logId }
         } catch {
             deleteLogToastMessage = "로그 삭제에 실패했습니다."
         }
@@ -166,6 +166,9 @@ import Combine
             let payload = try await service.fetchAlbumLogs(
                 albumId: albumId, cursor: cursor, limit: limit
             )
+            for log in payload.content {
+                print("[AlbumLog] id:\(log.id) postedAt:\(log.postedAt) parsedDate:\(String(describing: Self.parseISO8601Date(log.postedAt)))")
+            }
             logs.append(contentsOf: payload.content)
             hasNext = payload.hasNext
             cursor = payload.content.last?.id
@@ -198,8 +201,21 @@ import Combine
     }
 
     static func parseISO8601Date(_ value: String) -> Date? {
-        isoFormatterWithFractionalSeconds.date(from: value)
-            ?? isoFormatter.date(from: value)
+        if let date = isoFormatterWithFractionalSeconds.date(from: value) { return date }
+        if let date = isoFormatter.date(from: value) { return date }
+        // timezone 없는 포맷 대응 (Spring Boot LocalDateTime 등)
+        let fallback = DateFormatter()
+        fallback.locale = Locale(identifier: "en_US_POSIX")
+        for format in [
+            "yyyy-MM-dd'T'HH:mm:ss.SSSSSS",
+            "yyyy-MM-dd'T'HH:mm:ss.SSS",
+            "yyyy-MM-dd'T'HH:mm:ss"
+        ] {
+            fallback.dateFormat = format
+            if let date = fallback.date(from: value) { return date }
+        }
+        print("[AlbumDetailViewModel] postedAt 파싱 실패: \(value)")
+        return nil
     }
 }
 
@@ -235,18 +251,19 @@ struct AlbumDetailView: View {
     // 음악 공유 시트 표시 여부
     @State private var downloadedMusicURL: URL? = nil
 
-    // 로그 작성 화면 표시 여부
-    @State private var isWritingLog: Bool = false
-    // 로그 저장 성공 여부 -> onDismiss에서 재조회 여부 판단
+    // 로그 작성/수정 화면 전환 상태 (nil: 미표시)
+    @State private var logPresentation: LogPresentationState? = nil
+
+    // 실제 저장 완료 여부: onDismiss 재조회 조건 판단
     @State private var didSaveLog: Bool = false
     
     @EnvironmentObject private var musicService: BackgroundMusicService
     
-    // 스크롤 offset: ScrollOffsetKey로 감지
-    @State private var scrollOffset: CGFloat = 0
-    
-    // 네비게이션 바 진입 시점 계산에 사용
-    @State private var titleGlobalMinY: CGFloat = .greatestFiniteMagnitude
+    // UIScrollView KVO로 감지한 contentOffset.y (스크롤 이벤트와 동일 사이클 반영)
+    @State private var scrollContentOffset: CGFloat = 0
+
+    // 타이틀 텍스트의 초기 global Y (스크롤 = 0 기준, 1회만 측정)
+    @State private var titleContentY: CGFloat = .greatestFiniteMagnitude
     
     //최상단 이동 버튼 표시 -> 블러 네비게이션 바 전환 시
     private var showScrollToTop: Bool { overlayOpacity < 1 }
@@ -280,17 +297,13 @@ struct AlbumDetailView: View {
             ScrollViewReader { proxy in
                 ScrollView(showsIndicators: false) {
                     VStack(spacing: 0) {
-                        // 스크롤 offset 감지 + 최상단 이동 앵커
-                        GeometryReader { geo in
-                            Color.clear
-                                .preference(
-                                    key: ScrollOffsetKey.self,
-                                    value: geo.frame(in: .global).minY
-                                )
-                        }
-                        .frame(height: 0)
-                        .id("scrollTop")
-                        
+                        // 최상단 이동 앵커 + KVO 기반 스크롤 offset 감지
+                        Color.clear
+                            .frame(height: 0)
+                            .id("scrollTop")
+                        ScrollOffsetObserver(contentOffset: $scrollContentOffset)
+                            .frame(height: 0)
+
                         coverImageSection
                         actionButtonsSection
                         contentSection
@@ -299,7 +312,6 @@ struct AlbumDetailView: View {
                 .scrollDisabled(logViewModel.logs.isEmpty)
                 .ignoresSafeArea(edges: .top)
                 .background(Color.white.ignoresSafeArea())
-                .onPreferenceChange(ScrollOffsetKey.self) { scrollOffset = $0 }
                 .overlay(alignment: .bottomTrailing) {
                     scrollToTopButton {
                         withAnimation(.easeInOut(duration: 0.5)) {
@@ -319,18 +331,19 @@ struct AlbumDetailView: View {
                     Image(systemName: "ellipsis")
                         .font(.system(size: Constants.navIconSize, weight: .semibold))
                         .foregroundStyle(Color.textPrimary)
+                        .frame(width: Constants.navTouchTargetSize, height: Constants.navTouchTargetSize)
                 }
             }
             .opacity(1 - overlayOpacity)
-            .allowsHitTesting(overlayOpacity < 1)
-            
+            .allowsHitTesting(!isOverlayActive)
+
             // 투명 네비게이션 바
             AlbumDetailNavigationOverlay(
                 onBackTap: onBackTap,
                 onMoreTap: showAlbumMenu
             )
             .opacity(overlayOpacity)
-            .allowsHitTesting(overlayOpacity > 0)
+            .allowsHitTesting(isOverlayActive)
             
             // 앨범 옵션 팝업
             if isAlbumMenuVisible {
@@ -390,18 +403,22 @@ struct AlbumDetailView: View {
         .animation(.easeInOut(duration: 0.2), value: isStorageFullToastVisible)
         .navigationBarBackButtonHidden(true)
         .toolbar(.hidden, for: .navigationBar)
-        .fullScreenCover(isPresented: $isWritingLog, onDismiss: {
-            // 저장 성공 시에만 목록 재조회
-            Task { @MainActor in    /// 현재 뷰 업데이트 사이클 이후에 상태 변경
-                if didSaveLog {
-                    didSaveLog = false
-                    await logViewModel.loadInitialLogs()
-                }
+        .fullScreenCover(item: $logPresentation, onDismiss: {
+            // 목록 재조회: 저장이 발생한 경우만
+            if didSaveLog {
+                Task { await logViewModel.loadInitialLogs() }
+
             }
-        }) {
-            AlbumLogView(albumId: String(displayModel.albumId), mode: .create, onSaved: {
-                didSaveLog = true
-            })
+            didSaveLog = false
+        }) { state in
+            switch state {
+            case .create:
+                AlbumLogView(albumId: String(displayModel.albumId), mode: .create, onSaved: { didSaveLog = true })
+                    .environmentObject(musicService)
+            case .edit(let entry):
+                AlbumLogView(albumId: String(displayModel.albumId), mode: .edit(entry), onSaved: { didSaveLog = true })
+                    .environmentObject(musicService)
+            }
         }
         // 신고 바텀시트
         .sheet(isPresented: $isReportSheetPresented) {
@@ -465,7 +482,7 @@ struct AlbumDetailView: View {
         // 상세 페이지 닫힐 때 음악 정지 + 초기화
         
         .onDisappear {
-            guard !isWritingLog else { return } // 로그 작성 페이지 fullScreenCover 전환 시 음악 정지 방지
+            guard logPresentation == nil else { return } // 로그 작성/수정 페이지 fullScreenCover 전환 시 음악 정지 방지
             musicService.stop()
         }
     }
@@ -486,8 +503,9 @@ private extension AlbumDetailView {
     }
     
     // 타이틀 텍스트 및 네비게이션 바 하단의 거리
+    // titleContentY(초기 global Y) - scrollContentOffset = 현재 프레임의 타이틀 global Y
     var titleNavOffset: CGFloat {
-        titleGlobalMinY - navBarBottom
+        (titleContentY - scrollContentOffset) - navBarBottom
     }
     
     // 투명 오버레이 투명도
@@ -497,6 +515,10 @@ private extension AlbumDetailView {
         if titleNavOffset <= 0 { return 0 }
         return Double(titleNavOffset / fadeWindow)
     }
+
+    // hitTest 전환 기준: opacity 연속값 대신 명확한 임계값으로 스냅
+    // 전환 구간(0 < opacity < 1)에서 두 네비게이션 바가 동시에 터치를 받는 문제 방지
+    private var isOverlayActive: Bool { titleNavOffset > 15 }
     
     // 앨범 삭제 실패 토스트 표시 후 자동 숨김
     func showDeleteAlbumToast() {
@@ -559,7 +581,10 @@ private extension AlbumDetailView {
                     .onGeometryChange(for: CGFloat.self) {
                         $0.frame(in: .global).minY
                     } action: { minY in
-                        titleGlobalMinY = minY
+                        // 스크롤 = 0 기준 초기 위치 1회만 측정
+                        // 이후 위치 계산은 scrollContentOffset(KVO)으로 처리
+                        guard titleContentY == .greatestFiniteMagnitude else { return }
+                        titleContentY = minY
                     }
                 
                 /// 여행지
@@ -628,7 +653,7 @@ private extension AlbumDetailView {
             AlbumDetailActionButton(
                 title: "로그 작성",
                 systemImageName: "pencil.line",
-                action: { isWritingLog = true }
+                action: { logPresentation = .create }
             )
         }
         .padding(.horizontal, Constants.horizontalPadding)
@@ -639,7 +664,7 @@ private extension AlbumDetailView {
     @ViewBuilder
     var contentSection: some View {
         if !logViewModel.logs.isEmpty {
-            AlbumDetailLogFeedSection(viewModel: logViewModel)
+            AlbumDetailLogFeedSection(viewModel: logViewModel, onEdit: { logPresentation = .edit($0) })
         } else if logViewModel.isLoading {
             ProgressView()
                 .frame(maxWidth: .infinity)
@@ -696,6 +721,7 @@ private extension AlbumDetailView {
                 .ignoresSafeArea()
             
             AlbumDetailAlbumMenuPopup(
+                isMusicUrlReady: logViewModel.isMusicUrlReady,
                 onDownloadMusic: {
                     isAlbumMenuVisible = false
                     Task { await logViewModel.downloadMusic(albumTitle: displayModel.title) }
@@ -729,7 +755,7 @@ private extension AlbumDetailView {
         // 커버 이미지
         static let coverWidth: CGFloat = 402
         static let coverHeight: CGFloat = 460
-        static let coverBottomCornerRadius: CGFloat = 32
+        static let coverBottomCornerRadius: CGFloat = 28
         static let placeholderIconSize: CGFloat = 44
         
         // 앨범 정보 텍스트
@@ -755,6 +781,7 @@ private extension AlbumDetailView {
         
         // 블러 네비게이션 바 trailing 아이콘 크기
         static let navIconSize: CGFloat = 20
+        static let navTouchTargetSize: CGFloat = 44
         
         // 최상단 이동 버튼
         // 버튼 표시 scrollOffset 기준 값
@@ -764,6 +791,24 @@ private extension AlbumDetailView {
         static let scrollToTopTrailingPadding: CGFloat = 20
         static let scrollToTopBottomPadding: CGFloat = 40
         static let scrollToTopAnimationDuration: Double = 0.2
+    }
+}
+
+// MARK: - LogPresentationState
+// 로그 작성/수정 화면 전환 상태
+
+private extension AlbumDetailView {
+
+    enum LogPresentationState: Identifiable {
+        case create
+        case edit(AlbumLogEntry)
+
+        var id: String {
+            switch self {
+            case .create:           return "create"
+            case .edit(let entry):  return "edit-\(entry.id)"
+            }
+        }
     }
 }
 
@@ -944,10 +989,9 @@ private struct AlbumMenuItemButtonStyle: ButtonStyle {
 }
 
 // MARK: - LogMenuItemButtonStyle
-// GestureState + simultaneousGesture 방식: 탭 상태 직접 추적
 
 private struct LogMenuItemButtonStyle: ButtonStyle {
-    
+
     private enum Constants {
         static let horizontalPadding: CGFloat = 16
         static let verticalPadding: CGFloat = 8
@@ -955,33 +999,15 @@ private struct LogMenuItemButtonStyle: ButtonStyle {
         static let highlightBackground = Color(red: 0.92, green: 0.92, blue: 0.98)
         static let animationDuration: Double = 0.1
     }
-    
+
     func makeBody(configuration: Configuration) -> some View {
-        InnerBody(configuration: configuration)
-    }
-    
-    // GestureState를 사용하기 위해 별도 View로 분리
-    private struct InnerBody: View {
-        let configuration: ButtonStyleConfiguration
-        @GestureState private var isPressed: Bool = false
-        
-        var body: some View {
-            configuration.label
-                .padding(.horizontal, Constants.horizontalPadding)
-                .padding(.vertical, Constants.verticalPadding)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .background(isPressed ? Constants.highlightBackground : Color.clear)
-                .cornerRadius(Constants.cornerRadius)
-                .animation(
-                    .easeInOut(duration: Constants.animationDuration),
-                    value: isPressed
-                )
-                // 버튼 탭 액션을 유지하면서 press 상태만 별도 추적
-                .simultaneousGesture(
-                    DragGesture(minimumDistance: 0)
-                        .updating($isPressed) { _, state, _ in state = true }
-                )
-        }
+        configuration.label
+            .padding(.horizontal, Constants.horizontalPadding)
+            .padding(.vertical, Constants.verticalPadding)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(configuration.isPressed ? Constants.highlightBackground : Color.clear)
+            .cornerRadius(Constants.cornerRadius)
+            .animation(.easeInOut(duration: Constants.animationDuration), value: configuration.isPressed)
     }
 }
 
@@ -998,6 +1024,7 @@ private struct AlbumDetailAlbumMenuPopup: View {
         static let itemFontSize: CGFloat = 14
     }
     
+    let isMusicUrlReady: Bool
     let onDownloadMusic: () -> Void
     let onEditAlbum: () -> Void
     let onDeleteAlbum: () -> Void
@@ -1037,6 +1064,7 @@ private struct AlbumDetailAlbumMenuPopup: View {
     
     @ViewBuilder
     private func menuItem(_ item: MenuItem) -> some View {
+        let isDisabled = item == .downloadMusic && !isMusicUrlReady
         Button {
             switch item {
             case .downloadMusic: onDownloadMusic()
@@ -1048,9 +1076,10 @@ private struct AlbumDetailAlbumMenuPopup: View {
             HStack(alignment: .center, spacing: 0) {
                 Text(item.title)
                     .font(.setPretendard(weight: .medium, size: Constants.itemFontSize))
-                    .foregroundStyle(Color.textPrimary)
+                    .foregroundStyle(isDisabled ? Color.buttonDisabledForeground : Color.textPrimary)
             }
         }
+        .disabled(isDisabled)
         .buttonStyle(AlbumMenuItemButtonStyle())
     }
 }
@@ -1105,6 +1134,7 @@ private struct AlbumDetailLogMenuPopup: View {
 private struct AlbumDetailLogFeedSection: View {
 
     @ObservedObject var viewModel: AlbumDetailViewModel
+    let onEdit: (AlbumLogEntry) -> Void
 
     private enum Constants {
         static let horizontalPadding: CGFloat = 20
@@ -1128,7 +1158,8 @@ private struct AlbumDetailLogFeedSection: View {
                     },
                     onDeleteLog: { logId in
                         viewModel.requestDeleteLog(id: logId)
-                    }
+                    },
+                    onEdit: onEdit
                 )
             }
         }
@@ -1148,6 +1179,7 @@ private struct AlbumDetailLogDateGroup: View {
     let lastEntryId: Int?
     let onLastAppear: (() async -> Void)?
     let onDeleteLog: (Int) -> Void
+    let onEdit: (AlbumLogEntry) -> Void
 
     private enum Constants {
         /// 로그 카드 간 간격
@@ -1161,7 +1193,8 @@ private struct AlbumDetailLogDateGroup: View {
                     entry: entry,
                     isLast: entry.id == lastEntryId,
                     onLastAppear: onLastAppear,
-                    onDeleteLog: onDeleteLog
+                    onDeleteLog: onDeleteLog,
+                    onEdit: onEdit
                 )
             }
         }
@@ -1176,6 +1209,7 @@ private struct AlbumDetailLogItemCard: View {
     let isLast: Bool
     let onLastAppear: (() async -> Void)?
     let onDeleteLog: (Int) -> Void
+    let onEdit: (AlbumLogEntry) -> Void
 
     /// 로그 옵션 팝업 표시 여부
     @State private var isMenuVisible: Bool = false
@@ -1250,10 +1284,8 @@ private struct AlbumDetailLogItemCard: View {
                 // 수정 및 삭제 팝업
                 AlbumDetailLogMenuPopup(
                     onEditLog: {
-                        withAnimation(.easeInOut(duration: Constants.menuAnimationDuration)) {
-                            isMenuVisible = false
-                        }
-                        // TODO: 로그 수정 화면으로 이동
+                        isMenuVisible = false
+                        onEdit(entry)
                     },
                     onDeleteLog: {
                         withAnimation(.easeInOut(duration: Constants.menuAnimationDuration)) {
@@ -1448,7 +1480,7 @@ private struct AlbumDetailLogTextSection: View {
         }
         // 콘텐츠 너비 측정
         .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { w in
-            if contentWidth == 0 { contentWidth = w }
+            if contentWidth == 0 { DispatchQueue.main.async { contentWidth = w } }
         }
     }
 }
