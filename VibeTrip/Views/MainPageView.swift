@@ -73,7 +73,7 @@ struct MainPageView: View {
                     selectedAlbum = nil
                     currentIndex = 0
                     // 삭제 후 목록 재조회
-                    Task { await viewModel.loadAlbums() }
+                    Task { await viewModel.reloadAlbums() }
                     // 삭제 완료 후 홈 탭으로 강제 이동
                     appState.pendingTabNavigation = .home
                 },
