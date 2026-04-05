@@ -19,6 +19,12 @@ class AppDelegate: NSObject, UIApplicationDelegate {
 
     func application(_ application: UIApplication,
                      didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey : Any]? = nil) -> Bool {
+        // 앨범 커버 이미지 반복 다운로드 방지: 메모리 50MB / 디스크 200MB
+        URLCache.shared = URLCache(
+            memoryCapacity: 50 * 1024 * 1024,
+            diskCapacity: 200 * 1024 * 1024
+        )
+
         // Firebase 초기화
         FirebaseApp.configure()
         
