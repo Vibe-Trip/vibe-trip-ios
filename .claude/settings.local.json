@@ -1,0 +1,7 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(find /Users/yonghun/Documents/개발/xcode/vibe-trip-ios -type d -name *Test*)"
+    ]
+  }
+}

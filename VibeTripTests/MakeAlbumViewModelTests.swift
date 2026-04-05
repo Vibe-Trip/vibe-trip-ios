@@ -38,7 +38,7 @@ private final class StubAlbumService: AlbumServiceProtocol {
     func deleteAlbum(albumId: String) async throws { fatalError("미사용") }
     func deleteAlbumLog(albumId: String, albumLogId: Int) async throws { fatalError("미사용") }
     func saveLog(request: AlbumLogRequest) async throws { fatalError("미사용") }
-    func fetchAlbumTitle(albumId: Int) async throws -> String? { fatalError("미사용") }
+    func fetchAlbum(albumId: Int) async throws -> AlbumDetail { fatalError("미사용") }
 }
 
 // MARK: - MakeAlbumViewModelTests

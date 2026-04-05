@@ -40,7 +40,9 @@ private final class StubAlbumService: AlbumServiceProtocol {
     func deleteAlbum(albumId: String) async throws { fatalError("미사용") }
     func deleteAlbumLog(albumId: String, albumLogId: Int) async throws { fatalError("미사용") }
     func saveLog(request: AlbumLogRequest) async throws { fatalError("미사용") }
-    func fetchAlbumTitle(albumId: Int) async throws -> String? { return nil }
+    func fetchAlbum(albumId: Int) async throws -> AlbumDetail {
+        AlbumDetail(title: nil, coverImageUrl: nil, region: "", travelStartDate: "", travelEndDate: "", musicUrl: nil)
+    }
 }
 
 // MARK: - PollingStubAlbumService
@@ -62,10 +64,11 @@ private final class PollingStubAlbumService: AlbumServiceProtocol {
         AlbumListPayload(content: albums, totalCount: albums.count, hasNext: false)
     }
 
-    func fetchAlbumTitle(albumId: Int) async throws -> String? {
+    func fetchAlbum(albumId: Int) async throws -> AlbumDetail {
         titleFetchCounts[albumId, default: 0] += 1
-        guard titleFetchCounts[albumId]! >= titleReadyAfterAttempts else { return nil }
-        return "폴링 타이틀"
+        let count = titleFetchCounts[albumId]!
+        let title: String? = count >= titleReadyAfterAttempts ? "폴링 타이틀" : nil
+        return AlbumDetail(title: title, coverImageUrl: nil, region: "", travelStartDate: "", travelEndDate: "", musicUrl: nil)
     }
 
     func createAlbum(request: AlbumCreateRequest) async throws -> AlbumCreateResponse { fatalError("미사용") }
@@ -130,8 +133,8 @@ final class MainPageViewModelTests: XCTestCase {
         XCTAssertNotNil(sut.errorMessage)
     }
 
-    // 두 번째 loadAlbums() 호출 시 albums 초기화 후 로드
-    func test_loadAlbums_calledTwice_resetsAlbums() async {
+    // reloadAlbums() 호출 시 albums 초기화 후 재로드
+    func test_reloadAlbums_resetsAndLoadsNewData() async {
         let firstCards = makeAlbumCards(ids: [1, 2, 3])
         let secondCards = makeAlbumCards(ids: [4, 5])
         let stub = StubAlbumService(results: [
@@ -141,7 +144,7 @@ final class MainPageViewModelTests: XCTestCase {
         makeSUT(stub: stub)
 
         await sut.loadAlbums()
-        await sut.loadAlbums()
+        await sut.reloadAlbums()   // 명시적 새로고침: hasLoaded 리셋 후 재로드
 
         XCTAssertEqual(sut.albums.count, 2)
         XCTAssertEqual(sut.albums.map(\.id), [4, 5])
@@ -244,7 +247,7 @@ final class MainPageViewModelTests: XCTestCase {
 
         await sut.loadAlbums()
         await sut.loadMoreIfNeeded(currentIndex: 1)     // 2페이지 로드 (cursor = 3)
-        await sut.loadAlbums()                          // 재로드 -> cursor 리셋
+        await sut.reloadAlbums()                        // 명시적 새로고침 -> cursor 리셋
 
         XCTAssertEqual(stub.capturedCursors.count, 3)
         XCTAssertNil(stub.capturedCursors[2])           // 세 번째 요청: cursor nil (리셋 확인)
