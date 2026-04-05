@@ -40,6 +40,8 @@
 			</dict>
 		</dict>
 	</dict>
+	<key>UIUserInterfaceStyle</key>
+	<string>Light</string>
 	<key>UIAppFonts</key>
 	<array>
 		<string>Pretendard-Black.otf</string>
