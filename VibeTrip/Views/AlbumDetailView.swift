@@ -414,8 +414,10 @@ struct AlbumDetailView: View {
             switch state {
             case .create:
                 AlbumLogView(albumId: String(displayModel.albumId), mode: .create, onSaved: { didSaveLog = true })
+                    .environmentObject(musicService)
             case .edit(let entry):
                 AlbumLogView(albumId: String(displayModel.albumId), mode: .edit(entry), onSaved: { didSaveLog = true })
+                    .environmentObject(musicService)
             }
         }
         // 신고 바텀시트
