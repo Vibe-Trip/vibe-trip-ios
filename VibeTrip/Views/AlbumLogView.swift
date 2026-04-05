@@ -65,6 +65,7 @@ struct AlbumLogView: View {
 
     // MARK: - Init
 
+    @MainActor
     init(albumId: String, mode: AlbumLogViewModel.LogViewMode, onSaved: (() -> Void)? = nil) {
         self.onSaved = onSaved
         _viewModel = StateObject(
