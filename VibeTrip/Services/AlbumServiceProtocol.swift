@@ -161,7 +161,7 @@ final class AlbumService: AlbumServiceProtocol {
     }
 
     func updateLog(request: AlbumLogUpdateRequest) async throws {
-        let body = AlbumLogUpdateRequestBody(description: request.logText, removeImageIds: [])
+        let body = AlbumLogUpdateRequestBody(description: request.logText, removeImageIds: request.removeImageIds)
         var formData = MultipartFormData()
         try formData.append(name: "request", encodable: body)
         for imageData in request.newPhotoDataList {
