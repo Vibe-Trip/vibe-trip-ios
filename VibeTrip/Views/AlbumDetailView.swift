@@ -258,6 +258,7 @@ struct AlbumDetailView: View {
     @State private var didSaveLog: Bool = false
     
     @EnvironmentObject private var musicService: BackgroundMusicService
+    @EnvironmentObject private var appState: AppState
     
     // UIScrollView KVO로 감지한 contentOffset.y (스크롤 이벤트와 동일 사이클 반영)
     @State private var scrollContentOffset: CGFloat = 0
@@ -407,7 +408,8 @@ struct AlbumDetailView: View {
             // 목록 재조회: 저장이 발생한 경우만
             if didSaveLog {
                 Task { await logViewModel.loadInitialLogs() }
-
+                // 메인 페이지 앨범 카드 미리보기 썸네일 갱신
+                appState.needsAlbumRefresh = true
             }
             didSaveLog = false
         }) { state in
