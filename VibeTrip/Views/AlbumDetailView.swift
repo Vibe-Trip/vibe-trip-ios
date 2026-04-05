@@ -336,9 +336,11 @@ struct AlbumDetailView: View {
         .toolbar(.hidden, for: .navigationBar)
         .fullScreenCover(isPresented: $isWritingLog, onDismiss: {
             // 저장 성공 시에만 목록 재조회
-            if didSaveLog {
-                didSaveLog = false
-                Task { await logViewModel.loadInitialLogs() }
+            Task { @MainActor in    /// 현재 뷰 업데이트 사이클 이후에 상태 변경
+                if didSaveLog {
+                    didSaveLog = false
+                    await logViewModel.loadInitialLogs()
+                }
             }
         }) {
             AlbumLogView(albumId: String(displayModel.albumId), mode: .create, onSaved: {
