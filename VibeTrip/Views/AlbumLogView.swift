@@ -109,15 +109,21 @@ struct AlbumLogView: View {
                         Button {
                             Task { await viewModel.saveLog() }
                         } label: {
-                            Text("저장")
-                                .font(.setPretendard(weight: .semiBold, size: 16))
-                                .foregroundStyle(
-                                    viewModel.isSaveEnabled
-                                    ? Color.appPrimary
-                                    : Color.buttonDisabledForeground
-                                )
+                            if viewModel.isSaving {
+                                ProgressView()
+                                    .tint(Color.appPrimary)
+                                    .frame(width: 44, height: 44)
+                            } else {
+                                Text("저장")
+                                    .font(.setPretendard(weight: .semiBold, size: 16))
+                                    .foregroundStyle(
+                                        viewModel.isSaveEnabled
+                                        ? Color.appPrimary
+                                        : Color.buttonDisabledForeground
+                                    )
+                            }
                         }
-                        .disabled(!viewModel.isSaveEnabled)
+                        .disabled(!viewModel.isSaveEnabled || viewModel.isSaving)
                     }
                 }
                 .safeAreaInset(edge: .bottom, spacing: 0) {
@@ -318,6 +324,7 @@ private extension AlbumLogView {
                         .foregroundStyle(Color.placeholderText)
                         .frame(width: Constants.toolbarIconSize, height: Constants.toolbarIconSize)
                 }
+                .disabled(viewModel.isSaving)
 
                 // 타임스탬프 아이콘
                 Button {
@@ -330,6 +337,7 @@ private extension AlbumLogView {
                         .foregroundStyle(Color.placeholderText)
                         .frame(width: Constants.toolbarIconSize, height: Constants.toolbarIconSize)
                 }
+                .disabled(viewModel.isSaving)
 
                 Spacer()
             }
@@ -377,6 +385,7 @@ private extension AlbumLogView {
 
     // 뒤로가기 처리
     func handleBackButton() {
+        guard !viewModel.isSaving else { return }
         if viewModel.hasUnsavedChanges {
             viewModel.isExitAlertPresented = true
         } else {
