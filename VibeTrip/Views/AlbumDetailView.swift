@@ -174,7 +174,6 @@ struct AlbumDetailView: View {
     
     private let displayModel: AlbumDetailDisplayModel
     private let onBackTap: () -> Void
-    private let onMusicButtonTap: () -> Void
     private let onWriteLogTap: () -> Void
     private let onDownloadMusicTap: () -> Void
     private let onEditAlbumTap: () -> Void
@@ -200,9 +199,7 @@ struct AlbumDetailView: View {
     // 로그 저장 성공 여부 -> onDismiss에서 재조회 여부 판단
     @State private var didSaveLog: Bool = false
     
-    // 재생/일시정지 토글 상태
-    // TODO: AVPlayer 연결
-    @State private var isMusicPlaying: Bool
+    @EnvironmentObject private var musicService: BackgroundMusicService
     
     // 스크롤 offset: ScrollOffsetKey로 감지
     @State private var scrollOffset: CGFloat = 0
@@ -218,7 +215,6 @@ struct AlbumDetailView: View {
     init(
         displayModel: AlbumDetailDisplayModel,
         onBackTap: @escaping () -> Void = {},
-        onMusicButtonTap: @escaping () -> Void = {},
         onWriteLogTap: @escaping () -> Void = {},
         onDownloadMusicTap: @escaping () -> Void = {},
         onEditAlbumTap: @escaping () -> Void = {},
@@ -227,13 +223,11 @@ struct AlbumDetailView: View {
     ) {
         self.displayModel = displayModel
         self.onBackTap = onBackTap
-        self.onMusicButtonTap = onMusicButtonTap
         self.onWriteLogTap = onWriteLogTap
         self.onDownloadMusicTap = onDownloadMusicTap
         self.onEditAlbumTap = onEditAlbumTap
         self.onDeleteAlbumTap = onDeleteAlbumTap
         self.onReportTap = onReportTap
-        _isMusicPlaying = State(initialValue: displayModel.isMusicPlaying)
         _logViewModel = StateObject(wrappedValue: AlbumDetailViewModel(albumId: String(displayModel.albumId)))
     }
     
@@ -392,9 +386,12 @@ struct AlbumDetailView: View {
         }
         // 음악 준비 완료 시 자동 재생
         .onChange(of: logViewModel.isMusicUrlReady) { _, isReady in
-            guard isReady else { return }
-            isMusicPlaying = true
-            // TODO: AVPlayer 연결 시 여기서 player.play() 호출
+            guard isReady, let url = logViewModel.musicUrl else { return }
+            musicService.play(url: url)
+        }
+        // 상세 페이지 닫힐 때 음악 정지 + 초기화
+        .onDisappear {
+            musicService.stop()
         }
     }
 }
@@ -530,14 +527,13 @@ private extension AlbumDetailView {
         HStack(spacing: Constants.actionButtonSpacing) {
             /// 재생/일시정지
             AlbumDetailActionButton(
-                title: isMusicPlaying ? "일시정지" : "재생",
-                systemImageName: isMusicPlaying ? "pause.fill" : "play.fill",
+                title: musicService.isPlaying ? "일시정지" : "재생",
+                systemImageName: musicService.isPlaying ? "pause.fill" : "play.fill",
                 showSparkle: true,
                 referenceTitle: "일시정지",
                 action: {
                     guard logViewModel.isMusicUrlReady else { return }
-                    isMusicPlaying.toggle()
-                    onMusicButtonTap()
+                    musicService.toggle()
                 }
             )
             .opacity(logViewModel.isMusicUrlReady ? 1.0 : 0.4)
@@ -1382,7 +1378,6 @@ struct AlbumDetailDisplayModel {
     let dateText: String
     let coverImageUrl: URL?
     let contentState: AlbumDetailContentState
-    let isMusicPlaying: Bool
     let musicUrl: URL?           // nil : 아직 생성 중
 }
 
@@ -1405,7 +1400,6 @@ enum AlbumDetailContentState {
             dateText: "2026년 11월 22일 - 2026년 11월 26일",
             coverImageUrl: nil,
             contentState: .empty,
-            isMusicPlaying: false,
             musicUrl: nil
         )
     )
@@ -1420,7 +1414,6 @@ enum AlbumDetailContentState {
             dateText: "2026년 3월 20일 - 2026년 3월 24일",
             coverImageUrl: nil,
             contentState: .hasLogs,
-            isMusicPlaying: true,
             musicUrl: nil
         )
     )
