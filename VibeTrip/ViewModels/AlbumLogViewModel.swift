@@ -62,10 +62,10 @@ import UIKit
     private let service: AlbumServiceProtocol
     private let initialText: String
     private var albumLogId: Int?
-    // 현재 남아있는 기존 이미지 ID 목록 
-    private var existingImageIds: [Int] = []
+    // 현재 남아있는 기존 이미지 ID 목록
+    private var existingImageIds: [Int64] = []
     // 삭제된 기존 이미지 ID 목록 (PUT 요청 시 removeImageIds로 전달)
-    private var removedImageIds: [Int] = []
+    private var removedImageIds: [Int64] = []
 
     private enum Constants {
         static let maxPhotoCount = 5

@@ -60,7 +60,7 @@ private struct AlbumLogRegisterRequestBody: Encodable {
 
 private struct AlbumLogUpdateRequestBody: Encodable {
     let description: String
-    let removeImageIds: [Int64]   // GET 응답: imageId 미포함 -> 항상 [] 전송
+    let removeImageIds: [Int64]   // 삭제할 기존 이미지 ID 목록
 }
 
 private struct AlbumCreateRequestBody: Encodable {

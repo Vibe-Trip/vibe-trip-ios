@@ -41,9 +41,11 @@ struct ScrollOffsetObserver: UIViewRepresentable {
 
         func startObserving(_ scrollView: UIScrollView, binding: Binding<CGFloat>) {
             self.scrollView = scrollView
-            // contentOffset KVO: UIKit 스크롤과 동일, 메인 스레드에서 동기 콜백
+            // contentOffset KVO: 뷰 업데이트 사이클과 충돌 방지를 위해 async로 반영
             observation = scrollView.observe(\.contentOffset, options: [.new]) { sv, _ in
-                binding.wrappedValue = sv.contentOffset.y
+                DispatchQueue.main.async {
+                    binding.wrappedValue = sv.contentOffset.y
+                }
             }
         }
 

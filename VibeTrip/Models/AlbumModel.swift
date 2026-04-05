@@ -159,7 +159,7 @@ struct AlbumLogUpdateRequest {
     let albumLogId: Int
     let logText: String
     let newPhotoDataList: [Data]
-    let removeImageIds: [Int]   // 삭제할 기존 이미지 ID 목록
+    let removeImageIds: [Int64]  // 삭제할 기존 이미지 ID 목록 (서버 Int64 기준)
 }
 
 // MARK: - AlbumLogEntry
@@ -176,7 +176,7 @@ struct AlbumLogEntry: Identifiable, Decodable {
 
 // 로그 첨부 이미지
 struct AlbumLogImage: Decodable {
-    let id: Int        // 이미지 식별자 (삭제 시 removeImageIds에 사용)
+    let id: Int64      // 이미지 식별자 (삭제 시 removeImageIds에 사용)
     let imageUrl: URL
 }
 
