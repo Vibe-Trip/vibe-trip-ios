@@ -157,7 +157,9 @@ final class MainPageViewModel: ObservableObject {
                 location: old.location,
                 startDate: old.startDate,
                 endDate: old.endDate,
-                coverImageUrl: old.coverImageUrl
+                coverImageUrl: old.coverImageUrl,
+                logImageCount: old.logImageCount,
+                previewLogImages: old.previewLogImages
             )
         }
         readyAlbumIds.insert(albumId)

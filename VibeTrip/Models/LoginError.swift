@@ -47,7 +47,7 @@ extension LoginError {
     var errorState: LoginErrorState? {
         switch self {
         case .providerError:
-            return .toast(message: "소셜 로그인 서비스에 일시적인 문제가 생겼습니다. 한 번 다시 시도해주세요.")
+            return .toast(message: "로그인 서비스에 일시적인 문제가 생겼습니다.")
         case .networkError:
             return .toast(message: "네트워크 연결이 원활하지 않습니다.")
         case .timeout:
