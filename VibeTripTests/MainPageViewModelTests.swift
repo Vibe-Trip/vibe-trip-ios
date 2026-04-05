@@ -314,4 +314,36 @@ final class MainPageViewModelTests: XCTestCase {
 
         XCTAssertEqual(sut.albums.first?.title, "폴링 타이틀")
     }
+
+    // MARK: - hasLoaded
+
+    // loadAlbums() 두 번 호출 -> 두 번째는 API 호출 없이 스킵
+    func test_loadAlbums_calledTwice_skipsSecondCall() async {
+        let cards = makeAlbumCards(ids: [1, 2, 3])
+        let stub = StubAlbumService(results: [
+            .success(AlbumListPayload(content: cards, totalCount: 3, hasNext: false))
+        ])
+        makeSUT(stub: stub)
+
+        await sut.loadAlbums()
+        await sut.loadAlbums()   // hasLoaded guard: 스킵
+
+        XCTAssertEqual(stub.callCount, 1)       // API 1회만 호출
+        XCTAssertEqual(sut.albums.count, 3)     // 첫 결과 유지
+    }
+
+    // reloadAlbums() -> hasLoaded 리셋 후 API 재호출
+    func test_reloadAlbums_afterLoad_callsAPIAgain() async {
+        let cards = makeAlbumCards(ids: [1, 2, 3])
+        let stub = StubAlbumService(results: [
+            .success(AlbumListPayload(content: cards, totalCount: 3, hasNext: false)),
+            .success(AlbumListPayload(content: cards, totalCount: 3, hasNext: false))
+        ])
+        makeSUT(stub: stub)
+
+        await sut.loadAlbums()
+        await sut.reloadAlbums()
+
+        XCTAssertEqual(stub.callCount, 2)       // 재로드로 API 2회 호출
+    }
 }
