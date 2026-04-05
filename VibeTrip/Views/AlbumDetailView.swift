@@ -148,7 +148,7 @@ import Combine
         do {
             try await service.deleteAlbumLog(albumId: albumId, albumLogId: logId)
             pendingDeleteLogId = nil
-            await loadInitialLogs()
+            logs.removeAll { $0.id == logId }
         } catch {
             deleteLogToastMessage = "로그 삭제에 실패했습니다."
         }
