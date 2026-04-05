@@ -65,7 +65,7 @@ extension BackendErrorCode {
         case .e429:
             return .retryPopup(message: "요청이 너무 많습니다.\n잠시 후 다시 시도해주세요.")
         case .e500:
-            return .toast(message: "서버에 일시적인 오류가 발생했습니다. 잠시 후 다시 시도해주세요.")
+            return .toast(message: "로그인 서비스에 일시적인 문제가 생겼습니다.")
         case .e1000, .e1001, .e1002, .e1003:
             return .toast(message: "로그인 정보가 올바르지 않습니다.")
         case .e2000, .e2001, .e2003, .e2004, .e2005, .e2006:

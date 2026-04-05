@@ -54,16 +54,25 @@ extension VocalGender: Decodable {
     }
 }
 
+// MARK: - PreviewLogImage
+
+// 앨범 목록 카드 로그 미리보기 이미지
+struct PreviewLogImage: Decodable {
+    let imageUrl: URL
+}
+
 // MARK: - AlbumCard
 
 // 메인 페이지 앨범 목록 카드 모델 (GET /api/v1/albums)
 struct AlbumCard: Identifiable, Decodable {
-    let id: Int             // "albumId": 페이지네이션 cursor값
-    let title: String?      // nil: 서버에서 타이틀 생성 중 상태 (빈 문자열도 nil 처리)
-    let location: String    // "region"
-    let startDate: String   // "travelStartDate"
-    let endDate: String     // "travelEndDate"
+    let id: Int                              // "albumId": 페이지네이션 cursor값
+    let title: String?                       // nil: 서버에서 타이틀 생성 중 상태 (빈 문자열도 nil 처리)
+    let location: String                     // "region"
+    let startDate: String                    // "travelStartDate"
+    let endDate: String                      // "travelEndDate"
     let coverImageUrl: URL?
+    let logImageCount: Int                   // 전체 로그 이미지 수 (+N 배지에 사용)
+    let previewLogImages: [PreviewLogImage]  // 미리보기 이미지 (서버에서 최대 3개 전송)
 
     // Swift 프로퍼티명 <-> 서버 필드명 매핑
     enum CodingKeys: String, CodingKey {
@@ -73,16 +82,21 @@ struct AlbumCard: Identifiable, Decodable {
         case startDate = "travelStartDate"
         case endDate = "travelEndDate"
         case coverImageUrl
+        case logImageCount
+        case previewLogImages
     }
 
     // mock 데이터 생성용 memberwise init
-    init(id: Int, title: String?, location: String, startDate: String, endDate: String, coverImageUrl: URL?) {
+    init(id: Int, title: String?, location: String, startDate: String, endDate: String,
+         coverImageUrl: URL?, logImageCount: Int = 0, previewLogImages: [PreviewLogImage] = []) {
         self.id = id
         self.title = title
         self.location = location
         self.startDate = startDate
         self.endDate = endDate
         self.coverImageUrl = coverImageUrl
+        self.logImageCount = logImageCount
+        self.previewLogImages = previewLogImages
     }
 
     init(from decoder: Decoder) throws {
@@ -95,6 +109,9 @@ struct AlbumCard: Identifiable, Decodable {
         startDate = try container.decode(String.self, forKey: .startDate)
         endDate = try container.decode(String.self, forKey: .endDate)
         coverImageUrl = try container.decodeIfPresent(URL.self, forKey: .coverImageUrl)
+        logImageCount = (try? container.decode(Int.self, forKey: .logImageCount)) ?? 0
+        previewLogImages = (try? container.decode([PreviewLogImage].self, forKey: .previewLogImages)) ?? []
+        
     }
 }
 
@@ -244,18 +261,32 @@ enum AlbumError: Error {
 #if DEBUG
 extension AlbumCard {
     static let mockItems: [AlbumCard] = [
+        // previewLogImages 2개, logImageCount 5 → 원형 2개 + "+3" 배지
         .init(
             id: 1, title: "오사카 도톤보리",
             location: "일본 오사카",
             startDate: "2026-01-12", endDate: "2026-01-15",
-            coverImageUrl: nil
+            coverImageUrl: nil,
+            logImageCount: 5,
+            previewLogImages: [
+                PreviewLogImage(imageUrl: URL(string: "https://picsum.photos/seed/log1a/200")!),
+                PreviewLogImage(imageUrl: URL(string: "https://picsum.photos/seed/log1b/200")!)
+            ]
         ),
+        // previewLogImages 3개, logImageCount 3 → 원형 3개, 배지 없음
         .init(
             id: 2, title: "보홀 에메랄드 바다",
             location: "필리핀 보홀",
             startDate: "2024-11-14", endDate: "2024-11-19",
-            coverImageUrl: nil
+            coverImageUrl: nil,
+            logImageCount: 3,
+            previewLogImages: [
+                PreviewLogImage(imageUrl: URL(string: "https://picsum.photos/seed/log2a/200")!),
+                PreviewLogImage(imageUrl: URL(string: "https://picsum.photos/seed/log2b/200")!),
+                PreviewLogImage(imageUrl: URL(string: "https://picsum.photos/seed/log2c/200")!)
+            ]
         ),
+        // previewLogImages 없음 → 썸네일 row 숨김
         .init(
             id: 3, title: "파리 에펠탑",
             location: "프랑스 파리",
@@ -287,19 +318,27 @@ extension AlbumLogEntry {
             id: 1,
             description: "도톤보리 야경이 정말 아름다웠다. 네온사인 불빛이 강물에 반사되던 그 순간이 잊혀지지 않는다.",
             postedAt: "2026-01-13T21:00:00Z",
-            images: []
+            images: [
+                AlbumLogImage(id: 1, imageUrl: URL(string: "https://picsum.photos/seed/log1a/200")!),
+                AlbumLogImage(id: 2, imageUrl: URL(string: "https://picsum.photos/seed/log1b/200")!)
+            ]
         ),
         .init(
             id: 2,
             description: "신사이바시에서 쇼핑을 실컷 했다. 발이 아플 정도로 걸었지만 너무 즐거웠다.",
             postedAt: "2026-01-13T14:30:00Z",
-            images: []
+            images: [
+                AlbumLogImage(id: 3, imageUrl: URL(string: "https://picsum.photos/seed/log2a/200")!)
+            ]
         ),
         .init(
             id: 3,
             description: "오사카 성 아침 산책. 조용하고 평화로운 시간이었다.",
             postedAt: "2026-01-12T09:00:00Z",
-            images: []
+            images: [
+                AlbumLogImage(id: 4, imageUrl: URL(string: "https://picsum.photos/seed/log3a/200")!),
+                AlbumLogImage(id: 5, imageUrl: URL(string: "https://picsum.photos/seed/log3b/200")!)
+            ]
         )
     ]
 }
