@@ -24,13 +24,12 @@ struct AppToastView: View {
                     Text(message)
                         .font(Font.setPretendard(weight: .medium, size: 16))
                         .foregroundStyle(.white)
-                        .multilineTextAlignment(.leading)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                        .padding(.horizontal, 8)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.8)
                 }
-                .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.horizontal, 16)
                 .padding(.vertical, 12)
+                .frame(width: 362, alignment: .leading)
             } else {
                 VStack(alignment: .leading, spacing: 10) {
                     Text(message)

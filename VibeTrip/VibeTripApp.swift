@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import AVFoundation
 import FirebaseCore
 import FirebaseMessaging
 import UserNotifications
@@ -19,6 +20,16 @@ class AppDelegate: NSObject, UIApplicationDelegate {
 
     func application(_ application: UIApplication,
                      didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey : Any]? = nil) -> Bool {
+        // 앨범 커버 이미지 반복 다운로드 방지: 메모리 50MB / 디스크 200MB
+        URLCache.shared = URLCache(
+            memoryCapacity: 50 * 1024 * 1024,
+            diskCapacity: 200 * 1024 * 1024
+        )
+
+        // 오디오 세션 설정: 앱 내 배경음악 재생 (화면 잠금 시 정지)
+        try? AVAudioSession.sharedInstance().setCategory(.ambient, mode: .default)
+        try? AVAudioSession.sharedInstance().setActive(true)
+
         // Firebase 초기화
         FirebaseApp.configure()
         
@@ -58,6 +69,7 @@ struct VibeTripApp: App {
     @UIApplicationDelegateAdaptor(AppDelegate.self) var delegate
 
     @StateObject private var appState = AppState()
+    @StateObject private var backgroundMusicService = BackgroundMusicService()
 
     private let keychainService: KeychainServiceProtocol = KeychainService()
 
@@ -80,6 +92,7 @@ struct VibeTripApp: App {
                 case .some(true):
                     MainTabBarView()
                         .environmentObject(appState)
+                        .environmentObject(backgroundMusicService)
                 }
             }
             .task {

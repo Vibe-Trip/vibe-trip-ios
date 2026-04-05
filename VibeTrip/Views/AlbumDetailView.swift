@@ -23,8 +23,14 @@ import Combine
     @Published private(set) var showDeleteLogConfirm: Bool = false
     @Published private(set) var isDeletingLog: Bool = false
     @Published private(set) var deleteLogToastMessage: String? = nil
+    @Published private(set) var musicUrl: URL? = nil
+    @Published private(set) var isMusicUrlReady: Bool = false
+    @Published private(set) var isDownloadingMusic: Bool = false
+    @Published private(set) var downloadedMusicFileURL: URL? = nil  // 공유 시트 트리거
+    @Published private(set) var isStorageFull: Bool = false
 
     private let albumId: String
+    private let albumIdInt: Int    // Int 변환값, init에서 1회만 처리
     private var cursor: Int? = nil
     private let limit = 20
     private let service: AlbumServiceProtocol
@@ -43,6 +49,7 @@ import Combine
 
     init(albumId: String, service: AlbumServiceProtocol = AlbumService()) {
         self.albumId = albumId
+        self.albumIdInt = Int(albumId) ?? 0
         self.service = service
     }
 
@@ -51,6 +58,47 @@ import Combine
         cursor = nil
         logs = []
         await fetchLogs()
+    }
+
+    // 음악 파일을 임시 폴더에 다운로드 후 공유 시트 트리거
+    func downloadMusic(albumTitle: String?) async {
+        guard let url = musicUrl else { return }
+        isDownloadingMusic = true
+        defer { isDownloadingMusic = false }
+        do {
+            let (data, _) = try await URLSession.shared.data(from: url)
+            let ext = url.pathExtension.isEmpty ? "m4a" : url.pathExtension
+            let baseName = albumTitle.flatMap { $0.isEmpty ? nil : $0 } ?? "vibe_trip_\(albumId)"
+            let sanitized = baseName.replacingOccurrences(of: "[/:\\\\*?\"<>|]", with: "_", options: .regularExpression)
+            let filename = "\(sanitized).\(ext)"
+            let tempURL = FileManager.default.temporaryDirectory.appendingPathComponent(filename)
+            try data.write(to: tempURL)
+            downloadedMusicFileURL = tempURL
+        } catch CocoaError.fileWriteOutOfSpace {
+            isStorageFull = true
+        } catch {
+            // 기타 에러 무시
+        }
+    }
+
+    // 공유 시트 닫힌 후 임시 파일 정리
+    func clearDownloadedMusicFile() {
+        if let url = downloadedMusicFileURL {
+            try? FileManager.default.removeItem(at: url)
+        }
+        downloadedMusicFileURL = nil
+    }
+
+    func consumeStorageFullFlag() {
+        isStorageFull = false
+    }
+
+    // 상세 진입 시 1회 호출: null -> 버튼 비활성, null X -> isMusicUrlReady = true
+    func loadMusicUrl() async {
+        guard albumIdInt > 0 else { return }
+        guard let detail = try? await service.fetchAlbum(albumId: albumIdInt) else { return }
+        musicUrl = detail.musicUrl
+        isMusicUrlReady = detail.musicUrl != nil
     }
 
     func requestDeleteAlbum() {
@@ -162,9 +210,7 @@ struct AlbumDetailView: View {
     
     private let displayModel: AlbumDetailDisplayModel
     private let onBackTap: () -> Void
-    private let onMusicButtonTap: () -> Void
     private let onWriteLogTap: () -> Void
-    private let onDownloadMusicTap: () -> Void
     private let onEditAlbumTap: () -> Void
     private let onDeleteAlbumTap: () -> Void
     private let onReportTap: () -> Void
@@ -183,14 +229,18 @@ struct AlbumDetailView: View {
     // 로그 삭제 실패 토스트 표시 여부
     @State private var isDeleteLogToastVisible: Bool = false
 
+    // 저장공간 부족 토스트 표시 여부
+    @State private var isStorageFullToastVisible: Bool = false
+
+    // 음악 공유 시트 표시 여부
+    @State private var downloadedMusicURL: URL? = nil
+
     // 로그 작성 화면 표시 여부
     @State private var isWritingLog: Bool = false
     // 로그 저장 성공 여부 -> onDismiss에서 재조회 여부 판단
     @State private var didSaveLog: Bool = false
     
-    // 재생/일시정지 토글 상태
-    // TODO: AVPlayer 연결
-    @State private var isMusicPlaying: Bool
+    @EnvironmentObject private var musicService: BackgroundMusicService
     
     // 스크롤 offset: ScrollOffsetKey로 감지
     @State private var scrollOffset: CGFloat = 0
@@ -206,22 +256,17 @@ struct AlbumDetailView: View {
     init(
         displayModel: AlbumDetailDisplayModel,
         onBackTap: @escaping () -> Void = {},
-        onMusicButtonTap: @escaping () -> Void = {},
         onWriteLogTap: @escaping () -> Void = {},
-        onDownloadMusicTap: @escaping () -> Void = {},
         onEditAlbumTap: @escaping () -> Void = {},
         onDeleteAlbumTap: @escaping () -> Void = {},
         onReportTap: @escaping () -> Void = {}
     ) {
         self.displayModel = displayModel
         self.onBackTap = onBackTap
-        self.onMusicButtonTap = onMusicButtonTap
         self.onWriteLogTap = onWriteLogTap
-        self.onDownloadMusicTap = onDownloadMusicTap
         self.onEditAlbumTap = onEditAlbumTap
         self.onDeleteAlbumTap = onDeleteAlbumTap
         self.onReportTap = onReportTap
-        _isMusicPlaying = State(initialValue: displayModel.isMusicPlaying)
         _logViewModel = StateObject(wrappedValue: AlbumDetailViewModel(albumId: String(displayModel.albumId)))
     }
     
@@ -329,16 +374,29 @@ struct AlbumDetailView: View {
                         .transition(.move(edge: .bottom).combined(with: .opacity))
                 }
             }
+
+            // 저장공간 부족 토스트
+            if isStorageFullToastVisible {
+                VStack {
+                    Spacer()
+                    AppToastView(message: "저장공간이 부족합니다.")
+                        .padding(.bottom, 40)
+                        .transition(.move(edge: .bottom).combined(with: .opacity))
+                }
+            }
         }
         .animation(.easeInOut(duration: 0.2), value: isDeleteAlbumToastVisible)
         .animation(.easeInOut(duration: 0.2), value: isDeleteLogToastVisible)
+        .animation(.easeInOut(duration: 0.2), value: isStorageFullToastVisible)
         .navigationBarBackButtonHidden(true)
         .toolbar(.hidden, for: .navigationBar)
         .fullScreenCover(isPresented: $isWritingLog, onDismiss: {
             // 저장 성공 시에만 목록 재조회
-            if didSaveLog {
-                didSaveLog = false
-                Task { await logViewModel.loadInitialLogs() }
+            Task { @MainActor in    /// 현재 뷰 업데이트 사이클 이후에 상태 변경
+                if didSaveLog {
+                    didSaveLog = false
+                    await logViewModel.loadInitialLogs()
+                }
             }
         }) {
             AlbumLogView(albumId: String(displayModel.albumId), mode: .create, onSaved: {
@@ -357,7 +415,11 @@ struct AlbumDetailView: View {
             .presentationDetents([.height(286)])
             .presentationDragIndicator(.hidden)
         }
-        .task { await logViewModel.loadInitialLogs() }
+        .task {
+            async let logs: () = logViewModel.loadInitialLogs()
+            async let music: () = logViewModel.loadMusicUrl()
+            _ = await (logs, music)
+        }
         // 앨범 삭제 실패 시 토스트 표시
         .onChange(of: logViewModel.deleteAlbumToastMessage) { _, message in
             guard message != nil else { return }
@@ -371,6 +433,40 @@ struct AlbumDetailView: View {
         // 삭제 성공 시: fullScreenCover 닫기
         .onChange(of: logViewModel.didDeleteAlbum) { _, didDelete in
             if didDelete { onDeleteAlbumTap() }
+        }
+        // 음악 다운로드 완료 시 공유 시트 표시
+        .onChange(of: logViewModel.downloadedMusicFileURL) { _, url in
+            guard url != nil else { return }
+            downloadedMusicURL = url
+        }
+        // 저장공간 부족 시 토스트 표시
+        .onChange(of: logViewModel.isStorageFull) { _, isFull in
+            guard isFull else { return }
+            showStorageFullToast()
+        }
+        // 공유 시트
+        .sheet(
+            isPresented: Binding(
+                get: { downloadedMusicURL != nil },
+                set: { if !$0 { downloadedMusicURL = nil; logViewModel.clearDownloadedMusicFile() } }
+            )
+        ) {
+            if let url = downloadedMusicURL {
+                ActivityViewController(activityItems: [url])
+                    .presentationDetents([.medium])
+                    .presentationDragIndicator(.visible)
+            }
+        }
+        // 음악 준비 완료 시 자동 재생
+        .onChange(of: logViewModel.isMusicUrlReady) { _, isReady in
+            guard isReady, let url = logViewModel.musicUrl else { return }
+            musicService.play(url: url)
+        }
+        // 상세 페이지 닫힐 때 음악 정지 + 초기화
+        
+        .onDisappear {
+            guard !isWritingLog else { return } // 로그 작성 페이지 fullScreenCover 전환 시 음악 정지 방지
+            musicService.stop()
         }
     }
 }
@@ -409,6 +505,16 @@ private extension AlbumDetailView {
             try? await Task.sleep(nanoseconds: 3_000_000_000)
             withAnimation { isDeleteAlbumToastVisible = false }
             logViewModel.consumeDeleteAlbumToast()
+        }
+    }
+
+    // 저장공간 부족 토스트 표시 후 자동 숨김
+    func showStorageFullToast() {
+        withAnimation { isStorageFullToastVisible = true }
+        Task {
+            try? await Task.sleep(nanoseconds: 3_000_000_000)
+            withAnimation { isStorageFullToastVisible = false }
+            logViewModel.consumeStorageFullFlag()
         }
     }
 
@@ -506,15 +612,17 @@ private extension AlbumDetailView {
         HStack(spacing: Constants.actionButtonSpacing) {
             /// 재생/일시정지
             AlbumDetailActionButton(
-                title: isMusicPlaying ? "일시정지" : "재생",
-                systemImageName: isMusicPlaying ? "pause.fill" : "play.fill",
+                title: musicService.isPlaying ? "일시정지" : "재생",
+                systemImageName: musicService.isPlaying ? "pause.fill" : "play.fill",
                 showSparkle: true,
                 referenceTitle: "일시정지",
                 action: {
-                    isMusicPlaying.toggle()
-                    onMusicButtonTap()
+                    guard logViewModel.isMusicUrlReady else { return }
+                    musicService.toggle()
                 }
             )
+            .opacity(logViewModel.isMusicUrlReady ? 1.0 : 0.4)
+            .disabled(!logViewModel.isMusicUrlReady)
             
             /// 로그 작성 버튼
             AlbumDetailActionButton(
@@ -590,7 +698,7 @@ private extension AlbumDetailView {
             AlbumDetailAlbumMenuPopup(
                 onDownloadMusic: {
                     isAlbumMenuVisible = false
-                    onDownloadMusicTap()
+                    Task { await logViewModel.downloadMusic(albumTitle: displayModel.title) }
                 },
                 onEditAlbum: {
                     isAlbumMenuVisible = false
@@ -1355,7 +1463,7 @@ struct AlbumDetailDisplayModel {
     let dateText: String
     let coverImageUrl: URL?
     let contentState: AlbumDetailContentState
-    let isMusicPlaying: Bool
+    let musicUrl: URL?           // nil : 아직 생성 중
 }
 
 // MARK: - AlbumDetailContentState
@@ -1377,7 +1485,7 @@ enum AlbumDetailContentState {
             dateText: "2026년 11월 22일 - 2026년 11월 26일",
             coverImageUrl: nil,
             contentState: .empty,
-            isMusicPlaying: false
+            musicUrl: nil
         )
     )
 }
@@ -1391,7 +1499,7 @@ enum AlbumDetailContentState {
             dateText: "2026년 3월 20일 - 2026년 3월 24일",
             coverImageUrl: nil,
             contentState: .hasLogs,
-            isMusicPlaying: true
+            musicUrl: nil
         )
     )
 }

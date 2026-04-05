@@ -58,7 +58,11 @@ private final class StubAlbumDetailService: AlbumServiceProtocol {
     func fetchAlbumLog(albumId: String) async throws -> AlbumLog { fatalError("미사용") }
     func updateAlbum(albumId: String, request: AlbumUpdateRequest) async throws -> AlbumCard { fatalError("미사용") }
     func saveLog(request: AlbumLogRequest) async throws { fatalError("미사용") }
-    func fetchAlbumTitle(albumId: Int) async throws -> String? { fatalError("미사용") }
+    var fetchAlbumResult: AlbumDetail = AlbumDetail(
+        title: nil, coverImageUrl: nil, region: "",
+        travelStartDate: "", travelEndDate: "", musicUrl: nil
+    )
+    func fetchAlbum(albumId: Int) async throws -> AlbumDetail { fetchAlbumResult }
 }
 
 // MARK: - AlbumDetailViewModelTests
@@ -419,5 +423,46 @@ final class AlbumDetailViewModelTests: XCTestCase {
         sut.consumeDeleteLogToast()
 
         XCTAssertNil(sut.deleteLogToastMessage)
+    }
+
+    // MARK: - loadMusicUrl
+
+    // musicUrl 있음 -> isMusicUrlReady = true, musicUrl 설정
+    func test_loadMusicUrl_withMusicUrl_setsMusicUrlReady() async {
+        makeSUT(results: [.success(AlbumLogListPayload(content: [], hasNext: false))])
+        stub.fetchAlbumResult = AlbumDetail(
+            title: "타이틀", coverImageUrl: nil, region: "",
+            travelStartDate: "", travelEndDate: "",
+            musicUrl: URL(string: "https://example.com/music.mp3")
+        )
+
+        await sut.loadMusicUrl()
+
+        XCTAssertTrue(sut.isMusicUrlReady)
+        XCTAssertNotNil(sut.musicUrl)
+    }
+
+    // musicUrl nil -> isMusicUrlReady = false
+    func test_loadMusicUrl_withoutMusicUrl_doesNotSetMusicUrlReady() async {
+        makeSUT(results: [.success(AlbumLogListPayload(content: [], hasNext: false))])
+        stub.fetchAlbumResult = AlbumDetail(
+            title: nil, coverImageUrl: nil, region: "",
+            travelStartDate: "", travelEndDate: "", musicUrl: nil
+        )
+
+        await sut.loadMusicUrl()
+
+        XCTAssertFalse(sut.isMusicUrlReady)
+        XCTAssertNil(sut.musicUrl)
+    }
+
+    // albumId가 숫자로 변환 불가 -> API 미호출, isMusicUrlReady = false
+    func test_loadMusicUrl_invalidAlbumId_doesNotCallAPI() async {
+        let invalidStub = StubAlbumDetailService(results: [.success(AlbumLogListPayload(content: [], hasNext: false))])
+        let invalidSut = AlbumDetailViewModel(albumId: "invalid", service: invalidStub)
+
+        await invalidSut.loadMusicUrl()
+
+        XCTAssertFalse(invalidSut.isMusicUrlReady)
     }
 }

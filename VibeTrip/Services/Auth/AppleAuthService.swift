@@ -16,22 +16,49 @@ import UIKit
 
 final class AppleAuthService: NSObject, AppleAuthServiceProtocol {
 
+    private enum Constants {
+        static let timeoutSeconds: UInt64 = 10
+    }
+
     private var continuation: CheckedContinuation<(identityToken: String, fullName: String?), Error>?
     // ASAuthorizationController를 강한 참조로 유지 (auth 완료 전 해제 방지)
     private var controller: ASAuthorizationController?
 
     func login() async throws -> (identityToken: String, fullName: String?) {
-        return try await withCheckedThrowingContinuation { continuation in
-            self.continuation = continuation
+        return try await withThrowingTaskGroup(of: (identityToken: String, fullName: String?).self) { group in
+            // 애플 로그인 작업
+            group.addTask {
+                try await withTaskCancellationHandler {
+                    try await withCheckedThrowingContinuation { continuation in
+                        self.continuation = continuation
 
-            let request = ASAuthorizationAppleIDProvider().createRequest()
-            request.requestedScopes = [.fullName, .email]
+                        let request = ASAuthorizationAppleIDProvider().createRequest()
+                        request.requestedScopes = [.fullName, .email]
 
-            let controller = ASAuthorizationController(authorizationRequests: [request])
-            controller.delegate = self
-            controller.presentationContextProvider = self
-            self.controller = controller
-            controller.performRequests()
+                        let controller = ASAuthorizationController(authorizationRequests: [request])
+                        controller.delegate = self
+                        controller.presentationContextProvider = self
+                        self.controller = controller
+                        controller.performRequests()
+                    }
+                } onCancel: {
+                    // 타임아웃으로 취소 시 저장된 continuation 정리
+                    self.continuation?.resume(throwing: LoginError.cancelled)
+                    self.continuation = nil
+                    self.controller = nil
+                }
+            }
+
+            // 타임아웃: 10초 초과 시 LoginError.timeout throw
+            group.addTask {
+                try await Task.sleep(nanoseconds: Constants.timeoutSeconds * 1_000_000_000)
+                throw LoginError.timeout
+            }
+
+            // 먼저 완료된 결과 반환 후 나머지 취소
+            let (identityToken, fullName) = try await group.next()!
+            group.cancelAll()
+            return (identityToken, fullName)
         }
     }
 }

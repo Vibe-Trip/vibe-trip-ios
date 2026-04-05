@@ -59,12 +59,12 @@ extension VocalGender: Decodable {
 // 메인 페이지 앨범 목록 카드 모델 (GET /api/v1/albums)
 struct AlbumCard: Identifiable, Decodable {
     let id: Int             // "albumId": 페이지네이션 cursor값
-    let title: String?      // nil: 서버에서 타이틀 생성 중 상태
+    let title: String?      // nil: 서버에서 타이틀 생성 중 상태 (빈 문자열도 nil 처리)
     let location: String    // "region"
     let startDate: String   // "travelStartDate"
     let endDate: String     // "travelEndDate"
     let coverImageUrl: URL?
-    
+
     // Swift 프로퍼티명 <-> 서버 필드명 매핑
     enum CodingKeys: String, CodingKey {
         case id = "albumId"
@@ -73,6 +73,28 @@ struct AlbumCard: Identifiable, Decodable {
         case startDate = "travelStartDate"
         case endDate = "travelEndDate"
         case coverImageUrl
+    }
+
+    // mock 데이터 생성용 memberwise init
+    init(id: Int, title: String?, location: String, startDate: String, endDate: String, coverImageUrl: URL?) {
+        self.id = id
+        self.title = title
+        self.location = location
+        self.startDate = startDate
+        self.endDate = endDate
+        self.coverImageUrl = coverImageUrl
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        id = try container.decode(Int.self, forKey: .id)
+        // 빈 문자열("")은 서버 미생성 상태이므로 nil로 처리
+        let rawTitle = try container.decodeIfPresent(String.self, forKey: .title)
+        title = rawTitle?.isEmpty == true ? nil : rawTitle
+        location = try container.decode(String.self, forKey: .location)
+        startDate = try container.decode(String.self, forKey: .startDate)
+        endDate = try container.decode(String.self, forKey: .endDate)
+        coverImageUrl = try container.decodeIfPresent(URL.self, forKey: .coverImageUrl)
     }
 }
 
@@ -152,6 +174,46 @@ struct AlbumLogImage: Decodable {
 struct AlbumLogListPayload: Decodable {
     let content: [AlbumLogEntry]
     let hasNext: Bool
+}
+
+// MARK: - AlbumDetail
+
+// 단일 앨범 조회 응답 (GET /api/v1/albums/{albumId})
+struct AlbumDetail: Decodable {
+    let title: String?
+    let coverImageUrl: URL?
+    let region: String
+    let travelStartDate: String
+    let travelEndDate: String
+    let musicUrl: URL?        // 생성 전: nil (빈 문자열도 nil로 처리)
+
+    // memberwise init: mock 데이터 생성용
+    init(title: String?, coverImageUrl: URL?, region: String, travelStartDate: String, travelEndDate: String, musicUrl: URL?) {
+        self.title = title
+        self.coverImageUrl = coverImageUrl
+        self.region = region
+        self.travelStartDate = travelStartDate
+        self.travelEndDate = travelEndDate
+        self.musicUrl = musicUrl
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        // 빈 문자열(""): 서버 미생성 상태 -> nil 처리
+        let rawTitle = try container.decodeIfPresent(String.self, forKey: .title)
+        title = rawTitle?.isEmpty == true ? nil : rawTitle
+        coverImageUrl = try container.decodeIfPresent(URL.self, forKey: .coverImageUrl)
+        region = try container.decode(String.self, forKey: .region)
+        travelStartDate = try container.decode(String.self, forKey: .travelStartDate)
+        travelEndDate = try container.decode(String.self, forKey: .travelEndDate)
+        // URL(string: ""): nil 반환하므로 빈 문자열 자동 처리
+        let rawMusicUrl = try container.decodeIfPresent(String.self, forKey: .musicUrl)
+        musicUrl = rawMusicUrl.flatMap { $0.isEmpty ? nil : URL(string: $0) }
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case title, coverImageUrl, region, travelStartDate, travelEndDate, musicUrl
+    }
 }
 
 // MARK: - AlbumError
@@ -237,6 +299,27 @@ extension AlbumLog {
         vocalGender: .female,
         logText: "도톤보리 야경이 정말 아름다웠다. 네온사인 불빛이 강물에 반사되던 그 순간이 잊혀지지 않는다.",
         logPhotoUrls: []
+    )
+}
+
+extension AlbumDetail {
+    // title + musicUrl 모두 준비된 상태
+    static let mockReady = AlbumDetail(
+        title: "오사카 도톤보리",
+        coverImageUrl: nil,
+        region: "일본 오사카",
+        travelStartDate: "2026-01-12",
+        travelEndDate: "2026-01-15",
+        musicUrl: URL(string: "https://example.com/music.mp3")
+    )
+    // 둘 다 아직 생성 중
+    static let mockPending = AlbumDetail(
+        title: nil,
+        coverImageUrl: nil,
+        region: "한국 제주도",
+        travelStartDate: "2026-04-01",
+        travelEndDate: "2026-04-03",
+        musicUrl: nil
     )
 }
 #endif
