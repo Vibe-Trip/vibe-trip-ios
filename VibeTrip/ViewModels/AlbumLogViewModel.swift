@@ -62,6 +62,10 @@ import UIKit
     private let service: AlbumServiceProtocol
     private let initialText: String
     private var albumLogId: Int?
+    // 현재 남아있는 기존 이미지 ID 목록 
+    private var existingImageIds: [Int] = []
+    // 삭제된 기존 이미지 ID 목록 (PUT 요청 시 removeImageIds로 전달)
+    private var removedImageIds: [Int] = []
 
     private enum Constants {
         static let maxPhotoCount = 5
@@ -95,6 +99,7 @@ import UIKit
             initialText = prefilled
             createdDate = ISO8601DateFormatter().date(from: entry.postedAt) ?? Date()
             existingPhotosCount = entry.images.count
+            existingImageIds = entry.images.map(\.id)
             Task { await loadExistingPhotos(from: entry.images.map(\.imageUrl)) }
         }
     }
@@ -122,11 +127,13 @@ import UIKit
     }
 
     // 특정 인덱스 사진 삭제
-    // TODO: imageId 연동 후 수정 모드에서 기존 사진 삭제 시 removeImageIds 수집 구현
     func removePhoto(at index: Int) {
         guard selectedPhotos.indices.contains(index) else { return }
         selectedPhotos.remove(at: index)
         if index < existingPhotosCount {
+            // 기존 사진 삭제: ID를 removedImageIds에 기록 후 existingImageIds에서 제거
+            removedImageIds.append(existingImageIds[index])
+            existingImageIds.remove(at: index)
             existingPhotosCount -= 1
         }
     }
@@ -159,7 +166,8 @@ import UIKit
                     albumId: albumId,
                     albumLogId: albumLogId,
                     logText: logText,
-                    newPhotoDataList: newPhotoDataList
+                    newPhotoDataList: newPhotoDataList,
+                    removeImageIds: removedImageIds
                 )
                 try await service.updateLog(request: request)
             }
