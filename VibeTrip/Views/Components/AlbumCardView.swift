@@ -11,11 +11,15 @@ import SwiftUI
 
 struct AlbumCardView: View {
 
-    private let album: AlbumCard
+        private let album: AlbumCard
+    // false: 음악 생성 중 -> skeleton 표시 + 상세 진입 차단
+    private let isReady: Bool
 
-    init(album: AlbumCard) {
+    init(album: AlbumCard, isReady: Bool) {
         self.album = album
+        self.isReady = isReady
     }
+
 
     // MARK: - Layout Constants
 
@@ -90,9 +94,9 @@ struct AlbumCardView: View {
 
                 // 텍스트 그룹 (커버 이미지 하단 기준 고정 위치)
                 VStack(alignment: .leading, spacing: Layout.textSpacing) {
-                    // title: nil -> 생성 중 skeleton 표시,존재 -> 텍스트 표시
-                    if let title = album.title {
-                        Text(title)
+                    // isReady: false -> 음악 생성 중, skeleton 표시
+                    if isReady {
+                        Text(album.title ?? "")
                             .font(Font.setPretendard(weight: .semiBold, size: 20))
                             .foregroundStyle(Color.textPrimary)
                             .lineLimit(1)
@@ -173,18 +177,18 @@ private struct SkeletonTitleView: View {
 // MARK: - Preview
 
 #if DEBUG
-#Preview("타이틀 완성") {
+#Preview("생성 완료") {
     // mockItems[0]: previewLogImages 2개, logImageCount 5 -> 원형 2개 + "+3" 배지
-    AlbumCardView(album: AlbumCard.mockItems[0])
+    AlbumCardView(album: AlbumCard.mockItems[0], isReady: true)
 }
 
-#Preview("타이틀 완성 (배지 없음)") {
+#Preview("생성 완료 (배지 없음)") {
     // mockItems[1]: previewLogImages 3개, logImageCount 3 -> 원형 3개, 배지 없음
-    AlbumCardView(album: AlbumCard.mockItems[1])
+    AlbumCardView(album: AlbumCard.mockItems[1], isReady: true)
 }
 
-#Preview("타이틀 생성 중") {
+#Preview("음악 생성 중") {
     // mockItems[3]: title nil → skeleton 상태 확인용
-    AlbumCardView(album: AlbumCard.mockItems[3])
+    AlbumCardView(album: AlbumCard.mockItems[3], isReady: false)
 }
 #endif

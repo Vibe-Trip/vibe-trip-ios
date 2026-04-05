@@ -19,7 +19,7 @@ protocol AlbumServiceProtocol {
     /// 앨범 로그 조회
     func fetchAlbumLog(albumId: String) async throws -> AlbumLog
     /// 앨범 정보 수정
-    func updateAlbum(albumId: String, request: AlbumUpdateRequest) async throws -> AlbumCard
+    func updateAlbum(albumId: String, request: AlbumUpdateRequest) async throws
     /// 앨범 삭제
     func deleteAlbum(albumId: String) async throws
     /// 앨범 로그 목록 조회 (커서 기반 페이지네이션)
@@ -64,6 +64,16 @@ private struct AlbumLogUpdateRequestBody: Encodable {
 }
 
 private struct AlbumCreateRequestBody: Encodable {
+    let region: String
+    let travelStartDate: String
+    let travelEndDate: String
+    let genre: String
+    let withLyrics: Bool
+    let vocalGender: String
+    let comment: String
+}
+
+private struct AlbumUpdateRequestBody: Encodable {
     let region: String
     let travelStartDate: String
     let travelEndDate: String
@@ -135,8 +145,24 @@ final class AlbumService: AlbumServiceProtocol {
         return try await apiClient.request(endpoint)
     }
     
-    func updateAlbum(albumId: String, request: AlbumUpdateRequest) async throws -> AlbumCard {
-        fatalError("TODO: 서버 스펙 확정 후 구현")
+    // 커버 이미지 + 앨범 정보: multipart/form-data로 전송해 앨범 수정
+    func updateAlbum(albumId: String, request: AlbumUpdateRequest) async throws {
+        let body = AlbumUpdateRequestBody(
+            region: request.location,
+            travelStartDate: Self.dateFormatter.string(from: request.startDate),
+            travelEndDate: Self.dateFormatter.string(from: request.endDate),
+            genre: request.genre.serverValue,
+            withLyrics: request.lyricsOption == .include,
+            // 가사 없음(nil): vocalGender: "N", 가사 있음: "M"/"F"
+            vocalGender: request.vocalGender?.serverValue ?? "N",
+            comment: request.comment
+        )
+        var formData = MultipartFormData()
+        try formData.append(name: "request", encodable: body)
+        formData.append(name: "coverImage", imageData: request.photoData)
+
+        let endpoint = APIEndpoint(path: "/api/v1/albums/\(albumId)", method: .put)
+        try await apiClient.performUpload(endpoint, formData: formData)
     }
     
     func deleteAlbum(albumId: String) async throws {
@@ -202,10 +228,8 @@ final class MockAlbumService: AlbumServiceProtocol {
 
     // true일 경우, fetchAlbums 결과에 title: nil 앨범 포함 -> skeleton 테스트용
     var hasGeneratingAlbum: Bool = false
-    // n번째 fetchAlbum 호출부터 타이틀 반환
-    var titleReadyAfterAttempts: Int = 1
-    // nil = 음악 미생성 시나리오, URL 지정 = 음악 준비 완료 시나리오
-    var mockMusicUrl: URL? = nil
+    // n번째 fetchAlbum 호출부터 musicUrl 반환 (음악 생성 완료 시뮬레이션)
+    var musicReadyAfterAttempts: Int = 1
     private var fetchAlbumCount: [Int: Int] = [:]
 
     func fetchAlbums(cursor: Int?, limit: Int) async throws -> AlbumListPayload {
@@ -236,10 +260,9 @@ final class MockAlbumService: AlbumServiceProtocol {
         return AlbumLogListPayload(content: AlbumLogEntry.mockItems, hasNext: false)
     }
     
-    func updateAlbum(albumId: String, request: AlbumUpdateRequest) async throws -> AlbumCard {
+    func updateAlbum(albumId: String, request: AlbumUpdateRequest) async throws {
         try await Task.sleep(nanoseconds: delay)
         if let error = simulatedError { throw error }
-        return AlbumCard.mockItems[0]
     }
     
     func deleteAlbum(albumId: String) async throws {
@@ -263,14 +286,14 @@ final class MockAlbumService: AlbumServiceProtocol {
         // 호출 횟수 누적 후 titleReadyAfterAttempts 도달 시 타이틀 반환
         fetchAlbumCount[albumId, default: 0] += 1
         let count = fetchAlbumCount[albumId]!
-        let title: String? = count >= titleReadyAfterAttempts ? "Mock 앨범 타이틀" : nil
+        let isReady = count >= musicReadyAfterAttempts
         return AlbumDetail(
-            title: title,
+            title: isReady ? "Mock 앨범 타이틀" : nil,
             coverImageUrl: nil,
             region: "일본 오사카",
             travelStartDate: "2026-01-12",
             travelEndDate: "2026-01-15",
-            musicUrl: mockMusicUrl
+            musicUrl: isReady ? URL(string: "https://example.com/music.mp3") : nil
         )
     }
 

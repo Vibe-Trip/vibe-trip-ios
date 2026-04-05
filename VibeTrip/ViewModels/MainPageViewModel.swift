@@ -44,8 +44,12 @@ final class MainPageViewModel: ObservableObject {
 
     // MARK: - Polling
 
-    // albumId별 title 폴링 Task (중복 방지)
+    // albumId별 음악 생성 완료 폴링 Task (중복 방지)
     private var pollingTasks: [Int: Task<Void, Never>] = [:]
+    // 음악 생성 완료된 앨범 ID 집합 (재조회 시 유지 -> 이미 준비된 앨범 스켈레톤 방지)
+    private var readyAlbumIds: Set<Int> = []
+    // 수정 후 강제 폴링 대상 앨범 ID 집합 (title 있어도 폴링 재시작)
+    private var pendingPollingIds: Set<Int> = []
     // 폴링 간격 (기본 5초, 테스트 시 0으로 주입 가능)
     private let pollingInterval: UInt64
 
@@ -69,11 +73,23 @@ final class MainPageViewModel: ObservableObject {
         await fetchNextPage()
     }
 
-    // 명시적 새로고침 (needsAlbumRefresh, 앨범 삭제 후 복귀)
+    // 명시적 새로고침 (needsAlbumRefresh, 앨범 삭제/수정 후 복귀)
+    // readyAlbumIds는 초기화하지 않음 -> 이미 준비된 앨범은 재조회 후에도 스켈레톤 없이 바로 표시
     func reloadAlbums() async {
         hasLoaded = false
         cancelAllPolling()
         await loadAlbums()
+    }
+
+    // 앨범 수정 완료 후 해당 앨범을 미준비 상태로 전환 -> 폴링 재시작 대상
+    func markAlbumNotReady(albumId: Int) {
+        readyAlbumIds.remove(albumId)
+        pendingPollingIds.insert(albumId)
+    }
+
+    // 음악 생성 완료 여부
+    func isReady(for albumId: Int) -> Bool {
+        readyAlbumIds.contains(albumId)
     }
 
     // 결과: albums 배열에 누적, 완료 후 title nil 앨범 폴링 시작
@@ -88,6 +104,11 @@ final class MainPageViewModel: ObservableObject {
             hasNext = payload.hasNext
             cursor = payload.content.last?.id // 마지막 albumId: 다음 요청 cursor
             errorMessage = nil
+            // title이 이미 있는 앨범은 음악 생성 완료 상태 → readyAlbumIds에 미리 등록
+            // 수정 후 강제 폴링 대상(pendingPollingIds)은 제외
+            for album in payload.content where album.title != nil && !pendingPollingIds.contains(album.id) {
+                readyAlbumIds.insert(album.id)
+            }
             startPollingIfNeeded()
         } catch {
             errorMessage = "앨범을 불러오지 못했습니다."
@@ -102,44 +123,47 @@ final class MainPageViewModel: ObservableObject {
 
     // MARK: - Polling
 
-    // title nil 앨범에 대해 폴링 Task 시작 (이미 폴링 중이면 스킵)
+    // 음악 미생성 앨범에 대해 폴링 Task 시작 (이미 준비됐거나 폴링 중이면 스킵)
     private func startPollingIfNeeded() {
-        for album in albums where album.title == nil {
+        for album in albums where !readyAlbumIds.contains(album.id) {
             guard pollingTasks[album.id] == nil else { continue }
             let albumId = album.id
             pollingTasks[albumId] = Task { [weak self] in
-                await self?.pollTitle(for: albumId)
+                await self?.pollMusic(for: albumId)
             }
         }
     }
 
-    // 타이틀 조회: 5초 간격, 최대 120회(10분)
-    private func pollTitle(for albumId: Int) async {
+    // musicUrl 조회: 5초 간격, 최대 120회(10분)
+    private func pollMusic(for albumId: Int) async {
         for _ in 0..<120 {
             try? await Task.sleep(nanoseconds: pollingInterval)
             guard !Task.isCancelled else { return }
             guard let detail = try? await albumService.fetchAlbum(albumId: albumId),
-                  let title = detail.title else { continue }
-            applyTitle(title, for: albumId)
+                  detail.musicUrl != nil else { continue }
+            applyAlbumReady(title: detail.title, for: albumId)
             return
         }
         pollingTasks[albumId] = nil
     }
 
-    // 타이틀 수신 시: 해당 앨범 -> albums 배열에서 교체 후 폴링 Task 정리
-    private func applyTitle(_ title: String, for albumId: Int) {
-        guard let idx = albums.firstIndex(where: { $0.id == albumId }) else { return }
-        let old = albums[idx]
-        albums[idx] = AlbumCard(
-            id: old.id,
-            title: title,
-            location: old.location,
-            startDate: old.startDate,
-            endDate: old.endDate,
-            coverImageUrl: old.coverImageUrl,
-            logImageCount: old.logImageCount,
-            previewLogImages: old.previewLogImages
-        )
+    // 음악 생성 완료 시: title 업데이트 + readyAlbumIds 등록 + 폴링 Task 정리
+    private func applyAlbumReady(title: String?, for albumId: Int) {
+        if let title, let idx = albums.firstIndex(where: { $0.id == albumId }) {
+            let old = albums[idx]
+            albums[idx] = AlbumCard(
+                id: old.id,
+                title: title,
+                location: old.location,
+                startDate: old.startDate,
+                endDate: old.endDate,
+                coverImageUrl: old.coverImageUrl,
+                logImageCount: old.logImageCount,
+                previewLogImages: old.previewLogImages
+            )
+        }
+        readyAlbumIds.insert(albumId)
+        pendingPollingIds.remove(albumId)
         pollingTasks[albumId] = nil
     }
 

@@ -228,6 +228,7 @@ struct AlbumDetailView: View {
     private let onBackTap: () -> Void
     private let onWriteLogTap: () -> Void
     private let onEditAlbumTap: () -> Void
+    private let onEditSaved: () -> Void     // 수정 완료 후 메인 복귀 콜백
     private let onDeleteAlbumTap: () -> Void
     private let onReportTap: () -> Void
     
@@ -254,6 +255,9 @@ struct AlbumDetailView: View {
     // 로그 작성/수정 화면 전환 상태 (nil: 미표시)
     @State private var logPresentation: LogPresentationState? = nil
 
+    // 앨범 수정 화면 표시 여부
+    @State private var isEditPresented: Bool = false
+
     // 실제 저장 완료 여부: onDismiss 재조회 조건 판단
     @State private var didSaveLog: Bool = false
     
@@ -276,6 +280,7 @@ struct AlbumDetailView: View {
         onBackTap: @escaping () -> Void = {},
         onWriteLogTap: @escaping () -> Void = {},
         onEditAlbumTap: @escaping () -> Void = {},
+        onEditSaved: @escaping () -> Void = {},
         onDeleteAlbumTap: @escaping () -> Void = {},
         onReportTap: @escaping () -> Void = {}
     ) {
@@ -283,6 +288,7 @@ struct AlbumDetailView: View {
         self.onBackTap = onBackTap
         self.onWriteLogTap = onWriteLogTap
         self.onEditAlbumTap = onEditAlbumTap
+        self.onEditSaved = onEditSaved
         self.onDeleteAlbumTap = onDeleteAlbumTap
         self.onReportTap = onReportTap
         _logViewModel = StateObject(wrappedValue: AlbumDetailViewModel(albumId: String(displayModel.albumId)))
@@ -482,10 +488,20 @@ struct AlbumDetailView: View {
             musicService.play(url: url)
         }
         // 상세 페이지 닫힐 때 음악 정지 + 초기화
-        
         .onDisappear {
-            guard logPresentation == nil else { return } // 로그 작성/수정 페이지 fullScreenCover 전환 시 음악 정지 방지
+            guard logPresentation == nil, !isEditPresented else { return } // 로그/수정 페이지 전환 시 음악 정지 방지
             musicService.stop()
+        }
+        // 앨범 수정 화면
+        .fullScreenCover(isPresented: $isEditPresented) {
+            EditAlbumView(
+                albumId: displayModel.albumId,
+                onExit: { isEditPresented = false },
+                onSaved: {
+                    isEditPresented = false
+                    onEditSaved()
+                }
+            )
         }
     }
 }
@@ -730,6 +746,7 @@ private extension AlbumDetailView {
                 },
                 onEditAlbum: {
                     isAlbumMenuVisible = false
+                    isEditPresented = true
                     onEditAlbumTap()
                 },
                 onDeleteAlbum: {

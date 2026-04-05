@@ -598,4 +598,100 @@ final class AlbumServiceTests: XCTestCase {
             XCTFail("예상치 못한 에러: \(error)")
         }
     }
+
+    // MARK: - updateAlbum: 헬퍼
+
+    private func makeUpdateRequest() -> AlbumUpdateRequest {
+        AlbumUpdateRequest(
+            photoData: Data([0x00, 0x01]),
+            location: "서울",
+            startDate: Date(timeIntervalSince1970: 0),
+            endDate: Date(timeIntervalSince1970: 86400),
+            lyricsOption: .include,
+            vocalGender: .female,
+            genre: .jazz,
+            comment: "테스트 코멘트"
+        )
+    }
+
+    // MARK: - updateAlbum: 성공
+
+    // 성공 시 performUpload 1회 호출
+    func test_updateAlbum_success_callsPerformUploadOnce() async throws {
+        mockAPIClient.performUploadResult = .success(())
+
+        try await sut.updateAlbum(albumId: "42", request: makeUpdateRequest())
+
+        XCTAssertEqual(mockAPIClient.performUploadCallCount, 1)
+    }
+
+    // albumId가 path에 올바르게 포함되는지 검증
+    func test_updateAlbum_success_usesCorrectEndpointPath() async throws {
+        mockAPIClient.performUploadResult = .success(())
+
+        try await sut.updateAlbum(albumId: "42", request: makeUpdateRequest())
+
+        XCTAssertEqual(mockAPIClient.capturedEndpoints.last?.path, "/api/v1/albums/42")
+    }
+
+    // PUT 메서드로 요청되는지 검증
+    func test_updateAlbum_success_usesPutMethod() async throws {
+        mockAPIClient.performUploadResult = .success(())
+
+        try await sut.updateAlbum(albumId: "1", request: makeUpdateRequest())
+
+        XCTAssertEqual(mockAPIClient.capturedEndpoints.last?.method, .put)
+    }
+
+    // vocalGender nil -> throw 없이 정상 처리 ("N"으로 변환)
+    func test_updateAlbum_nilVocalGender_doesNotThrow() async throws {
+        mockAPIClient.performUploadResult = .success(())
+        let request = AlbumUpdateRequest(
+            photoData: Data([0x00]),
+            location: "부산",
+            startDate: Date(),
+            endDate: Date(),
+            lyricsOption: .exclude,
+            vocalGender: nil,
+            genre: .loFi,
+            comment: ""
+        )
+
+        try await sut.updateAlbum(albumId: "1", request: request)
+
+        XCTAssertEqual(mockAPIClient.performUploadCallCount, 1)
+    }
+
+    // MARK: - updateAlbum: 서버 에러
+
+    // 서버 에러 응답 -> APIClientError.serverError throw
+    func test_updateAlbum_serverError_throwsServerError() async throws {
+        mockAPIClient.performUploadResult = .failure(APIClientError.serverError(.e400))
+
+        do {
+            try await sut.updateAlbum(albumId: "1", request: makeUpdateRequest())
+            XCTFail("서버 에러가 throw되어야 합니다")
+        } catch APIClientError.serverError(let code) {
+            XCTAssertEqual(code, .e400)
+        } catch {
+            XCTFail("예상치 못한 에러: \(error)")
+        }
+    }
+
+    // MARK: - updateAlbum: 네트워크 에러
+
+    // 네트워크 연결 불가 -> APIClientError.networkError throw
+    func test_updateAlbum_networkError_throwsNetworkError() async throws {
+        let urlError = URLError(.notConnectedToInternet)
+        mockAPIClient.performUploadResult = .failure(APIClientError.networkError(urlError))
+
+        do {
+            try await sut.updateAlbum(albumId: "1", request: makeUpdateRequest())
+            XCTFail("네트워크 에러가 throw되어야 합니다")
+        } catch APIClientError.networkError(let error) {
+            XCTAssertEqual(error.code, .notConnectedToInternet)
+        } catch {
+            XCTFail("예상치 못한 에러: \(error)")
+        }
+    }
 }

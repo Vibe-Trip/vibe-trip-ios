@@ -56,7 +56,7 @@ private final class StubAlbumDetailService: AlbumServiceProtocol {
     func fetchAlbums(cursor: Int?, limit: Int) async throws -> AlbumListPayload { fatalError("미사용") }
     func createAlbum(request: AlbumCreateRequest) async throws -> AlbumCreateResponse { fatalError("미사용") }
     func fetchAlbumLog(albumId: String) async throws -> AlbumLog { fatalError("미사용") }
-    func updateAlbum(albumId: String, request: AlbumUpdateRequest) async throws -> AlbumCard { fatalError("미사용") }
+    func updateAlbum(albumId: String, request: AlbumUpdateRequest) async throws { fatalError("미사용") }
     func saveLog(request: AlbumLogRequest) async throws { fatalError("미사용") }
     func updateLog(request: AlbumLogUpdateRequest) async throws { fatalError("미사용") }
     var fetchAlbumResult: AlbumDetail = AlbumDetail(
