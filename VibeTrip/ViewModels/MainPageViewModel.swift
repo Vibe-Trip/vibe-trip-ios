@@ -101,6 +101,10 @@ final class MainPageViewModel: ObservableObject {
             hasNext = payload.hasNext
             cursor = payload.content.last?.id // 마지막 albumId: 다음 요청 cursor
             errorMessage = nil
+            // title이 이미 있는 앨범은 음악 생성 완료 상태 → readyAlbumIds에 미리 등록
+            for album in payload.content where album.title != nil {
+                readyAlbumIds.insert(album.id)
+            }
             startPollingIfNeeded()
         } catch {
             errorMessage = "앨범을 불러오지 못했습니다."

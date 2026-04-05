@@ -36,7 +36,7 @@ private final class StubAlbumService: AlbumServiceProtocol {
     func createAlbum(request: AlbumCreateRequest) async throws -> AlbumCreateResponse { fatalError("미사용") }
     func fetchAlbumLog(albumId: String) async throws -> AlbumLog { fatalError("미사용") }
     func fetchAlbumLogs(albumId: String, cursor: Int?, limit: Int) async throws -> AlbumLogListPayload { fatalError("미사용") }
-    func updateAlbum(albumId: String, request: AlbumUpdateRequest) async throws -> AlbumCard { fatalError("미사용") }
+    func updateAlbum(albumId: String, request: AlbumUpdateRequest) async throws { fatalError("미사용") }
     func deleteAlbum(albumId: String) async throws { fatalError("미사용") }
     func deleteAlbumLog(albumId: String, albumLogId: Int) async throws { fatalError("미사용") }
     func saveLog(request: AlbumLogRequest) async throws { fatalError("미사용") }
@@ -68,14 +68,16 @@ private final class PollingStubAlbumService: AlbumServiceProtocol {
     func fetchAlbum(albumId: Int) async throws -> AlbumDetail {
         titleFetchCounts[albumId, default: 0] += 1
         let count = titleFetchCounts[albumId]!
-        let title: String? = count >= titleReadyAfterAttempts ? "폴링 타이틀" : nil
-        return AlbumDetail(title: title, coverImageUrl: nil, region: "", travelStartDate: "", travelEndDate: "", musicUrl: nil)
+        let ready = count >= titleReadyAfterAttempts
+        let title: String? = ready ? "폴링 타이틀" : nil
+        let musicUrl: URL? = ready ? URL(string: "https://example.com/music.mp3") : nil
+        return AlbumDetail(title: title, coverImageUrl: nil, region: "", travelStartDate: "", travelEndDate: "", musicUrl: musicUrl)
     }
 
     func createAlbum(request: AlbumCreateRequest) async throws -> AlbumCreateResponse { fatalError("미사용") }
     func fetchAlbumLog(albumId: String) async throws -> AlbumLog { fatalError("미사용") }
     func fetchAlbumLogs(albumId: String, cursor: Int?, limit: Int) async throws -> AlbumLogListPayload { fatalError("미사용") }
-    func updateAlbum(albumId: String, request: AlbumUpdateRequest) async throws -> AlbumCard { fatalError("미사용") }
+    func updateAlbum(albumId: String, request: AlbumUpdateRequest) async throws { fatalError("미사용") }
     func deleteAlbum(albumId: String) async throws { fatalError("미사용") }
     func deleteAlbumLog(albumId: String, albumLogId: Int) async throws { fatalError("미사용") }
     func saveLog(request: AlbumLogRequest) async throws { fatalError("미사용") }
