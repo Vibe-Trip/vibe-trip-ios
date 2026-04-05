@@ -69,6 +69,7 @@ struct VibeTripApp: App {
     @UIApplicationDelegateAdaptor(AppDelegate.self) var delegate
 
     @StateObject private var appState = AppState()
+    @StateObject private var backgroundMusicService = BackgroundMusicService()
 
     private let keychainService: KeychainServiceProtocol = KeychainService()
 
@@ -91,6 +92,7 @@ struct VibeTripApp: App {
                 case .some(true):
                     MainTabBarView()
                         .environmentObject(appState)
+                        .environmentObject(backgroundMusicService)
                 }
             }
             .task {
