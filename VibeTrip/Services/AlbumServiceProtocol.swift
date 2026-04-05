@@ -237,6 +237,8 @@ final class MockAlbumService: AlbumServiceProtocol {
         titleFetchCount[albumId, default: 0] += 1
         guard titleFetchCount[albumId]! >= titleReadyAfterAttempts else { return nil }
         return "Mock 앨범 타이틀"
+    }
+
     func deleteAlbumLog(albumId: String, albumLogId: Int) async throws {
         try await Task.sleep(nanoseconds: delay)
         if let error = simulatedError { throw error }

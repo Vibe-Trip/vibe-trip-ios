@@ -150,6 +150,15 @@ protocol APIClientProtocol {
     var sessionExpiredPublisher: AnyPublisher<Void, Never> { get }
 }
 
+// MARK: - RefreshResult
+
+// 토큰 갱신 결과: 갱신 성공 / 진짜 만료 / 일시 오류 구분
+private enum RefreshResult {
+    case success          // 갱신 성공
+    case expired          // 서버 401/403: 진짜 만료 -> 로그아웃
+    case transientError   // 네트워크 오류, 5xx 등: 일시 오류 -> 로그아웃X
+}
+
 // MARK: - RefreshActor
 
 // Swift actor: 토큰 갱신 중복 요청을 방지
@@ -160,9 +169,9 @@ private actor RefreshActor {
     private var isRefreshing = false
 
     // 갱신 완료를 기다리는 요청 대기열
-    private var waiters: [CheckedContinuation<Bool, Never>] = []
+    private var waiters: [CheckedContinuation<RefreshResult, Never>] = []
 
-    func refreshIfNeeded(using action: () async -> Bool) async -> Bool {
+    func refreshIfNeeded(using action: () async -> RefreshResult) async -> RefreshResult {
         if isRefreshing {
             // 이미 갱신 진행 중 -> 완료될 때까지 대기 후 같은 결과 수신
             return await withCheckedContinuation { continuation in
@@ -171,13 +180,13 @@ private actor RefreshActor {
         }
 
         isRefreshing = true
-        let success = await action()
+        let result = await action()
 
         // 대기 중이던 요청에 갱신 결과 전달
-        for waiter in waiters { waiter.resume(returning: success) }
+        for waiter in waiters { waiter.resume(returning: result) }
         waiters.removeAll()
         isRefreshing = false
-        return success
+        return result
     }
 }
 
@@ -267,14 +276,21 @@ final class APIClient: APIClientProtocol {
         }
 
         // 401: RefreshActor로 갱신 중복 방지하며 토큰 갱신
-        let refreshed = await refreshActor.refreshIfNeeded { [weak self] in
-            await self?.refreshToken() ?? false
+        let refreshResult = await refreshActor.refreshIfNeeded { [weak self] in
+            await self?.refreshToken() ?? .expired
         }
 
-        guard refreshed else {
-            // refreshToken도 만료: 세션 만료 발행 후 에러
+        switch refreshResult {
+        case .expired:
+            // refreshToken 만료 확인: 만료 토큰 삭제 후 세션 만료 발행
+            try? keychain.clear()
             sessionExpiredSubject.send()
             throw APIClientError.sessionExpired
+        case .transientError:
+            // 네트워크/서버 일시 오류: 로그아웃 없이 에러만 전파
+            throw APIClientError.networkError(URLError(.networkConnectionLost))
+        case .success:
+            break
         }
 
         // 갱신 성공: 새 accessToken으로 헤더만 교체 후 재시도
@@ -298,22 +314,32 @@ final class APIClient: APIClientProtocol {
     // MARK: - 토큰 갱신
 
     // POST /api/v1/auth/refresh 호출: 성공 시 새 토큰 Keychain 저장
-    private func refreshToken() async -> Bool {
-        guard let refreshToken = try? keychain.getRefreshToken() else { return false }
+    private func refreshToken() async -> RefreshResult {
+        guard let refreshToken = try? keychain.getRefreshToken() else { return .expired }
 
         let endpoint = APIEndpoint(path: "/api/v1/auth/refresh", method: .post, requiresAuth: false)
-        guard var request = try? buildJSONRequest(endpoint) else { return false }
+        guard var request = try? buildJSONRequest(endpoint) else { return .transientError }
 
         // 갱신 요청: accessToken 대신 refreshToken 사용
         request.setValue("Bearer \(refreshToken)", forHTTPHeaderField: "Authorization")
 
-        guard let (data, _) = try? await session.data(for: request),
-              let apiResponse = try? JSONDecoder().decode(ApiResponse<AuthToken>.self, from: data),
+        guard let (data, response) = try? await session.data(for: request) else {
+            return .transientError  // 네트워크 오류
+        }
+
+        // 서버 401/403: refreshToken 자체가 만료된 것으로 판단
+        if let httpResponse = response as? HTTPURLResponse,
+           httpResponse.statusCode == 401 || httpResponse.statusCode == 403 {
+            return .expired
+        }
+
+        // 디코딩 실패, resultType != SUCCESS, 5xx 등: 일시 오류로 판단
+        guard let apiResponse = try? JSONDecoder().decode(ApiResponse<AuthToken>.self, from: data),
               apiResponse.resultType == "SUCCESS",
-              let newToken = apiResponse.data else { return false }
+              let newToken = apiResponse.data else { return .transientError }
 
         try? keychain.save(accessToken: newToken.accessToken, refreshToken: newToken.refreshToken)
-        return true
+        return .success
     }
 
     // MARK: - URLRequest 생성 (JSON)

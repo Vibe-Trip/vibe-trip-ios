@@ -58,13 +58,12 @@ struct MainPageView: View {
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .task { await viewModel.loadAlbums() }
-.onDisappear { viewModel.cancelAllPolling() }
+        .onDisappear { viewModel.cancelAllPolling() }
         .onChange(of: appState.needsAlbumRefresh) { _, needsReload in
             guard needsReload else { return }
             // 중복 트리거 방지를 위해 플래그 먼저 초기화 후 새로고침
             appState.needsAlbumRefresh = false
             Task { await viewModel.reloadAlbums() }
-        }
         }
         .fullScreenCover(item: $selectedAlbum) { album in
             AlbumDetailView(
@@ -342,6 +341,5 @@ private extension AlbumCard {
     service.titleReadyAfterAttempts = 2  // 4번째 카드: 2번째 폴링(약 5초)에서 타이틀 반환
     return MainPageView(viewModel: MainPageViewModel(albumService: service))
         .environmentObject(AppState())
-}
 }
 #endif

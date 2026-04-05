@@ -73,6 +73,7 @@ private final class PollingStubAlbumService: AlbumServiceProtocol {
     func fetchAlbumLogs(albumId: String, cursor: Int?, limit: Int) async throws -> AlbumLogListPayload { fatalError("미사용") }
     func updateAlbum(albumId: String, request: AlbumUpdateRequest) async throws -> AlbumCard { fatalError("미사용") }
     func deleteAlbum(albumId: String) async throws { fatalError("미사용") }
+    func deleteAlbumLog(albumId: String, albumLogId: Int) async throws { fatalError("미사용") }
     func saveLog(request: AlbumLogRequest) async throws { fatalError("미사용") }
 }
 
