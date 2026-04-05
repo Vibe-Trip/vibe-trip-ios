@@ -522,12 +522,13 @@ final class AlbumServiceTests: XCTestCase {
 
     // MARK: - updateLog: 헬퍼
 
-    private func makeUpdateRequest(newPhotoDataList: [Data] = []) -> AlbumLogUpdateRequest {
+    private func makeUpdateRequest(newPhotoDataList: [Data] = [], removeImageIds: [Int64] = []) -> AlbumLogUpdateRequest {
         AlbumLogUpdateRequest(
             albumId: "42",
             albumLogId: 101,
             logText: "수정된 기록",
-            newPhotoDataList: newPhotoDataList
+            newPhotoDataList: newPhotoDataList,
+            removeImageIds: removeImageIds
         )
     }
 

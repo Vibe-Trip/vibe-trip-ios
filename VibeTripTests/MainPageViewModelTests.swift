@@ -40,6 +40,7 @@ private final class StubAlbumService: AlbumServiceProtocol {
     func deleteAlbum(albumId: String) async throws { fatalError("미사용") }
     func deleteAlbumLog(albumId: String, albumLogId: Int) async throws { fatalError("미사용") }
     func saveLog(request: AlbumLogRequest) async throws { fatalError("미사용") }
+    func updateLog(request: AlbumLogUpdateRequest) async throws { fatalError("미사용") }
     func fetchAlbum(albumId: Int) async throws -> AlbumDetail {
         AlbumDetail(title: nil, coverImageUrl: nil, region: "", travelStartDate: "", travelEndDate: "", musicUrl: nil)
     }
@@ -78,6 +79,7 @@ private final class PollingStubAlbumService: AlbumServiceProtocol {
     func deleteAlbum(albumId: String) async throws { fatalError("미사용") }
     func deleteAlbumLog(albumId: String, albumLogId: Int) async throws { fatalError("미사용") }
     func saveLog(request: AlbumLogRequest) async throws { fatalError("미사용") }
+    func updateLog(request: AlbumLogUpdateRequest) async throws { fatalError("미사용") }
 }
 
 // MARK: - MainPageViewModelTests

@@ -18,6 +18,8 @@ fileprivate final class StubAlbumLogService: AlbumServiceProtocol {
 
     var updateResult: Result<Void, Error> = .success(())
     private(set) var updateCallCount = 0
+    // 마지막으로 전달된 수정 요청 (removeImageIds 등 검증용)
+    private(set) var lastUpdateRequest: AlbumLogUpdateRequest?
 
     func saveLog(request: AlbumLogRequest) async throws {
         saveCallCount += 1
@@ -26,6 +28,7 @@ fileprivate final class StubAlbumLogService: AlbumServiceProtocol {
 
     func updateLog(request: AlbumLogUpdateRequest) async throws {
         updateCallCount += 1
+        lastUpdateRequest = request
         if case .failure(let e) = updateResult { throw e }
     }
 
@@ -221,5 +224,48 @@ final class AlbumLogViewModelEditTests: XCTestCase {
         sut.removePhoto(at: 0)
 
         XCTAssertTrue(sut.selectedPhotos.isEmpty)
+    }
+
+    // MARK: - removeImageIds
+
+    // 기존 이미지가 있는 수정 모드에서 기존 사진 삭제 -> 저장 시 removeImageIds에 해당 ID 포함
+    func test_removePhoto_existingImage_includesIdInUpdateRequest() async {
+        let entryWithImages = AlbumLogEntry(
+            id: 99,
+            description: "텍스트",
+            postedAt: "2026-01-13T12:00:00Z",
+            images: [
+                AlbumLogImage(id: 10, imageUrl: URL(string: "https://example.com/img1.jpg")!),
+                AlbumLogImage(id: 20, imageUrl: URL(string: "https://example.com/img2.jpg")!)
+            ]
+        )
+        stub = StubAlbumLogService()
+        sut = AlbumLogViewModel(albumId: "1", mode: .edit(entryWithImages), service: stub)
+        sut.logText = "텍스트"
+
+        // 첫 번째 기존 이미지(id: 10) 삭제 (existingPhotosCount 기준 인덱스 0)
+        sut.removePhoto(at: 0)
+        await sut.saveLog()
+
+        XCTAssertEqual(stub.lastUpdateRequest?.removeImageIds, [Int64(10)])
+    }
+
+    // 기존 이미지 삭제 없이 저장 -> removeImageIds 빈 배열 전달
+    func test_saveLog_editMode_noRemovedImages_sendsEmptyRemoveIds() async {
+        let entryWithImages = AlbumLogEntry(
+            id: 99,
+            description: "텍스트",
+            postedAt: "2026-01-13T12:00:00Z",
+            images: [
+                AlbumLogImage(id: 10, imageUrl: URL(string: "https://example.com/img1.jpg")!)
+            ]
+        )
+        stub = StubAlbumLogService()
+        sut = AlbumLogViewModel(albumId: "1", mode: .edit(entryWithImages), service: stub)
+        sut.logText = "텍스트"
+
+        await sut.saveLog()
+
+        XCTAssertEqual(stub.lastUpdateRequest?.removeImageIds, [Int64]())
     }
 }
