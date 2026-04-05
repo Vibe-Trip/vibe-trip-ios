@@ -1474,7 +1474,7 @@ private struct AlbumDetailLogTextSection: View {
         }
         // 콘텐츠 너비 측정
         .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { w in
-            if contentWidth == 0 { contentWidth = w }
+            if contentWidth == 0 { DispatchQueue.main.async { contentWidth = w } }
         }
     }
 }
