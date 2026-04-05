@@ -1358,6 +1358,7 @@ struct AlbumDetailDisplayModel {
     let coverImageUrl: URL?
     let contentState: AlbumDetailContentState
     let isMusicPlaying: Bool
+    let musicUrl: URL?           // nil : 아직 생성 중
 }
 
 // MARK: - AlbumDetailContentState
@@ -1379,7 +1380,8 @@ enum AlbumDetailContentState {
             dateText: "2026년 11월 22일 - 2026년 11월 26일",
             coverImageUrl: nil,
             contentState: .empty,
-            isMusicPlaying: false
+            isMusicPlaying: false,
+            musicUrl: nil
         )
     )
 }
@@ -1393,7 +1395,8 @@ enum AlbumDetailContentState {
             dateText: "2026년 3월 20일 - 2026년 3월 24일",
             coverImageUrl: nil,
             contentState: .hasLogs,
-            isMusicPlaying: true
+            isMusicPlaying: true,
+            musicUrl: nil
         )
     )
 }

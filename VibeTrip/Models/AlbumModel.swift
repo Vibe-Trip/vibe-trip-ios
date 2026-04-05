@@ -154,6 +154,18 @@ struct AlbumLogListPayload: Decodable {
     let hasNext: Bool
 }
 
+// MARK: - AlbumDetail
+
+// 단일 앨범 조회 응답 (GET /api/v1/albums/{albumId})
+struct AlbumDetail: Decodable {
+    let title: String?
+    let coverImageUrl: URL?
+    let region: String
+    let travelStartDate: String
+    let travelEndDate: String
+    let musicUrl: URL?        // 생성 전: nil
+}
+
 // MARK: - AlbumError
 
 // 앨범 관련 에러 타입
@@ -237,6 +249,27 @@ extension AlbumLog {
         vocalGender: .female,
         logText: "도톤보리 야경이 정말 아름다웠다. 네온사인 불빛이 강물에 반사되던 그 순간이 잊혀지지 않는다.",
         logPhotoUrls: []
+    )
+}
+
+extension AlbumDetail {
+    // title + musicUrl 모두 준비된 상태
+    static let mockReady = AlbumDetail(
+        title: "오사카 도톤보리",
+        coverImageUrl: nil,
+        region: "일본 오사카",
+        travelStartDate: "2026-01-12",
+        travelEndDate: "2026-01-15",
+        musicUrl: URL(string: "https://example.com/music.mp3")
+    )
+    // 둘 다 아직 생성 중
+    static let mockPending = AlbumDetail(
+        title: nil,
+        coverImageUrl: nil,
+        region: "한국 제주도",
+        travelStartDate: "2026-04-01",
+        travelEndDate: "2026-04-03",
+        musicUrl: nil
     )
 }
 #endif

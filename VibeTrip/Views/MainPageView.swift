@@ -315,7 +315,8 @@ private extension AlbumCard {
             dateText: "\(formatDate(startDate)) - \(formatDate(endDate))",
             coverImageUrl: coverImageUrl,
             contentState: .empty,
-            isMusicPlaying: false
+            isMusicPlaying: false,
+            musicUrl: nil        // 단일 앨범 API 연동 후 AlbumDetailViewModel에서 직접 조회
         )
     }
 }
