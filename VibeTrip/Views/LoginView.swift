@@ -69,21 +69,24 @@ struct LoginView: View {
         }
         .animation(.easeInOut(duration: 0.3), value: viewModel.errorState)
         .animation(.easeInOut(duration: 0.3), value: appState.toastPayload)
-        // 타임아웃 팝업
-        .alert("로그인 실패", isPresented: Binding(
-            get: { if case .retryPopup = viewModel.errorState { return true }; return false },
-            set: { if !$0 { viewModel.errorState = nil } }
-        )) {
-            Button("다시 시도") {
-                viewModel.errorState = nil
-                viewModel.retryLogin()
-            }
-            Button("닫기", role: .cancel) { viewModel.errorState = nil }
-        } message: {
+        // 타임아웃 팝업 (ExitPopupView)
+        .overlay {
             if case .retryPopup(let message) = viewModel.errorState {
-                Text(message)
+                ExitPopupView(
+                    title: "인증서버 타임아웃",
+                    message: message,
+                    onCancel: { viewModel.errorState = nil },
+                    onConfirm: {
+                        viewModel.errorState = nil
+                        viewModel.retryLogin()
+                    },
+                    confirmTitle: "다시 시도",
+                    cancelTitle: "닫기"
+                )
+                .transition(.opacity)
             }
         }
+        .animation(.easeInOut(duration: 0.2), value: viewModel.errorState)
         // 확인 팝업
         .alert("이용 제한", isPresented: Binding(
             get: { if case .alertPopup = viewModel.errorState { return true }; return false },
