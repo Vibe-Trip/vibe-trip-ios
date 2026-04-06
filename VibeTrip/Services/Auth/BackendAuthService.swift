@@ -71,7 +71,9 @@ final class BackendAuthService: BackendAuthServiceProtocol {
         } catch let error as LoginError {
             throw error
         } catch let urlError as URLError {
-            print("URLError: \(urlError.code) - \(urlError.localizedDescription)")
+            #if DEBUG
+            throw LoginError.debugError(urlError.localizedDescription)
+            #else
             switch urlError.code {
             case .timedOut:
                 throw LoginError.timeout
@@ -80,9 +82,13 @@ final class BackendAuthService: BackendAuthServiceProtocol {
             default:
                 throw LoginError.networkError
             }
+            #endif
         } catch {
-            print("파싱 에러: \(error)")
+            #if DEBUG
+            throw LoginError.debugError(error.localizedDescription)
+            #else
             throw LoginError.providerError
+            #endif
         }
     }
 }

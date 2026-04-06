@@ -183,7 +183,11 @@ final class LoginViewModel: ObservableObject {
         do {
             return try await Messaging.messaging().token()
         } catch {
+            #if DEBUG
+            throw LoginError.debugError(error.localizedDescription)
+            #else
             throw LoginError.networkError
+            #endif
         }
     }
 
