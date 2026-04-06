@@ -26,10 +26,8 @@ enum LoginError: Error {
     /// 사용자가 시스템 팝업에서 직접 취소
     case cancelled
 
-    #if DEBUG
     /// 디버깅용: 원인 팝업 표시
     case debugError(String)
-    #endif
 }
 
 // MARK: - 에러 UI 상태 타입
@@ -61,10 +59,8 @@ extension LoginError {
             return code.loginErrorState
         case .cancelled:
             return nil
-        #if DEBUG
         case .debugError(let message):
             return .alertPopup(message: message)
-        #endif
         }
     }
 }
