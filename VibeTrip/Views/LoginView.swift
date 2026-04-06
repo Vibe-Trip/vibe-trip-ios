@@ -188,16 +188,14 @@ struct LoginView: View {
         VStack(spacing: 12) {
             // Kakao Login Button
             Button { viewModel.loginWithKakao() } label: {
-                HStack(spacing: 5) {
+                HStack(spacing: 16) {
                     Image("KaKaoLogo")
                         .resizable()
                         .scaledToFit()
-                        .frame(width: 15, height: 15)
-                        .offset(x: -3)
+                        .frame(width: 20, height: 20)
                         
                     Text("카카오로 계속하기")
                         .font(.setPretendard(weight: .medium, size: 20))
-                        .offset(x: -1)
                 }
                 .foregroundColor(.black.opacity(0.85))
                 .padding(.horizontal, 16)
@@ -208,15 +206,25 @@ struct LoginView: View {
             }
             
             // Apple Login Button
-            SignInWithAppleButton(.continue) { request in
-                request.requestedScopes = [.fullName, .email]
-            } onCompletion: { result in
-                viewModel.handleAppleResult(result)
+            Button {
+                viewModel.loginWithApple()
+            } label: {
+                HStack(spacing: 16) {
+                    Image(systemName: "apple.logo")
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: 20, height: 20)
+
+                    Text("Apple로 계속하기")
+                        .font(.setPretendard(weight: .medium, size: 20))
+                }
+                .foregroundColor(.white)
+                .padding(.horizontal, 16)
+                .frame(maxWidth: .infinity)
+                .frame(height: 48)
+                .background(Color.black)
+                .cornerRadius(8)
             }
-            .signInWithAppleButtonStyle(.black)
-            .frame(height: 48)
-            .frame(maxWidth: .infinity)
-            .cornerRadius(8)
 
             // 약관 캡션
             captionView
