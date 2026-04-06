@@ -20,15 +20,18 @@ final class BackgroundMusicService: ObservableObject {
     @Published private(set) var currentMusicUrl: URL? = nil
 
     private var player: AVPlayer? = nil
+    private var loopObserver: NSObjectProtocol? = nil
 
     // musicUrl 세팅 + 자동 재생
     func play(url: URL) {
         if currentMusicUrl == url {
             player?.play()
         } else {
+            removeLoopObserver()
             currentMusicUrl = url
             player = AVPlayer(url: url)
             player?.play()
+            addLoopObserver()
         }
         isPlaying = true
     }
@@ -52,9 +55,30 @@ final class BackgroundMusicService: ObservableObject {
 
     // 정지 + 초기화 —> 앨범 상세 페이지 닫힐 때 호출
     func stop() {
+        removeLoopObserver()
         player?.pause()
         player = nil
         currentMusicUrl = nil
         isPlaying = false
+    }
+
+    // MARK: - Private
+
+    private func addLoopObserver() {
+        loopObserver = NotificationCenter.default.addObserver(
+            forName: .AVPlayerItemDidPlayToEndTime,
+            object: player?.currentItem,
+            queue: .main
+        ) { [weak self] _ in
+            self?.player?.seek(to: .zero)
+            self?.player?.play()
+        }
+    }
+
+    private func removeLoopObserver() {
+        if let observer = loopObserver {
+            NotificationCenter.default.removeObserver(observer)
+            loopObserver = nil
+        }
     }
 }
