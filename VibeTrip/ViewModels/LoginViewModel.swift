@@ -178,19 +178,15 @@ final class LoginViewModel: ObservableObject {
         }
     }
 
-    // FCM 토큰 획득, 실패 시 LoginError.networkError throw
-    private func fetchFCMToken() async throws -> String {
-        do {
-            return try await Messaging.messaging().token()
-        } catch {
-            throw LoginError.debugError(error.localizedDescription)
-        }
+    // FCM 토큰 획득, 실패 시 빈 문자열 반환
+    private func fetchFCMToken() async -> String {
+        return (try? await Messaging.messaging().token()) ?? ""
     }
 
     // 카카오&애플 공통 백엔드 인증 요청
     private func performBackendAuth(token: String, provider: LoginProvider, fullName: String? = nil) async throws {
         let deviceId = UIDevice.current.identifierForVendor?.uuidString ?? ""
-        let fcmToken = try await fetchFCMToken()
+        let fcmToken = await fetchFCMToken()
         print("deviceId: \(deviceId)")
         print("fcmToken: \(fcmToken)")
         print("백엔드 요청. provider: \(provider.rawValue)")

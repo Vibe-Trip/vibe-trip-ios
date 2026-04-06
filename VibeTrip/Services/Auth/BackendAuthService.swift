@@ -51,11 +51,7 @@ final class BackendAuthService: BackendAuthServiceProtocol {
                 throw LoginError.networkError
             }
 
-            // 디버깅 코드
-            print("HTTP 상태코드: \(httpResponse.statusCode)")
-            print("서버 응답 raw: \(String(data: data, encoding: .utf8) ?? "디코딩 불가")")
-
-            let apiResponse = try JSONDecoder().decode(ApiResponse<AuthToken>.self, from: data)
+let apiResponse = try JSONDecoder().decode(ApiResponse<AuthToken>.self, from: data)
 
             if apiResponse.resultType == "ERROR" {
                 let code = apiResponse.error.flatMap { BackendErrorCode(rawValue: $0.errorCode) } ?? .unknown
@@ -70,10 +66,19 @@ final class BackendAuthService: BackendAuthServiceProtocol {
 
         } catch let error as LoginError {
             throw error
+        } catch let error as LoginError {
+            throw error
         } catch let urlError as URLError {
-            throw LoginError.debugError(urlError.localizedDescription)
+            switch urlError.code {
+            case .timedOut:
+                throw LoginError.timeout
+            case .notConnectedToInternet, .networkConnectionLost:
+                throw LoginError.networkError
+            default:
+                throw LoginError.networkError
+            }
         } catch {
-            throw LoginError.debugError(error.localizedDescription)
+            throw LoginError.providerError
         }
     }
 }
