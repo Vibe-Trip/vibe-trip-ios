@@ -492,7 +492,7 @@ private struct MakeAlbumOptionalInputContent: View {
                                 Button(action: {
                                     viewModel.isGenreDescriptionPresented = true
                                 }) {
-                                    Image(systemName: "info.circle.fill")
+                                    Image(systemName: "info.circle")
                                         .font(.system(size: 18))
                                         .foregroundStyle(Color.appPrimary.opacity(0.6))
                                 }
@@ -653,7 +653,7 @@ private struct MakeAlbumPhotoBox: View {
     let image: UIImage?
 
     private enum Layout {
-        static let containerHeight: CGFloat = 210
+        static let containerHeight: CGFloat = 272
         // 디자이너 스펙: 전체 박스 대비 실제 이미지 표시 영역의 가로 비율
         static let imageWidthRatio: CGFloat = 242.0 / 362.0
     }
