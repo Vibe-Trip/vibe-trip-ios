@@ -56,20 +56,25 @@ struct ExitPopupView: View {
                     }
                 }
 
-                // 체크박스: doNotShowAgain 바인딩이 있을 때만 표시
+                // 라디오 버튼: doNotShowAgain 바인딩이 있을 때만 표시
                 if let binding = doNotShowAgain {
                     HStack(spacing: 4) {
                         Button {
                             binding.wrappedValue.toggle()
                         } label: {
-                            Image(systemName: binding.wrappedValue ? "checkmark.square" : "square")
-                                .resizable()
-                                .frame(width: 16, height: 16)
-                                .foregroundStyle(
-                                    binding.wrappedValue
-                                    ? Color.textPrimary
-                                    : Color.textSecondary
-                                )
+                            ZStack {
+                                Circle()
+                                    .stroke(
+                                        binding.wrappedValue ? Color.appPrimary : Color("GrayScale/300"),
+                                        lineWidth: 1
+                                    )
+                                    .frame(width: 16, height: 16)
+                                if binding.wrappedValue {
+                                    Circle()
+                                        .fill(Color.appPrimary)
+                                        .frame(width: 8, height: 8)
+                                }
+                            }
                         }
                         .buttonStyle(.plain)
 

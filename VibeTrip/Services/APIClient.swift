@@ -338,7 +338,12 @@ final class APIClient: APIClientProtocol {
               apiResponse.resultType == "SUCCESS",
               let newToken = apiResponse.data else { return .transientError }
 
-        try? keychain.save(accessToken: newToken.accessToken, refreshToken: newToken.refreshToken)
+        do {
+            try keychain.save(accessToken: newToken.accessToken, refreshToken: newToken.refreshToken)
+        } catch {
+            // 저장 실패 시 즉시 재로그인 유도
+            return .expired
+        }
         return .success
     }
 

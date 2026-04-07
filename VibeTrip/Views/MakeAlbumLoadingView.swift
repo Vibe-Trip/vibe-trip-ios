@@ -91,6 +91,7 @@ struct MakeAlbumLoadingView: View {
                 }
                 .background(isCreating ? Color.appPrimary.opacity(0.5) : Color.appPrimary)
                 .cornerRadius(Layout.buttonCornerRadius)
+                .disabled(isCreating)
 
                 Spacer().frame(height: Layout.bottomPadding)
             }

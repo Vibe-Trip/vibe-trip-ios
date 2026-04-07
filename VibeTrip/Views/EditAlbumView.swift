@@ -403,7 +403,7 @@ private struct EditAlbumPhotoBox: View {
     let coverImageUrl: URL?     // Pre-fill: 기존 커버 이미지 URL
 
     private enum Layout {
-        static let containerHeight: CGFloat = 210
+        static let containerHeight: CGFloat = 272
         static let imageWidthRatio: CGFloat = 242.0 / 362.0
     }
 

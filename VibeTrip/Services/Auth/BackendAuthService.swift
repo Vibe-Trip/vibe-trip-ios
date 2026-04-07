@@ -15,24 +15,24 @@ final class BackendAuthService: BackendAuthServiceProtocol {
 
     private let baseURL = "https://dev.retrip.shop"
     private let timeoutInterval: TimeInterval = 5
-    
+
     private lazy var session: URLSession = {
         let config = URLSessionConfiguration.default
         config.timeoutIntervalForRequest = timeoutInterval
         return URLSession(configuration: config)
     }()
-    
+
     func authenticate(token: String, provider: LoginProvider, deviceId: String, fcmToken: String, fullName: String?) async throws -> AuthToken {
         let endpoint = "/api/v1/auth/login/\(provider.rawValue)"
-        
+
         guard let url = URL(string: baseURL + endpoint) else {
             throw LoginError.providerError
         }
-        
+
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.setValue("application/json", forHTTPHeaderField: "Content-Type")
-        
+
         // Request Body
         var body: [String: Any] = [
             provider == .apple ? "identityToken" : "accessToken": token,
@@ -43,15 +43,15 @@ final class BackendAuthService: BackendAuthServiceProtocol {
             body["name"] = fullName ?? NSNull()
         }
         request.httpBody = try? JSONSerialization.data(withJSONObject: body)
-        
+
         do {
             let (data, response) = try await session.data(for: request)
-            
-            guard let httpResponse = response as? HTTPURLResponse else {
+
+            guard response is HTTPURLResponse else {
                 throw LoginError.networkError
             }
 
-let apiResponse = try JSONDecoder().decode(ApiResponse<AuthToken>.self, from: data)
+            let apiResponse = try JSONDecoder().decode(ApiResponse<AuthToken>.self, from: data)
 
             if apiResponse.resultType == "ERROR" {
                 let code = apiResponse.error.flatMap { BackendErrorCode(rawValue: $0.errorCode) } ?? .unknown
@@ -64,8 +64,6 @@ let apiResponse = try JSONDecoder().decode(ApiResponse<AuthToken>.self, from: da
 
             return authToken
 
-        } catch let error as LoginError {
-            throw error
         } catch let error as LoginError {
             throw error
         } catch let urlError as URLError {

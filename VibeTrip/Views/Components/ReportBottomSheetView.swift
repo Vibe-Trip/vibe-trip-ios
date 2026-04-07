@@ -30,7 +30,7 @@ struct ReportBottomSheetView: View {
         static let titleBodySpacing: CGFloat   = 12
         static let bodyOptionsSpacing: CGFloat = 20
         static let optionSpacing: CGFloat      = 12
-        static let radioSize: CGFloat          = 20
+        static let radioSize: CGFloat          = 16
         static let radioDotSize: CGFloat       = 8
         static let radioStrokeWidth: CGFloat   = 1.5
         static let closeButtonSize: CGFloat    = 30
@@ -114,17 +114,16 @@ struct ReportBottomSheetView: View {
         HStack(spacing: 8) {
             // 라디오 서클
             ZStack {
+                Circle()
+                    .stroke(
+                        isSelected ? Color.appPrimary : Color("GrayScale/300"),
+                        lineWidth: 1
+                    )
+                    .frame(width: Layout.radioSize, height: Layout.radioSize)
                 if isSelected {
                     Circle()
                         .fill(Color.appPrimary)
-                        .frame(width: Layout.radioSize, height: Layout.radioSize)
-                    Circle()
-                        .fill(Color.white)
                         .frame(width: Layout.radioDotSize, height: Layout.radioDotSize)
-                } else {
-                    Circle()
-                        .stroke(Color("fieldBorder"), lineWidth: Layout.radioStrokeWidth)
-                        .frame(width: Layout.radioSize, height: Layout.radioSize)
                 }
             }
 
