@@ -269,6 +269,7 @@ private struct MakeAlbumRequiredInputContent: View {
     var body: some View {
         let displayedPhotoImage = viewModel.displayedPhotoImage
         
+        ScrollViewReader { proxy in
         ScrollView(showsIndicators: false) {
             // 섹션 간격
             VStack(alignment: .leading, spacing: 20) {
@@ -400,12 +401,23 @@ private struct MakeAlbumRequiredInputContent: View {
                     }
                 }
                 .frame(height: Layout.vocalSectionSlotHeight)
+                .id("vocalGenderSection")
             }
             // 가사 옵션 전환 에니메이션: fade
             .animation(.easeInOut(duration: 0.2), value: viewModel.album.lyricsOption)
             .padding(.horizontal, 20)
             .padding(.top, 24)
             .padding(.bottom, 24)
+        }
+        .onChange(of: viewModel.album.lyricsOption) { _, newValue in
+            guard newValue == .include else { return }
+            Task {
+                try? await Task.sleep(for: .milliseconds(150))
+                withAnimation(.easeInOut(duration: 0.3)) {
+                    proxy.scrollTo("vocalGenderSection", anchor: .bottom)
+                }
+            }
+        }
         }
         // 하단 버튼: SafeArea 위에 고정
         .safeAreaInset(edge: .bottom, spacing: 0) {
