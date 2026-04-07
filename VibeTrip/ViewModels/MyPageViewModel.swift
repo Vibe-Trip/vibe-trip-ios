@@ -10,6 +10,7 @@ import MessageUI
 import Combine
 import UIKit
 import UserNotifications
+import FirebaseMessaging
 
 @MainActor final class MyPageViewModel: ObservableObject {
     
@@ -29,23 +30,27 @@ import UserNotifications
     let appVersion: String = Bundle.main.infoDictionary?["CFBundleShortVersionString"] as? String ?? "-"
     
     // MARK: - Private
-    
+
     private let userService: UserServiceProtocol
     private let keychainService: KeychainServiceProtocol
+    private var pendingNotificationEnable = false
     
     private enum Constants {
         static let notificationKey = "isNotificationEnabled"
     }
     
     // MARK: - Init
-    
-    init(
+
+    // nonisolated: SwiftUI @StateObject가 nonisolated context에서 생성 가능하도록
+    nonisolated init(
         userService: UserServiceProtocol = UserService(),
         keychainService: KeychainServiceProtocol = KeychainService()
     ) {
         self.userService = userService
         self.keychainService = keychainService
-        self.isNotificationEnabled = UserDefaults.standard.object(forKey: "isNotificationEnabled") as? Bool ?? true
+        // @Published backing store 직접 초기화: nonisolated context에서 @MainActor 프로퍼티 세팅 우회
+        let enabled = UserDefaults.standard.object(forKey: "isNotificationEnabled") as? Bool ?? true
+        self._isNotificationEnabled = Published(initialValue: enabled)
     }
     
     // MARK: - Methods
@@ -61,6 +66,26 @@ import UserNotifications
             logCount = profile.albumLogCount
         } catch {
             showToast("프로필을 불러오지 못했어요.")
+        }
+    }
+
+    // 실제 시스템 권한 상태와 토글 동기화
+    // 시스템에서 권한이 거부된 경우 토글을 off로 보정
+    func syncNotificationStatus() async {
+        let status = await UNUserNotificationCenter.current().notificationSettings().authorizationStatus
+        switch status {
+        case .denied, .notDetermined:
+            // 시스템 권한 없음: 토글이 on이면 off로 보정
+            if isNotificationEnabled { persistNotificationEnabled(false) }
+        case .authorized, .provisional, .ephemeral:
+            // 설정 앱에서 권한을 허용하고 복귀한 경우: 토글을 on으로 전환
+            if pendingNotificationEnable {
+                pendingNotificationEnable = false
+                UIApplication.shared.registerForRemoteNotifications()
+                persistNotificationEnabled(true)
+            }
+        @unknown default:
+            break
         }
     }
 
@@ -138,8 +163,9 @@ import UserNotifications
             }
 
         case .denied:
+            pendingNotificationEnable = true
+            openNotificationSettings()
             persistNotificationEnabled(false)
-            showToast("설정 앱에서 알림 권한을 허용해 주세요.")
 
         @unknown default:
             persistNotificationEnabled(false)
@@ -148,9 +174,16 @@ import UserNotifications
     }
 
     private func disableNotifications() {
-        // 원격 알림 등록 해제
+        // APNs 등록 해제
         UIApplication.shared.unregisterForRemoteNotifications()
+        // FCM 토큰 무효화: 서버에서 더 이상 이 기기로 알림 전송 불가
+        Messaging.messaging().deleteToken { _ in }
         persistNotificationEnabled(false)
+    }
+
+    func openNotificationSettings() {
+        guard let url = URL(string: UIApplication.openNotificationSettingsURLString) else { return }
+        UIApplication.shared.open(url)
     }
 
     private func persistNotificationEnabled(_ isEnabled: Bool) {

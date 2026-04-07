@@ -21,7 +21,8 @@ struct MyPageView: View {
     
     @StateObject private var viewModel = MyPageViewModel()
     @EnvironmentObject private var appState: AppState
-    
+    @Environment(\.scenePhase) private var scenePhase
+
     // 고객지원 링크: Safari 시트
     @State private var safariItem: SafariItem?
     
@@ -89,7 +90,15 @@ struct MyPageView: View {
         }
         .animation(.easeInOut(duration: 0.3), value: viewModel.toastMessage)
         .onAppear {
-            Task { await viewModel.loadProfile() }
+            Task {
+                await viewModel.syncNotificationStatus()
+                await viewModel.loadProfile()
+            }
+        }
+        // 설정에서 알림 권한 변경 후 앱 복귀 시 토글 상태 재동기화
+        .onChange(of: scenePhase) { _, newPhase in
+            guard newPhase == .active else { return }
+            Task { await viewModel.syncNotificationStatus() }
         }
         .overlay {
             // 회원탈퇴 확인 팝업
