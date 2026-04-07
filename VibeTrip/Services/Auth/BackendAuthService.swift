@@ -47,7 +47,7 @@ final class BackendAuthService: BackendAuthServiceProtocol {
         do {
             let (data, response) = try await session.data(for: request)
 
-            guard let httpResponse = response as? HTTPURLResponse else {
+            guard response is HTTPURLResponse else {
                 throw LoginError.networkError
             }
 

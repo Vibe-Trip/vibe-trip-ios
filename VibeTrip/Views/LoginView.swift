@@ -239,11 +239,11 @@ struct LoginView: View {
     private let privacyURL = URL(string: "https://www.notion.so/RETRIP-3366aa129c8e8014bf10c55c890f67ad?source=copy_link")!
 
     private var captionAttributedText: AttributedString {
-        var prefix  = AttributedString("회원가입 시 RETRIP 서비스 필수 동의 항목인 \n")
+        let prefix  = AttributedString("회원가입 시 RETRIP 서비스 필수 동의 항목인 \n")
         var terms   = AttributedString("서비스 이용약관")
-        var and     = AttributedString("과 ")
+        let and     = AttributedString("과 ")
         var privacy = AttributedString("개인정보처리방침")
-        var suffix  = AttributedString("이 함께 적용됩니다.")
+        let suffix  = AttributedString("이 함께 적용됩니다.")
         terms.link = termsURL
         terms.underlineStyle = .single
         privacy.link = privacyURL
