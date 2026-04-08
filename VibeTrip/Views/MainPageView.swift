@@ -6,6 +6,7 @@
 //
 
 import SwiftUI
+import Foundation
 
 // MARK: - MainPageView
 
@@ -24,7 +25,6 @@ struct MainPageView: View {
 
     @State private var currentIndex: Int        = 0
     @State private var dragOffset: CGFloat      = 0
-    @State private var isDragging: Bool         = false
     @State private var selectedAlbum: AlbumCard? = nil
 
     // 신고 완료 토스트
@@ -37,6 +37,8 @@ struct MainPageView: View {
     private enum CarouselLayout {
         static let cardWidth: CGFloat              = AlbumCardView.Layout.cardWidth
         static let cardGap: CGFloat                = 17
+        // 현재 카드 기준 앞/뒤로 미리 준비할 커버 이미지 범위
+        static let preloadRange: Int               = 2
         static let activeTopSpacing: CGFloat       = 68
         static let inactiveTopSpacing: CGFloat     = 84
         static let activeSideSpacing: CGFloat      = 40
@@ -49,16 +51,31 @@ struct MainPageView: View {
     // MARK: - Body
     
     var body: some View {
+        // body 내 반복 접근 시 filter 재계산을 줄이기 위한 로컬 캐시
+        let visibleAlbums = viewModel.visibleAlbums
+        // 현재 위치 기준으로 미리 준비할 커버 이미지 키
+        let preloadKey = preloadCoverImageURLs(from: visibleAlbums).map(\.absoluteString).joined(separator: "|")
+
         Group {
-            if viewModel.visibleAlbums.isEmpty {
+            if visibleAlbums.isEmpty {
                 emptyContent
             } else {
-                carouselView
+                carouselView(visibleAlbums: visibleAlbums)
             }
         }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .task { await viewModel.loadAlbums() }
+        // 첫 진입 시 현재 카드 주변 이미지 캐시 적재
+        .onAppear { preloadCoverImages(urls: preloadCoverImageURLs(from: visibleAlbums)) }
         .onDisappear { viewModel.cancelAllPolling() }
+        // 스와이프 후 현재 카드가 바뀌면 주변 이미지 다시 준비
+        .onChange(of: currentIndex) { _, _ in
+            preloadCoverImages(urls: preloadCoverImageURLs(from: visibleAlbums))
+        }
+        // 페이지네이션 등으로 주변 카드 구성이 바뀌면 캐시 갱신
+        .onChange(of: preloadKey) { _, _ in
+            preloadCoverImages(urls: preloadCoverImageURLs(from: visibleAlbums))
+        }
         .onChange(of: appState.needsAlbumRefresh) { _, needsReload in
             guard needsReload else { return }
             // 중복 트리거 방지를 위해 플래그 먼저 초기화 후 새로고침
@@ -177,7 +194,7 @@ struct MainPageView: View {
     
     // MARK: - 캐러셀
     
-    private var carouselView: some View {
+    private func carouselView(visibleAlbums: [AlbumCard]) -> some View {
         GeometryReader { geo in
             let safeTop      = geo.safeAreaInsets.top
             let safeBottom   = geo.safeAreaInsets.bottom
@@ -194,7 +211,7 @@ struct MainPageView: View {
                 Color(UIColor.systemBackground).ignoresSafeArea()
                 
                 ZStack {
-                    ForEach((0..<viewModel.visibleAlbums.count).reversed(), id: \.self) { index in
+                    ForEach((0..<visibleAlbums.count).reversed(), id: \.self) { index in
                         let rel        = index - currentIndex
                         let isActive   = rel == 0
                         let isNext     = rel == 1
@@ -214,12 +231,12 @@ struct MainPageView: View {
                             }()
                             
                             AlbumCardView(
-                                album: viewModel.visibleAlbums[index],
-                                isReady: viewModel.isReady(for: viewModel.visibleAlbums[index].id)
+                                album: visibleAlbums[index],
+                                isReady: viewModel.isReady(for: visibleAlbums[index].id)
                             )
                             .onTapGesture {
                                 guard isActive else { return }
-                                let album = viewModel.visibleAlbums[index]
+                                let album = visibleAlbums[index]
                                 if !viewModel.isReady(for: album.id) {
                                     // 음악 생성 중 -> 상세페이지 진입 차단 후 토스트 표시
                                     guard !showGeneratingToast else { return }
@@ -238,22 +255,6 @@ struct MainPageView: View {
                                 )
                                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
                                 .zIndex(isActive ? 1 : 0)
-                                .animation(
-                                    isDragging
-                                    ? nil
-                                    : .spring(
-                                        response: CarouselLayout.springResponse,
-                                        dampingFraction: CarouselLayout.springDamping
-                                    ),
-                                    value: dragOffset
-                                )
-                                .animation(
-                                    .spring(
-                                        response: CarouselLayout.springResponse,
-                                        dampingFraction: CarouselLayout.springDamping
-                                    ),
-                                    value: currentIndex
-                                )
                         }
                     }
                 }
@@ -262,28 +263,32 @@ struct MainPageView: View {
                 .gesture(
                     DragGesture(minimumDistance: 10)
                         .onChanged { value in
-                            isDragging   = true
                             let t        = value.translation.width
                             let atStart  = currentIndex == 0 && t > 0
-                            let atEnd    = currentIndex == viewModel.visibleAlbums.count - 1 && t < 0
+                            let atEnd    = currentIndex == visibleAlbums.count - 1 && t < 0
                             dragOffset   = (atStart || atEnd) ? t * 0.2 : t
                         }
                         .onEnded { value in
-                            isDragging    = false
                             let threshold = CarouselLayout.cardWidth * CarouselLayout.swipeThresholdRatio
                             let velocity  = value.predictedEndTranslation.width
                             - value.translation.width
-                            
-                            if dragOffset < -threshold || velocity < -CarouselLayout.swipeVelocityThreshold {
-                                if currentIndex < viewModel.visibleAlbums.count - 1 { currentIndex += 1 }
-                            } else if dragOffset > threshold || velocity > CarouselLayout.swipeVelocityThreshold {
-                                if currentIndex > 0 { currentIndex -= 1 }
-                            }
-                            
+
+                            // 인덱스 변경 여부를 먼저 확정한 뒤 위치 복귀를 함께 애니메이션 처리
+                            let nextIndex: Int = {
+                                if dragOffset < -threshold || velocity < -CarouselLayout.swipeVelocityThreshold {
+                                    return min(currentIndex + 1, visibleAlbums.count - 1)
+                                } else if dragOffset > threshold || velocity > CarouselLayout.swipeVelocityThreshold {
+                                    return max(currentIndex - 1, 0)
+                                } else {
+                                    return currentIndex
+                                }
+                            }()
+
                             withAnimation(.spring(
                                 response: CarouselLayout.springResponse,
                                 dampingFraction: CarouselLayout.springDamping
                             )) {
+                                currentIndex = nextIndex
                                 dragOffset = 0
                             }
 
@@ -301,6 +306,33 @@ struct MainPageView: View {
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
             }
             .ignoresSafeArea()
+        }
+    }
+
+    private func preloadCoverImageURLs(from visibleAlbums: [AlbumCard]) -> [URL] {
+        guard !visibleAlbums.isEmpty else { return [] }
+
+        let lowerBound = max(0, currentIndex - CarouselLayout.preloadRange)
+        let upperBound = min(
+            visibleAlbums.count - 1,
+            currentIndex + CarouselLayout.preloadRange
+        )
+
+        let range = lowerBound...upperBound
+        var seenURLs: Set<URL> = []
+        return range.compactMap { index in
+            guard let url = visibleAlbums[index].coverImageUrl else { return nil }
+            guard seenURLs.insert(url).inserted else { return nil }
+            return url
+        }
+    }
+
+    // 현재 카드 주변 커버 이미지를 캐시에 미리 적재
+    private func preloadCoverImages(urls: [URL]) {
+        for url in urls {
+            var request = URLRequest(url: url)
+            request.cachePolicy = .returnCacheDataElseLoad
+            URLSession.shared.dataTask(with: request).resume()
         }
     }
 }
