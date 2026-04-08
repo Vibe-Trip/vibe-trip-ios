@@ -274,16 +274,15 @@ struct MainPageView: View {
                             let velocity  = value.predictedEndTranslation.width
                             - value.translation.width
 
-                            // 인덱스 변경 여부를 먼저 확정한 뒤 위치 복귀를 함께 애니메이션 처리
-                            let nextIndex: Int = {
-                                if dragOffset < -threshold || velocity < -CarouselLayout.swipeVelocityThreshold {
-                                    return min(currentIndex + 1, visibleAlbums.count - 1)
-                                } else if dragOffset > threshold || velocity > CarouselLayout.swipeVelocityThreshold {
-                                    return max(currentIndex - 1, 0)
-                                } else {
-                                    return currentIndex
-                                }
-                            }()
+                            // 스와이프 결과 인덱스를 먼저 계산한 뒤 위치 복귀를 함께 처리
+                            let nextIndex = MainPageCarouselLogic.nextIndex(
+                                currentIndex: currentIndex,
+                                albumCount: visibleAlbums.count,
+                                dragOffset: dragOffset,
+                                velocity: velocity,
+                                threshold: threshold,
+                                swipeVelocityThreshold: CarouselLayout.swipeVelocityThreshold
+                            )
 
                             withAnimation(.spring(
                                 response: CarouselLayout.springResponse,
@@ -311,21 +310,11 @@ struct MainPageView: View {
     }
 
     private func preloadCoverImageURLs(from visibleAlbums: [AlbumCard]) -> [URL] {
-        guard !visibleAlbums.isEmpty else { return [] }
-
-        let lowerBound = max(0, currentIndex - CarouselLayout.preloadRange)
-        let upperBound = min(
-            visibleAlbums.count - 1,
-            currentIndex + CarouselLayout.preloadRange
+        MainPageCarouselLogic.preloadCoverImageURLs(
+            albums: visibleAlbums,
+            currentIndex: currentIndex,
+            preloadRange: CarouselLayout.preloadRange
         )
-
-        let range = lowerBound...upperBound
-        var seenURLs: Set<URL> = []
-        return range.compactMap { index in
-            guard let url = visibleAlbums[index].coverImageUrl else { return nil }
-            guard seenURLs.insert(url).inserted else { return nil }
-            return url
-        }
     }
 
     // 현재 카드 주변 커버 이미지를 캐시에 미리 적재
@@ -334,6 +323,51 @@ struct MainPageView: View {
             var request = URLRequest(url: url)
             request.cachePolicy = .returnCacheDataElseLoad
             URLSession.shared.dataTask(with: request).resume()
+        }
+    }
+}
+
+// MARK: - MainPageCarouselLogic
+
+enum MainPageCarouselLogic {
+
+    // 현재 카드 주변에서 커버 이미지를 미리 준비할 URL 목록
+    static func preloadCoverImageURLs(
+        albums: [AlbumCard],
+        currentIndex: Int,
+        preloadRange: Int
+    ) -> [URL] {
+        guard !albums.isEmpty else { return [] }
+
+        let lowerBound = max(0, currentIndex - preloadRange)
+        let upperBound = min(albums.count - 1, currentIndex + preloadRange)
+
+        let range = lowerBound...upperBound
+        var seenURLs: Set<URL> = []
+        return range.compactMap { index in
+            guard let url = albums[index].coverImageUrl else { return nil }
+            guard seenURLs.insert(url).inserted else { return nil }
+            return url
+        }
+    }
+
+    // dragOffset/속도 기준으로 다음에 정착할 카드 인덱스 계산
+    static func nextIndex(
+        currentIndex: Int,
+        albumCount: Int,
+        dragOffset: CGFloat,
+        velocity: CGFloat,
+        threshold: CGFloat,
+        swipeVelocityThreshold: CGFloat
+    ) -> Int {
+        guard albumCount > 0 else { return 0 }
+
+        if dragOffset < -threshold || velocity < -swipeVelocityThreshold {
+            return min(currentIndex + 1, albumCount - 1)
+        } else if dragOffset > threshold || velocity > swipeVelocityThreshold {
+            return max(currentIndex - 1, 0)
+        } else {
+            return currentIndex
         }
     }
 }
