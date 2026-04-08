@@ -27,8 +27,8 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
             diskCapacity: 200 * 1024 * 1024
         )
 
-        // 오디오 세션 설정: 앱 내 배경음악 재생 (화면 잠금 시 정지)
-        try? AVAudioSession.sharedInstance().setCategory(.ambient, mode: .default)
+        // 오디오 세션 설정: 무음 모드에서도 앱 내 배경음악 재생
+        try? AVAudioSession.sharedInstance().setCategory(.playback, mode: .default)
         try? AVAudioSession.sharedInstance().setActive(true)
 
         // Firebase 초기화
