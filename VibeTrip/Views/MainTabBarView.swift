@@ -233,6 +233,15 @@ struct MainTabBarView: View {
         .onChange(of: appState.pendingNotificationAction) { _, action in
             guard let action else { return }
             switch action {
+            case .openNotification:
+                // 푸시알림 탭: CREATING/FAILED -> NotificationView
+                withAnimation(.easeInOut(duration: 0.24)) {
+                    isPresentingLoadingView = false
+                    isPresentingMakeAlbum = false
+                    isTabBarHidden = false
+                }
+                selectedTab = .notification
+
             case .openMakeAlbum:
                 // 생성 실패: MakeAlbumView
                 withAnimation(.easeInOut(duration: 0.18)) {

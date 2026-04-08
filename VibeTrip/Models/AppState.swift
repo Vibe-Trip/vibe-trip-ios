@@ -13,7 +13,10 @@ import Combine
 // 알림 탭 시 이동할 화면
 // NotificationView: 세팅, MainTabBarView: 처리
 enum NotificationNavigationAction: Equatable {
-    
+
+    // 푸시 탭: 알림 목록 화면
+    case openNotification
+
     // 앨범 생성 실패: MakeAlbumView
     case openMakeAlbum
 
