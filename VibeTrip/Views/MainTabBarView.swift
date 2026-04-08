@@ -69,11 +69,21 @@ struct MainTabBarView: View {
     @State private var albumRetryAction: (() -> Void)? = nil                                  // 네트워크 오류 재시도 클로저
     @State private var hiddenLoadingToastMessage: String? = nil
     @State private var hiddenLoadingToastShowsIcon = false
+    // 완료 알림 상세 진입 전 데이터 조회 중 화면 전환 가리는 상태
+    @State private var isResolvingAlbumDetail = false
+    @State private var presentedAlbumDetail: PendingAlbumDetailPresentation? = nil
 
     @EnvironmentObject private var appState: AppState
+    @StateObject private var notificationViewModel = NotificationViewModel()
+    @StateObject private var mainPageViewModel = MainPageViewModel()
 
     private let makeAlbumTransition = AnyTransition.move(edge: .trailing).combined(with: .opacity)
     private let tabBarTransition = AnyTransition.move(edge: .bottom).combined(with: .opacity)
+    private let albumService: AlbumServiceProtocol
+
+    init(albumService: AlbumServiceProtocol = AlbumService()) {
+        self.albumService = albumService
+    }
 
     var body: some View {
         ZStack {
@@ -85,9 +95,9 @@ struct MainTabBarView: View {
                 // 탭 전환
                 switch selectedTab {
                 case .home:
-                    MainPageView()
+                    MainPageView(viewModel: mainPageViewModel)
                 case .notification:
-                    NotificationView()
+                    NotificationView(viewModel: notificationViewModel)
                 case .myPage:
                     MyPageView()
                 case .makeAlbum:
@@ -204,6 +214,17 @@ struct MainTabBarView: View {
                 .zIndex(3)
             }
 
+            // 완료 알림에서 상세 진입 준비 중 홈 전환 과정을 마스킹
+            if isResolvingAlbumDetail {
+                Color(UIColor.systemBackground)
+                    .ignoresSafeArea()
+                    .overlay {
+                        ProgressView()
+                            .controlSize(.large)
+                    }
+                    .zIndex(4)
+            }
+
         }
         .animation(.easeInOut(duration: 0.24), value: isPresentingMakeAlbum)
         .animation(.easeInOut(duration: 0.22), value: isTabBarHidden)
@@ -234,9 +255,14 @@ struct MainTabBarView: View {
                         isPresentingLoadingView = true
                     }
                 }
-            case .openAlbumDetail:
-                // TODO: 서버 albumId 연동 후 AlbumDetailView 라우팅 구현
-                break
+            case .openAlbumDetail(let albumId):
+                // 루트에서 바로 상세페이지 진입
+                withAnimation(.easeInOut(duration: 0.24)) {
+                    isPresentingLoadingView = false
+                    isPresentingMakeAlbum = false
+                    isTabBarHidden = true
+                }
+                Task { await presentAlbumDetailOverlay(albumId: albumId) }
             }
             appState.pendingNotificationAction = nil
         }
@@ -245,6 +271,41 @@ struct MainTabBarView: View {
             guard let tab else { return }
             selectedTab = tab
             appState.pendingTabNavigation = nil
+        }
+        .fullScreenCover(item: $presentedAlbumDetail) { presentation in
+            AlbumDetailView(
+                displayModel: presentation.displayModel,
+                onBackTap: {
+                    presentedAlbumDetail = nil
+                    selectedTab = .home
+                    isTabBarHidden = false
+                },
+                onEditSaved: {
+                    presentedAlbumDetail = nil
+                    selectedTab = .home
+                    isTabBarHidden = false
+                    appState.needsAlbumRefresh = true
+                },
+                onDeleteAlbumTap: {
+                    presentedAlbumDetail = nil
+                    selectedTab = .home
+                    isTabBarHidden = false
+                    appState.needsAlbumRefresh = true
+                },
+                onReportTap: {
+                    presentedAlbumDetail = nil
+                    selectedTab = .home
+                    isTabBarHidden = false
+                }
+            )
+            .onAppear {
+                // 해당 앨범 상세페이지 이동 후 탭 전환
+                DispatchQueue.main.async {
+                    Task { await mainPageViewModel.refreshAlbumsWithoutClearing() }
+                    // 상세 애니메이션 이후에 마스크를 해제 -> 탭 전환 노출 방지
+                    isResolvingAlbumDetail = false
+                }
+            }
         }
     }
 
@@ -285,6 +346,52 @@ struct MainTabBarView: View {
         guard !isPresentingMakeAlbum else { return }
         presentMakeAlbumFlow()
     }
+
+    // 완료 알림 albumId로 단일 앨범 조회 후 해당 상세페이지 이동
+    private func presentAlbumDetailOverlay(albumId: String) async {
+        guard let id = Int(albumId) else { return }
+        await MainActor.run { isResolvingAlbumDetail = true }
+
+        guard let detail = try? await albumService.fetchAlbum(albumId: id) else {
+            await MainActor.run {
+                // 조회 실패 시 홈으로 복귀하고 전환 상태만 정리
+                selectedTab = .home
+                isTabBarHidden = false
+                isResolvingAlbumDetail = false
+            }
+            return
+        }
+
+        let displayModel = AlbumDetailDisplayModel(
+            albumId: id,
+            title: detail.title ?? "",
+            destination: detail.region,
+            dateText: "\(formatDate(detail.travelStartDate)) - \(formatDate(detail.travelEndDate))",
+            coverImageUrl: detail.coverImageUrl,
+            contentState: .empty,
+            musicUrl: detail.musicUrl
+        )
+
+        await MainActor.run {
+            // 상세페이지 먼저 표시 -> 배경에서 탭 전환이 보이지 않게 처리
+            presentedAlbumDetail = PendingAlbumDetailPresentation(displayModel: displayModel)
+        }
+    }
+
+    private func formatDate(_ raw: String) -> String {
+        let input = DateFormatter()
+        input.dateFormat = "yyyy-MM-dd"
+        let output = DateFormatter()
+        output.locale = Locale(identifier: "ko_KR")
+        output.dateFormat = "yyyy년 M월 d일"
+        guard let date = input.date(from: raw) else { return raw }
+        return output.string(from: date)
+    }
+}
+
+private struct PendingAlbumDetailPresentation: Identifiable {
+    let displayModel: AlbumDetailDisplayModel
+    var id: Int { displayModel.albumId }
 }
 
 // MARK: - LiquidGlassTabBar

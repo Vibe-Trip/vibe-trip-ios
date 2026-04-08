@@ -57,10 +57,6 @@ struct AppToastPayload: Equatable {
     // MainTabBarView(송신) -> MainPageView(수신), 수신 즉시 false로 초기화
     @Published var needsAlbumRefresh: Bool = false
 
-    // 알림 및 푸시에서 전달한 albumId 기반 상세페이지 이동 신호
-    // MainPageView에서 소비 후 nil로 초기화
-    @Published var pendingAlbumDetailNavigation: Int? = nil
-
     // APIClient.sessionExpiredPublisher 구독 유지용
     private var cancellables = Set<AnyCancellable>()
 

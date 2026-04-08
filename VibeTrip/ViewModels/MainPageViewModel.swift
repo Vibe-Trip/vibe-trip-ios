@@ -81,6 +81,27 @@ final class MainPageViewModel: ObservableObject {
         await loadAlbums()
     }
 
+    // 화면 전환 중 백그라운드 새로고침 전용
+    func refreshAlbumsWithoutClearing() async {
+        guard !isFetching else { return }
+        cancelAllPolling()
+        isFetching = true
+        isLoading = true
+        defer { isFetching = false; isLoading = false }
+        do {
+            let payload = try await albumService.fetchAlbums(cursor: nil, limit: 10)
+            albums = payload.content
+            hasNext = payload.hasNext
+            cursor = payload.content.last?.id
+            hasLoaded = true
+            errorMessage = nil
+            startPollingIfNeeded()
+        } catch {
+            // 실패 시 기존 목록을 유지하고 에러만 갱신
+            errorMessage = "앨범을 불러오지 못했습니다."
+        }
+    }
+
     // 앨범 수정 완료 후 해당 앨범을 미준비 상태로 전환 -> 폴링 재시작 대상
     func markAlbumNotReady(albumId: Int) {
         readyAlbumIds.remove(albumId)
