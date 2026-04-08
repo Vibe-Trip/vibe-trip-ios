@@ -66,7 +66,10 @@ struct MainPageView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .task { await viewModel.loadAlbums() }
         // 첫 진입 시 현재 카드 주변 이미지 캐시 적재
-        .onAppear { preloadCoverImages(urls: preloadCoverImageURLs(from: visibleAlbums)) }
+        .onAppear {
+            preloadCoverImages(urls: preloadCoverImageURLs(from: visibleAlbums))
+            consumePendingAlbumDetailNavigation(from: visibleAlbums)
+        }
         .onDisappear { viewModel.cancelAllPolling() }
         // 스와이프 후 현재 카드가 바뀌면 주변 이미지 다시 준비
         .onChange(of: currentIndex) { _, _ in
@@ -75,6 +78,15 @@ struct MainPageView: View {
         // 페이지네이션 등으로 주변 카드 구성이 바뀌면 캐시 갱신
         .onChange(of: preloadKey) { _, _ in
             preloadCoverImages(urls: preloadCoverImageURLs(from: visibleAlbums))
+            consumePendingAlbumDetailNavigation(from: visibleAlbums)
+        }
+        // 알림 및 푸시로 전달된 albumId를 수신 시, 해당 상세페이지로 이동
+        .onChange(of: appState.pendingAlbumDetailNavigation) { _, _ in
+            consumePendingAlbumDetailNavigation(from: visibleAlbums)
+        }
+        // albumId 목록 재갱신: 목록 갱신 후 대상 카드가 늦게 도착하는 경우 대비
+        .onChange(of: visibleAlbums.map(\.id)) { _, _ in
+            consumePendingAlbumDetailNavigation(from: visibleAlbums)
         }
         .onChange(of: appState.needsAlbumRefresh) { _, needsReload in
             guard needsReload else { return }
@@ -315,6 +327,15 @@ struct MainPageView: View {
             currentIndex: currentIndex,
             preloadRange: CarouselLayout.preloadRange
         )
+    }
+
+    // pending albumId 존재 시, 해당 상세페이지로 이동 및 소비
+    private func consumePendingAlbumDetailNavigation(from visibleAlbums: [AlbumCard]) {
+        guard selectedAlbum == nil else { return }
+        guard let pendingAlbumId = appState.pendingAlbumDetailNavigation else { return }
+        guard let targetAlbum = visibleAlbums.first(where: { $0.id == pendingAlbumId }) else { return }
+        selectedAlbum = targetAlbum
+        appState.pendingAlbumDetailNavigation = nil
     }
 
     // 현재 카드 주변 커버 이미지를 캐시에 미리 적재
