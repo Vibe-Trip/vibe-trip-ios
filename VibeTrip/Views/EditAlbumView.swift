@@ -12,6 +12,26 @@ import UIKit
 @MainActor
 struct EditAlbumView: View {
 
+    private enum Layout {
+        static let headerHeight: CGFloat = 44
+    }
+
+    private enum MusicRegenerationOption: String, CaseIterable, Identifiable {
+        case regenerate
+        case doNotRegenerate
+
+        var id: String { rawValue }
+
+        var title: String {
+            switch self {
+            case .regenerate:
+                return "재생성"
+            case .doNotRegenerate:
+                return "재생성 하지않음"
+            }
+        }
+    }
+
     // MARK: - ViewModel
 
     @StateObject private var viewModel: EditAlbumViewModel
@@ -22,6 +42,7 @@ struct EditAlbumView: View {
     @State private var isDatePickerPresented = false
     @State private var isGenreDescriptionPresented = false
     @State private var isExitAlertPresented = false
+    @State private var musicRegenerationOption: MusicRegenerationOption = .doNotRegenerate
     // 날짜 피커 시트 내 임시 날짜 (확정 전 스테이징)
     @State private var stagedStartDate: Date = Date()
     @State private var stagedEndDate: Date = Date()
@@ -68,45 +89,51 @@ struct EditAlbumView: View {
             Color.white
                 .ignoresSafeArea()
 
-            VStack(spacing: 0) {
-                // 경고 배너
-                InfoBannerView(
-                    message: "앨범 정보를 수정하면\n기존 음악은 사라지고 새로운 곡이 생성됩니다."
-                )
-                .padding(.horizontal, 20)
-                .padding(.top, 12)
+            ZStack(alignment: .top) {
+                VStack(spacing: 0) {
+                    ScrollView(showsIndicators: false) {
+                        VStack(alignment: .leading, spacing: 20) {
+                            // MARK: - 음악 재생성 여부
+                            VStack(alignment: .leading, spacing: 8) {
+                                sectionHeader(title: "음악 재생성 여부", subtitle: "필수 선택", isRequired: true)
 
-                ScrollView(showsIndicators: false) {
-                    VStack(alignment: .leading, spacing: 20) {
-
-                        // MARK: - 사진
-                        VStack(alignment: .leading, spacing: 8) {
-                            sectionHeader(title: "사진", subtitle: "필수 선택", isRequired: true)
-
-                            Button(action: { isPhotoPickerPresented = true }) {
-                                EditAlbumPhotoBox(image: viewModel.selectedImage, coverImageUrl: viewModel.coverImageUrl)
+                                MakeAlbumSegmentedControl(
+                                    options: MusicRegenerationOption.allCases,
+                                    title: { $0.title },
+                                    selection: musicRegenerationOption,
+                                    onSelect: { musicRegenerationOption = $0 }
+                                )
                             }
-                            .buttonStyle(.plain)
-                        }
+                            .padding(.bottom, -12)
 
-                        // MARK: - 앨범 제목 (UI 표시용, 서버 미전송)
-                        VStack(alignment: .leading, spacing: 8) {
-                            sectionHeader(title: "앨범 제목", subtitle: "필수 입력 (최대 15자)", isRequired: true)
+                            // MARK: - 사진
+                            VStack(alignment: .leading, spacing: 8) {
+                                sectionHeader(title: "사진", subtitle: "필수 선택", isRequired: true)
 
-                            TextField("앨범 제목을 입력해주세요.", text: $viewModel.albumTitle)
-                                .font(Font.setPretendard(weight: .regular, size: 16))
-                                .foregroundColor(Color.textPrimary)
-                                .padding(.horizontal, 16)
-                                .frame(maxWidth: .infinity, minHeight: 48, maxHeight: 48, alignment: .leading)
-                                .background(Color.fieldBackground)
-                                .clipShape(RoundedRectangle(cornerRadius: 8))
-                                .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.fieldBorder, lineWidth: 1))
-                                .shadow(color: .black.opacity(0.06), radius: 1.5, x: 0, y: 1)
-                                .onChange(of: viewModel.albumTitle) { _, newValue in
-                                    let limited = String(newValue.prefix(15))
-                                    if newValue != limited { viewModel.albumTitle = limited }
+                                Button(action: { isPhotoPickerPresented = true }) {
+                                    EditAlbumPhotoBox(image: viewModel.selectedImage, coverImageUrl: viewModel.coverImageUrl)
                                 }
-                        }
+                                .buttonStyle(.plain)
+                            }
+
+                            // MARK: - 앨범 제목 (UI 표시용, 서버 미전송)
+                            VStack(alignment: .leading, spacing: 8) {
+                                sectionHeader(title: "앨범 제목", subtitle: "필수 입력 (최대 15자)", isRequired: true)
+
+                                TextField("앨범 제목을 입력해주세요.", text: $viewModel.albumTitle)
+                                    .font(Font.setPretendard(weight: .regular, size: 16))
+                                    .foregroundColor(Color.textPrimary)
+                                    .padding(.horizontal, 16)
+                                    .frame(maxWidth: .infinity, minHeight: 48, maxHeight: 48, alignment: .leading)
+                                    .background(Color.fieldBackground)
+                                    .clipShape(RoundedRectangle(cornerRadius: 8))
+                                    .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.fieldBorder, lineWidth: 1))
+                                    .shadow(color: .black.opacity(0.06), radius: 1.5, x: 0, y: 1)
+                                    .onChange(of: viewModel.albumTitle) { _, newValue in
+                                        let limited = String(newValue.prefix(15))
+                                        if newValue != limited { viewModel.albumTitle = limited }
+                                    }
+                            }
 
                         // MARK: - 여행지
                         VStack(alignment: .leading, spacing: 8) {
@@ -162,45 +189,6 @@ struct EditAlbumView: View {
                                 .shadow(color: .black.opacity(0.06), radius: 1.5, x: 0, y: 1)
                             }
                             .buttonStyle(.plain)
-                        }
-
-                        // MARK: - 가사 포함 여부
-                        VStack(alignment: .leading, spacing: 8) {
-                            sectionHeader(title: "가사 포함 여부", subtitle: "필수 선택", isRequired: true)
-
-                            MakeAlbumSegmentedControl(
-                                options: LyricsOption.allCases,
-                                title: { $0.title },
-                                selection: viewModel.lyricsOption,
-                                onSelect: { option in
-                                    viewModel.lyricsOption = option
-                                    if option == .exclude {
-                                        viewModel.vocalGender = nil
-                                        if let genre = viewModel.selectedGenre, AlbumGenre.vocalGenres.contains(genre) {
-                                            viewModel.selectedGenre = nil
-                                        }
-                                    } else {
-                                        if let genre = viewModel.selectedGenre, AlbumGenre.instrumentalGenres.contains(genre) {
-                                            viewModel.selectedGenre = nil
-                                        }
-                                    }
-                                }
-                            )
-                        }
-
-                        // MARK: - 보컬 성별
-                        if viewModel.lyricsOption == .include {
-                            VStack(alignment: .leading, spacing: 8) {
-                                sectionHeader(title: "보컬 성별 선택", subtitle: "필수 선택", isRequired: true)
-
-                                MakeAlbumSegmentedControl(
-                                    options: VocalGender.allCases,
-                                    title: { $0.title },
-                                    selection: viewModel.vocalGender,
-                                    onSelect: { viewModel.vocalGender = $0 }
-                                )
-                            }
-                            .transition(.opacity)
                         }
 
                         // MARK: - 장르 선택
@@ -277,16 +265,15 @@ struct EditAlbumView: View {
 
                         // MARK: - 앨범 코멘터리
                         CommentarySection(commentary: $viewModel.commentary)
+                        }
+                        .padding(.horizontal, 20)
+                        .padding(.top, 12)
+                        .padding(.bottom, 24)
                     }
-                    .padding(.horizontal, 20)
-                    .padding(.top, 8)
-                    .padding(.bottom, 24)
-                    .animation(.easeInOut(duration: 0.2), value: viewModel.lyricsOption)
                 }
-            }
-            // 네비게이션 바
-            .safeAreaInset(edge: .top, spacing: 0) {
-                AppNavigationBar(title: "앨범 수정", style: .solidWhite, onBackTap: {
+                .safeAreaInset(edge: .top) { headerSpacer }
+
+                AppNavigationBar(title: "앨범 수정", style: .blurAlways, onBackTap: {
                     if viewModel.hasChanges {
                         isExitAlertPresented = true
                     } else {
@@ -368,6 +355,10 @@ struct EditAlbumView: View {
             }
         }
         .task { await viewModel.load() }
+    }
+
+    private var headerSpacer: some View {
+        Color.clear.frame(height: Layout.headerHeight)
     }
 
     // 섹션 헤더 빌더
@@ -575,7 +566,7 @@ private struct EditAlbumBottomButton: View {
         .buttonStyle(.plain)
         .padding(.horizontal, 20)
         .padding(.top, 32)
-        .padding(.bottom, 16)
+        .padding(.bottom, 8)
         .background(
             LinearGradient(
                 gradient: Gradient(stops: [
