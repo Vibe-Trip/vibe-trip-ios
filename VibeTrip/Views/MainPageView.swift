@@ -57,7 +57,9 @@ struct MainPageView: View {
         let preloadKey = preloadCoverImageURLs(from: visibleAlbums).map(\.absoluteString).joined(separator: "|")
 
         Group {
-            if visibleAlbums.isEmpty {
+            if viewModel.isInitialLoading {
+                initialLoadingContent
+            } else if visibleAlbums.isEmpty {
                 emptyContent
             } else {
                 carouselView(visibleAlbums: visibleAlbums)
@@ -145,6 +147,42 @@ struct MainPageView: View {
     }
     
     // MARK: - 빈 상태 UI
+    
+    private var initialLoadingContent: some View {
+        GeometryReader { geo in
+            let safeTop = geo.safeAreaInsets.top
+            let topY = safeTop + CarouselLayout.activeTopSpacing
+            
+            ZStack {
+                Color(UIColor.systemBackground).ignoresSafeArea()
+                
+                Image("AlbumCard_Placeholder")
+                    .resizable()
+                    .scaledToFill()
+                    .frame(
+                        width: AlbumCardView.Layout.cardWidth,
+                        height: AlbumCardView.Layout.cardHeight
+                    )
+                    .clipped()
+                    .cornerRadius(AlbumCardView.Layout.cardCornerRadius)
+                    .overlay {
+                        RoundedRectangle(cornerRadius: AlbumCardView.Layout.cardCornerRadius)
+                            .fill(Color.white.opacity(0.2))
+                    }
+                    .offset(x: CarouselLayout.activeSideSpacing, y: topY)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                
+                AppNavigationBar(style: .transparent) {
+                    Image("AppLogo_Home")
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: 120, height: 30)
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+            }
+            .ignoresSafeArea()
+        }
+    }
     
     private var emptyContent: some View {
         ZStack {

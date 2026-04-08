@@ -18,6 +18,7 @@ final class MainPageViewModel: ObservableObject {
     @Published private(set) var albums: [AlbumCard] = []   // 캐러셀에 표시할 앨범 목록
     @Published private(set) var isLoading: Bool = false     // 네트워크 요청 중 여부
     @Published private(set) var errorMessage: String? = nil // 에러 발생 시 메시지
+    @Published private(set) var didFinishInitialLoad: Bool = false // 최초 API 응답 완료 여부
 
     // 신고로 숨긴 앨범 ID 목록 (클라이언트 인메모리, API 연동 전 목 처리)
     private var hiddenAlbumIds: Set<Int> = []
@@ -25,6 +26,11 @@ final class MainPageViewModel: ObservableObject {
     // 신고된 앨범을 제외한 표시용 앨범 목록
     var visibleAlbums: [AlbumCard] {
         albums.filter { !hiddenAlbumIds.contains($0.id) }
+    }
+    
+    // 최초 응답 전에는 empty state 대신 로딩 placeholder를 노출
+    var isInitialLoading: Bool {
+        !didFinishInitialLoad
     }
 
     // MARK: - Pagination State
@@ -118,7 +124,13 @@ final class MainPageViewModel: ObservableObject {
         guard hasNext, !isFetching else { return }
         isFetching = true
         isLoading = true
-        defer { isFetching = false; isLoading = false }
+        defer {
+            isFetching = false
+            isLoading = false
+            if !didFinishInitialLoad {
+                didFinishInitialLoad = true
+            }
+        }
         do {
             let payload = try await albumService.fetchAlbums(cursor: cursor, limit: 10)
             albums.append(contentsOf: payload.content)
