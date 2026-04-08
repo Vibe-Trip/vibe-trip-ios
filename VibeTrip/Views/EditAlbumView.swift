@@ -42,6 +42,7 @@ struct EditAlbumView: View {
     @State private var isDatePickerPresented = false
     @State private var isGenreDescriptionPresented = false
     @State private var isExitAlertPresented = false
+    @State private var keyboardHeight: CGFloat = 0
     // 날짜 피커 시트 내 임시 날짜 (확정 전 스테이징)
     @State private var stagedStartDate: Date = Date()
     @State private var stagedEndDate: Date = Date()
@@ -76,7 +77,7 @@ struct EditAlbumView: View {
 
     // MARK: - Init
 
-    init(albumId: Int, onExit: @escaping () -> Void, onSaved: @escaping () -> Void) {
+    init(albumId: Int, onExit: @escaping () -> Void, onSaved: @escaping (Bool) -> Void) {
         _viewModel = StateObject(wrappedValue: EditAlbumViewModel(albumId: albumId, onSaved: onSaved))
         self.onExit = onExit
     }
@@ -344,7 +345,7 @@ struct EditAlbumView: View {
         .overlay(alignment: .bottom) {
             if let message = viewModel.toastMessage {
                 AppToastView(message: message)
-                    .padding(.bottom, 140)
+                    .padding(.bottom, keyboardAwareToastPadding)
                     .transition(.move(edge: .bottom).combined(with: .opacity))
             }
         }
@@ -401,11 +402,24 @@ struct EditAlbumView: View {
                 dismissKeyboard()
             }
         )
+        .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillShowNotification)) { notification in
+            guard let frame = notification.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? CGRect else {
+                return
+            }
+            keyboardHeight = frame.height
+        }
+        .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillHideNotification)) { _ in
+            keyboardHeight = 0
+        }
         .task { await viewModel.load() }
     }
 
     private var headerSpacer: some View {
         Color.clear.frame(height: Layout.headerHeight)
+    }
+
+    private var keyboardAwareToastPadding: CGFloat {
+        keyboardHeight > 0 ? keyboardHeight + 32 : 96
     }
 
     private func dismissKeyboard() {
@@ -645,7 +659,7 @@ private struct EditAlbumBottomButton: View {
     EditAlbumView(
         albumId: 1,
         onExit: {},
-        onSaved: {}
+        onSaved: { _ in }
     )
 }
 #endif

@@ -68,7 +68,7 @@ final class EditAlbumViewModelTests: XCTestCase {
 
     // MARK: - 헬퍼
 
-    private func makeSUT(stub: StubAlbumService = StubAlbumService(), onSaved: @escaping () -> Void = {}) -> EditAlbumViewModel {
+    private func makeSUT(stub: StubAlbumService = StubAlbumService(), onSaved: @escaping (Bool) -> Void = { _ in }) -> EditAlbumViewModel {
         EditAlbumViewModel(albumId: 1, albumService: stub, onSaved: onSaved)
     }
 
@@ -262,7 +262,7 @@ final class EditAlbumViewModelTests: XCTestCase {
     func test_submitEdit_success_callsOnSaved() async {
         let stub = StubAlbumService(updateResult: .success(()))
         var onSavedCalled = false
-        let sut = makeSUT(stub: stub, onSaved: { onSavedCalled = true })
+        let sut = makeSUT(stub: stub, onSaved: { _ in onSavedCalled = true })
         setupValidInput(sut)
         await sut.submitEdit()
         XCTAssertTrue(onSavedCalled)

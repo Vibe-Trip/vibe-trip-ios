@@ -51,7 +51,7 @@ final class EditAlbumViewModel: ObservableObject {
 
     private let albumId: Int
     private let albumService: AlbumServiceProtocol
-    let onSaved: () -> Void
+    let onSaved: (Bool) -> Void
 
     // MARK: - Computed
 
@@ -71,9 +71,10 @@ final class EditAlbumViewModel: ObservableObject {
 
     var isValid: Bool {
         let hasPhoto = selectedImage != nil || coverImageUrl != nil
+        let hasTitle = !albumTitle.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
         let hasDestination = !destination.trimmingCharacters(in: .whitespaces).isEmpty
         let hasVocalIfNeeded = !regenerateMusic || lyricsOption == .exclude || vocalGender != nil
-        return hasPhoto && hasDestination && hasDateSelected && hasVocalIfNeeded
+        return hasPhoto && hasTitle && hasDestination && hasDateSelected && hasVocalIfNeeded
     }
 
     // MARK: - Init
@@ -81,7 +82,7 @@ final class EditAlbumViewModel: ObservableObject {
     nonisolated init(
         albumId: Int,
         albumService: AlbumServiceProtocol = AlbumService(),
-        onSaved: @escaping () -> Void
+        onSaved: @escaping (Bool) -> Void
     ) {
         self.albumId = albumId
         self.albumService = albumService
@@ -131,6 +132,7 @@ final class EditAlbumViewModel: ObservableObject {
     // MARK: - Submit
 
     func submitEdit() async {
+        guard !isLoading else { return }
         guard isValid else {
             toastMessage = "필수 입력 항목을 모두 입력해 주세요."
             return
@@ -152,7 +154,7 @@ final class EditAlbumViewModel: ObservableObject {
                 comment: commentary
             )
             try await albumService.updateAlbum(albumId: String(albumId), request: request)
-            onSaved()
+            onSaved(regenerateMusic)
         } catch {
             toastMessage = "수정에 실패했어요. 다시 시도해 주세요."
         }
