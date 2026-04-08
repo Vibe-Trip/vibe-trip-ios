@@ -124,6 +124,19 @@ final class MainPageViewModelTests: XCTestCase {
         XCTAssertNil(sut.errorMessage)
     }
 
+    // 앨범 생성 완료 조건: musicUrl
+    func test_loadAlbums_titleExists_butMusicNotReady_isNotReady() async {
+        let cards = makeAlbumCards(ids: [1])
+        let stub = StubAlbumService(results: [
+            .success(AlbumListPayload(content: cards, totalCount: 1, hasNext: false))
+        ])
+        makeSUT(stub: stub)
+
+        await sut.loadAlbums()
+
+        XCTAssertFalse(sut.isReady(for: 1))
+    }
+
     // 에러 응답 -> errorMessage 설정됨, albums 비어있음
     func test_loadAlbums_error_setsErrorMessage() async {
         let stub = StubAlbumService(results: [
