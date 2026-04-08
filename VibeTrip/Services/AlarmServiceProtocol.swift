@@ -25,13 +25,17 @@ extension AlarmResponse {
 
     // 서버 DTO  -> 앱 도메인 모델 변환
     func toNotificationItem() -> NotificationItem? {
-        guard let type = toNotificationType() else { return nil }
+        print("[AlarmResponse] alarmId: \(alarmId), alarmType: \(alarmType), albumId: \(albumId?.description ?? "nil")")
+        guard let type = toNotificationType() else {
+            print("[AlarmResponse] 변환 실패 - alarmId: \(alarmId), alarmType: \(alarmType), albumId: \(albumId?.description ?? "nil")")
+            return nil
+        }
         return NotificationItem(
             id: String(alarmId),
             type: type,
             title: title,
             body: description,
-            createdAt: Self.isoFormatter.date(from: createdAt) ?? Date(),
+            createdAt: Self.parseDate(from: createdAt),
             isRead: false
         )
     }
@@ -52,10 +56,33 @@ extension AlarmResponse {
         }
     }
 
-    // ISO8601 날짜 파싱용 포매터 (재사용을 위해 static으로 캐싱)
-    private static let isoFormatter: ISO8601DateFormatter = {
+    // ISO8601 날짜 파싱
+    private static func parseDate(from string: String) -> Date {
+        if let date = isoFormatterWithFraction.date(from: string) { return date }
+        if let date = isoFormatterWithoutFraction.date(from: string) { return date }
+        if let date = plainDateTimeFormatter.date(from: string) { return date }
+        return Date()
+    }
+
+    // "2026-04-07T10:00:00.000Z"
+    private static let isoFormatterWithFraction: ISO8601DateFormatter = {
         let f = ISO8601DateFormatter()
         f.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        return f
+    }()
+
+    // "2026-04-07T10:00:00Z"
+    private static let isoFormatterWithoutFraction: ISO8601DateFormatter = {
+        let f = ISO8601DateFormatter()
+        f.formatOptions = [.withInternetDateTime]
+        return f
+    }()
+
+    // "2026-04-08T00:04:20" (timezone 없는 서버 응답 포맷)
+    private static let plainDateTimeFormatter: DateFormatter = {
+        let f = DateFormatter()
+        f.dateFormat = "yyyy-MM-dd'T'HH:mm:ss"
+        f.locale = Locale(identifier: "en_US_POSIX")
         return f
     }()
 }
