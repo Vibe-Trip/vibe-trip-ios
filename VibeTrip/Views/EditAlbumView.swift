@@ -580,12 +580,6 @@ private struct CommentarySection: View {
                         let limited = String(newValue.prefix(maxCount))
                         if newValue != limited { commentary = limited }
                     }
-                    .toolbar {
-                        ToolbarItemGroup(placement: .keyboard) {
-                            Spacer()
-                            Button("완료") { isFocused = false }
-                        }
-                    }
 
                 if commentary.isEmpty {
                     Text("어떤 분위기의 노래를 만들고 싶나요?\n지금 느끼는 감정을 기록해보세요.")
