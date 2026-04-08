@@ -88,6 +88,7 @@ final class EditAlbumViewModelTests: XCTestCase {
         regenerateMusic: Bool = false
     ) {
         sut.selectedImage = makeDummyImage()
+        sut.albumTitle = "테스트 앨범"
         sut.destination = "서울"
         sut.hasDateSelected = true
         sut.regenerateMusic = regenerateMusic

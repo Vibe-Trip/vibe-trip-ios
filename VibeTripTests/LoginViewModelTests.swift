@@ -36,9 +36,20 @@ final class LoginViewModelTests: XCTestCase {
         return LoginViewModel(kakaoAuthService: kakao, backendAuthService: backend)
     }
 
-    // 비동기 Task 완료 대기 헬퍼
-    func waitForTask() async {
-        try? await Task.sleep(nanoseconds: 100_000_000)  // 0.1초
+    // 로그인 Task 시작/종료를 기다리는 대기 헬퍼
+    func waitForTask(_ vm: LoginViewModel) async {
+        // Task가 아직 시작 전일 수 있어 한 번 양보
+        await Task.yield()
+
+        // isLoading=true 전환 대기 (최대 1초)
+        for _ in 0..<100 where !vm.isLoading {
+            try? await Task.sleep(nanoseconds: 10_000_000)
+        }
+
+        // Task 종료 대기 (최대 3초)
+        for _ in 0..<300 where vm.isLoading {
+            try? await Task.sleep(nanoseconds: 10_000_000)
+        }
     }
 
     // MARK: - 테스트 케이스
@@ -47,7 +58,7 @@ final class LoginViewModelTests: XCTestCase {
     func test_success_isLoggedIn() async {
         let vm = makeViewModel()
         vm.loginWithKakao()
-        await waitForTask()
+        await waitForTask(vm)
 
         XCTAssertTrue(vm.isLoggedIn)
         XCTAssertNil(vm.errorState)
@@ -58,7 +69,7 @@ final class LoginViewModelTests: XCTestCase {
     func test_cancelled_noErrorUI() async {
         let vm = makeViewModel(kakaoResult: .failure(LoginError.cancelled))
         vm.loginWithKakao()
-        await waitForTask()
+        await waitForTask(vm)
 
         XCTAssertNil(vm.errorState)
         XCTAssertFalse(vm.isLoggedIn)
@@ -68,7 +79,7 @@ final class LoginViewModelTests: XCTestCase {
     func test_providerError_showsToast() async {
         let vm = makeViewModel(kakaoResult: .failure(LoginError.providerError))
         vm.loginWithKakao()
-        await waitForTask()
+        await waitForTask(vm)
 
         if case .toast(let msg) = vm.errorState {
             XCTAssertFalse(msg.isEmpty)
@@ -81,7 +92,7 @@ final class LoginViewModelTests: XCTestCase {
     func test_networkError_showsToast() async {
         let vm = makeViewModel(backendError: .networkError)
         vm.loginWithKakao()
-        await waitForTask()
+        await waitForTask(vm)
 
         if case .toast(let msg) = vm.errorState {
             XCTAssertFalse(msg.isEmpty)
@@ -94,7 +105,7 @@ final class LoginViewModelTests: XCTestCase {
     func test_timeout_showsRetryPopup() async {
         let vm = makeViewModel(backendError: .timeout)
         vm.loginWithKakao()
-        await waitForTask()
+        await waitForTask(vm)
 
         if case .retryPopup(let msg) = vm.errorState {
             XCTAssertFalse(msg.isEmpty)
