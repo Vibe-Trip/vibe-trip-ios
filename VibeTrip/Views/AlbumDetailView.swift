@@ -657,14 +657,9 @@ private extension AlbumDetailView {
                     .frame(maxWidth: .infinity, maxHeight: .infinity)
                     .clipped()
             default:
-                ZStack {
-                    Rectangle()
-                        .fill(Color.placeholderSymbol)
-
-                    Image(systemName: "photo")
-                        .font(.system(size: Constants.placeholderIconSize, weight: .medium))
-                        .foregroundStyle(.white.opacity(0.9))
-                }
+                Image("AlbumDetail_Placeholder")
+                    .resizable()
+                    .scaledToFill()
             }
         }
     }
