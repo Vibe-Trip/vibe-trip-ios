@@ -45,12 +45,12 @@ extension FCMPayload {
     func toNavigationAction() -> NotificationNavigationAction? {
         switch type {
         case "CREATING":
-            return .openNotification
+            return .openAlbumCreationLoading
         case "COMPLETED":
             guard let albumId = data?.albumId else { return nil }
             return .openAlbumDetail(albumId: String(albumId))
         case "FAILED":
-            return .openNotification
+            return .openMakeAlbum
         default:
             return nil
         }
