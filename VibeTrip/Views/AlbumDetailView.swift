@@ -228,7 +228,7 @@ struct AlbumDetailView: View {
     private let onBackTap: () -> Void
     private let onWriteLogTap: () -> Void
     private let onEditAlbumTap: () -> Void
-    private let onEditSaved: () -> Void     // 수정 완료 후 메인 복귀 콜백
+    private let onEditSaved: (Bool) -> Void     // 수정 완료 후 분기 콜백(재생성 여부)
     private let onDeleteAlbumTap: () -> Void
     private let onReportTap: () -> Void
     
@@ -280,7 +280,7 @@ struct AlbumDetailView: View {
         onBackTap: @escaping () -> Void = {},
         onWriteLogTap: @escaping () -> Void = {},
         onEditAlbumTap: @escaping () -> Void = {},
-        onEditSaved: @escaping () -> Void = {},
+        onEditSaved: @escaping (Bool) -> Void = { _ in },
         onDeleteAlbumTap: @escaping () -> Void = {},
         onReportTap: @escaping () -> Void = {}
     ) {
@@ -497,9 +497,9 @@ struct AlbumDetailView: View {
             EditAlbumView(
                 albumId: displayModel.albumId,
                 onExit: { isEditPresented = false },
-                onSaved: {
+                onSaved: { regenerateMusic in
                     isEditPresented = false
-                    onEditSaved()
+                    onEditSaved(regenerateMusic)
                 }
             )
         }
