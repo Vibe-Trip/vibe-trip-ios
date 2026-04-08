@@ -11,13 +11,16 @@ import SwiftUI
 
 struct AlbumCardView: View {
 
-        private let album: AlbumCard
+    private let album: AlbumCard
     // false: 음악 생성 중 -> skeleton 표시 + 상세 진입 차단
     private let isReady: Bool
+    // 현재 카드 여부 (비활성 카드는 그림자 비용 완화)
+    private let isActive: Bool
 
-    init(album: AlbumCard, isReady: Bool) {
+    init(album: AlbumCard, isReady: Bool, isActive: Bool = true) {
         self.album = album
         self.isReady = isReady
+        self.isActive = isActive
     }
 
 
@@ -35,8 +38,16 @@ struct AlbumCardView: View {
         static let thumbnailTopPadding: CGFloat      = 16
         static let thumbnailTrailingPadding: CGFloat = 16
 
-        static let cardShadowOpacity: CGFloat    = 0.06
-        static let cardShadowRadius: CGFloat    = 1.5
+        // 현재 카드 강조는 유지 및 비활성 카드는 그림자를 줄임 -> 렌더링 부담 완화
+        static let activeCardShadowOpacity: CGFloat   = 0.06
+        static let inactiveCardShadowOpacity: CGFloat = 0.02
+        static let activeCardShadowRadius: CGFloat    = 1.5
+        static let inactiveCardShadowRadius: CGFloat  = 0.8
+
+        static let activeCoverShadowOpacity: CGFloat   = 0.1
+        static let inactiveCoverShadowOpacity: CGFloat = 0.04
+        static let activeCoverShadowRadius: CGFloat    = 7.5
+        static let inactiveCoverShadowRadius: CGFloat  = 3.0
 
         static let textTopPadding: CGFloat      = 58
         static let textLeadingPadding: CGFloat  = 16
@@ -53,7 +64,13 @@ struct AlbumCardView: View {
         .frame(width: Layout.cardWidth, height: Layout.cardHeight)
         .background(Color.white)
         .cornerRadius(Layout.cardCornerRadius)
-        .shadow(color: .black.opacity(Layout.cardShadowOpacity), radius: Layout.cardShadowRadius, x: 0, y: 1)
+        // 카드 외곽 shadow 비용: 비활성 카드에서 더 낮춤
+        .shadow(
+            color: .black.opacity(isActive ? Layout.activeCardShadowOpacity : Layout.inactiveCardShadowOpacity),
+            radius: isActive ? Layout.activeCardShadowRadius : Layout.inactiveCardShadowRadius,
+            x: 0,
+            y: 1
+        )
     }
 
     // MARK: - 대표 이미지
@@ -72,7 +89,13 @@ struct AlbumCardView: View {
         .frame(width: Layout.cardWidth, height: Layout.coverImageHeight)
         .clipped()
         .cornerRadius(Layout.cardCornerRadius)
-        .shadow(color: .black.opacity(0.1), radius: 7.5, x: 0, y: 5)
+        // 커버 이미지 shadow도 비활성 카드에서 함께 축소
+        .shadow(
+            color: .black.opacity(isActive ? Layout.activeCoverShadowOpacity : Layout.inactiveCoverShadowOpacity),
+            radius: isActive ? Layout.activeCoverShadowRadius : Layout.inactiveCoverShadowRadius,
+            x: 0,
+            y: 5
+        )
     }
 
     // MARK: - Info Overlay
@@ -179,16 +202,16 @@ private struct SkeletonTitleView: View {
 #if DEBUG
 #Preview("생성 완료") {
     // mockItems[0]: previewLogImages 2개, logImageCount 5 -> 원형 2개 + "+3" 배지
-    AlbumCardView(album: AlbumCard.mockItems[0], isReady: true)
+    AlbumCardView(album: AlbumCard.mockItems[0], isReady: true, isActive: true)
 }
 
 #Preview("생성 완료 (배지 없음)") {
     // mockItems[1]: previewLogImages 3개, logImageCount 3 -> 원형 3개, 배지 없음
-    AlbumCardView(album: AlbumCard.mockItems[1], isReady: true)
+    AlbumCardView(album: AlbumCard.mockItems[1], isReady: true, isActive: false)
 }
 
 #Preview("음악 생성 중") {
     // mockItems[3]: title nil → skeleton 상태 확인용
-    AlbumCardView(album: AlbumCard.mockItems[3], isReady: false)
+    AlbumCardView(album: AlbumCard.mockItems[3], isReady: false, isActive: true)
 }
 #endif

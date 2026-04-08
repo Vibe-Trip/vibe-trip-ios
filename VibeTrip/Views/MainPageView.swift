@@ -232,7 +232,8 @@ struct MainPageView: View {
                             
                             AlbumCardView(
                                 album: visibleAlbums[index],
-                                isReady: viewModel.isReady(for: visibleAlbums[index].id)
+                                isReady: viewModel.isReady(for: visibleAlbums[index].id),
+                                isActive: isActive
                             )
                             .onTapGesture {
                                 guard isActive else { return }
