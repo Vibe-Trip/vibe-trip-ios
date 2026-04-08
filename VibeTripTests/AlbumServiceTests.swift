@@ -604,12 +604,14 @@ final class AlbumServiceTests: XCTestCase {
     private func makeUpdateRequest() -> AlbumUpdateRequest {
         AlbumUpdateRequest(
             photoData: Data([0x00, 0x01]),
+            title: "테스트 앨범",
             location: "서울",
             startDate: Date(timeIntervalSince1970: 0),
             endDate: Date(timeIntervalSince1970: 86400),
             lyricsOption: .include,
             vocalGender: .female,
             genre: .jazz,
+            regenerateMusic: true,
             comment: "테스트 코멘트"
         )
     }
@@ -648,12 +650,14 @@ final class AlbumServiceTests: XCTestCase {
         mockAPIClient.performUploadResult = .success(())
         let request = AlbumUpdateRequest(
             photoData: Data([0x00]),
+            title: "테스트 앨범",
             location: "부산",
             startDate: Date(),
             endDate: Date(),
             lyricsOption: .exclude,
             vocalGender: nil,
             genre: .loFi,
+            regenerateMusic: false,
             comment: ""
         )
 

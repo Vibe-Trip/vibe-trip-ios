@@ -81,10 +81,16 @@ final class EditAlbumViewModelTests: XCTestCase {
     }
 
     // 사진·여행지·날짜·가사 등 필수 항목을 모두 채운 유효 상태로 설정
-    private func setupValidInput(_ sut: EditAlbumViewModel, lyricsOption: LyricsOption = .exclude, vocalGender: VocalGender? = nil) {
+    private func setupValidInput(
+        _ sut: EditAlbumViewModel,
+        lyricsOption: LyricsOption = .exclude,
+        vocalGender: VocalGender? = nil,
+        regenerateMusic: Bool = false
+    ) {
         sut.selectedImage = makeDummyImage()
         sut.destination = "서울"
         sut.hasDateSelected = true
+        sut.regenerateMusic = regenerateMusic
         sut.lyricsOption = lyricsOption
         sut.vocalGender = vocalGender
     }
@@ -134,7 +140,7 @@ final class EditAlbumViewModelTests: XCTestCase {
     // 가사 포함인데 vocalGender 미선택 -> false
     func test_isValid_includeLyricsNoGender_returnsFalse() {
         let sut = makeSUT()
-        setupValidInput(sut, lyricsOption: .include, vocalGender: nil)
+        setupValidInput(sut, lyricsOption: .include, vocalGender: nil, regenerateMusic: true)
         XCTAssertFalse(sut.isValid)
     }
 
