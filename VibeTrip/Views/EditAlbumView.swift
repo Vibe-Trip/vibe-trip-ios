@@ -191,74 +191,115 @@ struct EditAlbumView: View {
                             .buttonStyle(.plain)
                         }
 
-                        // MARK: - 장르 선택
-                        VStack(alignment: .leading, spacing: 8) {
-                            HStack(alignment: .top) {
-                                VStack(alignment: .leading, spacing: 4) {
-                                    HStack(alignment: .firstTextBaseline, spacing: 4) {
-                                        Text("장르 선택")
-                                            .font(Font.setPretendard(weight: .semiBold, size: 16))
-                                            .foregroundStyle(Color.textPrimary)
+                        if musicRegenerationOption == .regenerate {
+                            // MARK: - 가사 포함 여부
+                            VStack(alignment: .leading, spacing: 8) {
+                                sectionHeader(title: "가사 포함 여부", subtitle: "필수 선택", isRequired: true)
 
-                                        Text("선택 입력")
+                                MakeAlbumSegmentedControl(
+                                    options: LyricsOption.allCases,
+                                    title: { $0.title },
+                                    selection: viewModel.lyricsOption,
+                                    onSelect: { option in
+                                        viewModel.lyricsOption = option
+                                        if option == .exclude {
+                                            viewModel.vocalGender = nil
+                                            if let genre = viewModel.selectedGenre, AlbumGenre.vocalGenres.contains(genre) {
+                                                viewModel.selectedGenre = nil
+                                            }
+                                        } else {
+                                            if let genre = viewModel.selectedGenre, AlbumGenre.instrumentalGenres.contains(genre) {
+                                                viewModel.selectedGenre = nil
+                                            }
+                                        }
+                                    }
+                                )
+                            }
+
+                            // MARK: - 보컬 성별
+                            if viewModel.lyricsOption == .include {
+                                VStack(alignment: .leading, spacing: 8) {
+                                    sectionHeader(title: "보컬 성별 선택", subtitle: "필수 선택", isRequired: true)
+
+                                    MakeAlbumSegmentedControl(
+                                        options: VocalGender.allCases,
+                                        title: { $0.title },
+                                        selection: viewModel.vocalGender,
+                                        onSelect: { viewModel.vocalGender = $0 }
+                                    )
+                                }
+                                .transition(.opacity)
+                            }
+
+                            // MARK: - 장르 선택
+                            VStack(alignment: .leading, spacing: 8) {
+                                HStack(alignment: .top) {
+                                    VStack(alignment: .leading, spacing: 4) {
+                                        HStack(alignment: .firstTextBaseline, spacing: 4) {
+                                            Text("장르 선택")
+                                                .font(Font.setPretendard(weight: .semiBold, size: 16))
+                                                .foregroundStyle(Color.textPrimary)
+
+                                            Text("선택 입력")
+                                                .font(Font.setPretendard(weight: .medium, size: 12))
+                                                .foregroundStyle(Color.textSecondary)
+                                        }
+
+                                        Text(genreHelperText)
                                             .font(Font.setPretendard(weight: .medium, size: 12))
                                             .foregroundStyle(Color.textSecondary)
                                     }
 
-                                    Text(genreHelperText)
-                                        .font(Font.setPretendard(weight: .medium, size: 12))
-                                        .foregroundStyle(Color.textSecondary)
-                                }
+                                    Spacer()
 
-                                Spacer()
-
-                                // 장르 설명 모달 버튼
-                                Button(action: { isGenreDescriptionPresented = true }) {
-                                    Image(systemName: "info.circle.fill")
-                                        .font(.system(size: 18))
-                                        .foregroundStyle(Color.appPrimary.opacity(0.6))
-                                }
-                                .buttonStyle(.plain)
-                            }
-
-                            LazyVGrid(
-                                columns: [
-                                    GridItem(.flexible(), spacing: 4),
-                                    GridItem(.flexible(), spacing: 4),
-                                    GridItem(.flexible(), spacing: 4)
-                                ],
-                                alignment: .leading,
-                                spacing: 8
-                            ) {
-                                ForEach(displayedGenres) { genre in
-                                    Button(action: {
-                                        viewModel.selectedGenre = viewModel.selectedGenre == genre ? nil : genre
-                                    }) {
-                                        Text(genre.rawValue)
-                                            .font(Font.setPretendard(weight: .medium, size: 16))
-                                            .foregroundStyle(Color.textPrimary)
-                                            .frame(maxWidth: .infinity)
-                                            .frame(height: 52)
-                                            .background(
-                                                RoundedRectangle(cornerRadius: 8)
-                                                    .fill(
-                                                        viewModel.selectedGenre == genre
-                                                        ? Color.chipSelectedBackground
-                                                        : Color.chipUnselectedBackground
-                                                    )
-                                            )
-                                            .overlay(
-                                                RoundedRectangle(cornerRadius: 8)
-                                                    .stroke(
-                                                        viewModel.selectedGenre == genre
-                                                        ? Color.appPrimary.opacity(0.35)
-                                                        : Color.fieldBorder,
-                                                        lineWidth: 1
-                                                    )
-                                            )
-                                            .shadow(color: .black.opacity(0.06), radius: 1.5, x: 0, y: 1)
+                                    // 장르 설명 모달 버튼
+                                    Button(action: { isGenreDescriptionPresented = true }) {
+                                        Image(systemName: "info.circle")
+                                            .font(.system(size: 18))
+                                            .foregroundStyle(Color.appPrimary.opacity(0.6))
                                     }
                                     .buttonStyle(.plain)
+                                }
+
+                                LazyVGrid(
+                                    columns: [
+                                        GridItem(.flexible(), spacing: 4),
+                                        GridItem(.flexible(), spacing: 4),
+                                        GridItem(.flexible(), spacing: 4)
+                                    ],
+                                    alignment: .leading,
+                                    spacing: 8
+                                ) {
+                                    ForEach(displayedGenres) { genre in
+                                        Button(action: {
+                                            viewModel.selectedGenre = viewModel.selectedGenre == genre ? nil : genre
+                                        }) {
+                                            Text(genre.rawValue)
+                                                .font(Font.setPretendard(weight: .medium, size: 16))
+                                                .foregroundStyle(Color.textPrimary)
+                                                .frame(maxWidth: .infinity)
+                                                .frame(height: 52)
+                                                .background(
+                                                    RoundedRectangle(cornerRadius: 8)
+                                                        .fill(
+                                                            viewModel.selectedGenre == genre
+                                                            ? Color.chipSelectedBackground
+                                                            : Color.chipUnselectedBackground
+                                                        )
+                                                )
+                                                .overlay(
+                                                    RoundedRectangle(cornerRadius: 8)
+                                                        .stroke(
+                                                            viewModel.selectedGenre == genre
+                                                            ? Color.appPrimary.opacity(0.35)
+                                                            : Color.fieldBorder,
+                                                            lineWidth: 1
+                                                        )
+                                                )
+                                                .shadow(color: .black.opacity(0.06), radius: 1.5, x: 0, y: 1)
+                                        }
+                                        .buttonStyle(.plain)
+                                    }
                                 }
                             }
                         }
@@ -269,6 +310,8 @@ struct EditAlbumView: View {
                         .padding(.horizontal, 20)
                         .padding(.top, 12)
                         .padding(.bottom, 24)
+                        .animation(.easeInOut(duration: 0.2), value: musicRegenerationOption)
+                        .animation(.easeInOut(duration: 0.2), value: viewModel.lyricsOption)
                     }
                 }
                 .safeAreaInset(edge: .top) { headerSpacer }
@@ -354,11 +397,25 @@ struct EditAlbumView: View {
                 )
             }
         }
+        .simultaneousGesture(
+            TapGesture().onEnded {
+                dismissKeyboard()
+            }
+        )
         .task { await viewModel.load() }
     }
 
     private var headerSpacer: some View {
         Color.clear.frame(height: Layout.headerHeight)
+    }
+
+    private func dismissKeyboard() {
+        UIApplication.shared.sendAction(
+            #selector(UIResponder.resignFirstResponder),
+            to: nil,
+            from: nil,
+            for: nil
+        )
     }
 
     // 섹션 헤더 빌더
