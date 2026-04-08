@@ -60,6 +60,9 @@ struct AppToastPayload: Equatable {
     // MainTabBarView(송신) -> MainPageView(수신), 수신 즉시 false로 초기화
     @Published var needsAlbumRefresh: Bool = false
 
+    // 푸시 수신 시 알림 목록 재조회 요청 신호
+    @Published var needsNotificationRefresh: Bool = false
+
     // APIClient.sessionExpiredPublisher 구독 유지용
     private var cancellables = Set<AnyCancellable>()
 

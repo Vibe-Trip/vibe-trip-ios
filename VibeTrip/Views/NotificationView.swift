@@ -59,6 +59,11 @@ struct NotificationView: View {
             // 탭 진입 시 레드 닷 제거
             appState.hasUnreadNotifications = false
         }
+        .onChange(of: appState.needsNotificationRefresh) { _, needsRefresh in
+            guard needsRefresh else { return }
+            appState.needsNotificationRefresh = false
+            Task { await viewModel.loadNotifications() }
+        }
         .onDisappear {
             // 알림뷰 탈출 시 전체 읽음 처리
             viewModel.markAllAsRead()

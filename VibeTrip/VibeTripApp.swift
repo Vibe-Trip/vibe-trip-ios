@@ -13,10 +13,11 @@ import UserNotifications
 import KakaoSDKCommon
 import KakaoSDKAuth
 
-class AppDelegate: NSObject, UIApplicationDelegate {
+class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDelegate {
     private enum Constants {
         static let notificationKey = "isNotificationEnabled"
     }
+    weak var appState: AppState?
 
     func application(_ application: UIApplication,
                      didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey : Any]? = nil) -> Bool {
@@ -32,6 +33,8 @@ class AppDelegate: NSObject, UIApplicationDelegate {
 
         // Firebase 초기화
         FirebaseApp.configure()
+        UNUserNotificationCenter.current().delegate = self
+        // TODO: FCM 토큰 만료/회전으로 알림 수신 불가 이슈가 발생 시, MessagingDelegate + didReceiveRegistrationToken 재연동
         
         // 카카오 SDK 초기화
         if let appKey = Bundle.main.infoDictionary?["KAKAO_APP_KEY"] as? String {
@@ -62,6 +65,54 @@ class AppDelegate: NSObject, UIApplicationDelegate {
         Messaging.messaging().apnsToken = deviceToken
     }
 
+    // 포그라운드 푸시: 인앱 배너 표시 + 알림 목록 갱신 신호
+    func userNotificationCenter(_ center: UNUserNotificationCenter,
+                                willPresent notification: UNNotification,
+                                withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void) {
+        Task { @MainActor in
+            appState?.hasUnreadNotifications = true
+            appState?.needsNotificationRefresh = true
+        }
+        completionHandler([.banner, .list, .sound, .badge])
+    }
+
+    // 백그라운드 및 종료 상태 푸시 탭: payload에 맞는 화면 이동 전달
+    func userNotificationCenter(_ center: UNUserNotificationCenter,
+                                didReceive response: UNNotificationResponse,
+                                withCompletionHandler completionHandler: @escaping () -> Void) {
+        let userInfo = response.notification.request.content.userInfo
+        let navigationAction = decodeFCMPayload(from: userInfo)?.toNavigationAction()
+        Task { @MainActor in
+            appState?.hasUnreadNotifications = true
+            appState?.needsNotificationRefresh = true
+            appState?.pendingNotificationAction = navigationAction
+        }
+        completionHandler()
+    }
+
+    // FCM userInfo에서 커스텀 payload 디코딩
+    private func decodeFCMPayload(from userInfo: [AnyHashable: Any]) -> FCMPayload? {
+        let decoder = JSONDecoder()
+
+        if let payloadObject = userInfo["payload"] as? [String: Any],
+           let data = try? JSONSerialization.data(withJSONObject: payloadObject),
+           let payload = try? decoder.decode(FCMPayload.self, from: data) {
+            return payload
+        }
+
+        if let payloadString = userInfo["payload"] as? String,
+           let data = payloadString.data(using: .utf8),
+           let payload = try? decoder.decode(FCMPayload.self, from: data) {
+            return payload
+        }
+
+        // payload 래핑이 없는 형식도 대비
+        if let data = try? JSONSerialization.data(withJSONObject: userInfo),
+           let payload = try? decoder.decode(FCMPayload.self, from: data) {
+            return payload
+        }
+        return nil
+    }
 }
 
 @main
@@ -98,6 +149,7 @@ struct VibeTripApp: App {
             .task {
                 // 앱 진입 시 Keychain 토큰 유무로 초기 화면 결정
                 appState.isLoggedIn = (try? keychainService.getAccessToken()) != nil
+                delegate.appState = appState
             }
         }
     }
