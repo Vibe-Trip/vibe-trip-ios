@@ -141,8 +141,18 @@ final class EditAlbumViewModel: ObservableObject {
         defer { isLoading = false }
 
         do {
+            let photoData: Data?
+            if let selectedImage {
+                photoData = selectedImage.jpegData(compressionQuality: 0.8)
+            } else if regenerateMusic, let coverImageUrl {
+                let (data, _) = try await URLSession.shared.data(from: coverImageUrl)
+                photoData = data
+            } else {
+                photoData = nil
+            }
+
             let request = AlbumUpdateRequest(
-                photoData: selectedImage?.jpegData(compressionQuality: 0.8),
+                photoData: photoData,
                 title: albumTitle,
                 location: destination,
                 startDate: startDate,
