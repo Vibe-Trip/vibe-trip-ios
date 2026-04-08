@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import Combine
 
 // MARK: - NotificationViewModel
 
@@ -14,8 +15,8 @@ final class NotificationViewModel: ObservableObject {
 
     // MARK: - Published
 
-    // 화면에 표시할 알림 목록 (외부에서 직접 변경 불가)
-    @Published private(set) var notifications: [NotificationItem] = []
+    // 화면에 표시할 알림 목록
+    @Published private(set) var notifications: [NotificationItem] = [] 
 
     // MARK: - Dependencies
 
@@ -46,8 +47,15 @@ final class NotificationViewModel: ObservableObject {
     func loadNotifications() async {
         do {
             let responses = try await alarmService.fetchAlarms()
-            // 변환 실패 항목(albumId 없는 COMPLETED 등) 필터링
-            notifications = responses.compactMap { $0.toNotificationItem() }
+            // 재조회 시 기존 읽음 처리된 알림 ID 보존
+            let existingReadIds = Set(notifications.filter { $0.isRead }.map { $0.id })
+            let newItems = deduplicated(responses).compactMap { $0.toNotificationItem() }
+            notifications = newItems.map { item in
+                guard existingReadIds.contains(item.id) else { return item }
+                var read = item
+                read.isRead = true
+                return read
+            }
         } catch {
             // 에러 시 기존 목록 유지
         }
@@ -82,6 +90,27 @@ final class NotificationViewModel: ObservableObject {
             item.isRead = true
             return item
         }
+    }
+
+    // MARK: - Private Methods
+
+    // 같은 albumId: 최신 항목 하나만 유지
+    // CREATING -> COMPLETED or FAILED
+    private func deduplicated(_ responses: [AlarmResponse]) -> [AlarmResponse] {
+        // albumId 없는 항목은 그대로 유지
+        let noAlbumIdItems = responses.filter { $0.albumId == nil }
+
+        // albumId 있는 항목들을 그룹핑 후 각 그룹에서 하나만 선택
+        let grouped = Dictionary(grouping: responses.filter { $0.albumId != nil }, by: { $0.albumId! })
+        let deduped: [AlarmResponse] = grouped.values.compactMap { group in
+            // COMPLETED or FAILED 중 가장 최신(alarmId 높은) 우선
+            let resolved = group.filter { $0.alarmType == "COMPLETED" || $0.alarmType == "FAILED" }
+            if let latest = resolved.max(by: { $0.alarmId < $1.alarmId }) { return latest }
+            // CREATING만 있으면 그 중 최신
+            return group.max(by: { $0.alarmId < $1.alarmId })
+        }
+
+        return noAlbumIdItems + deduped
     }
 
 }

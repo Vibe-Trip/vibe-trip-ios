@@ -62,9 +62,6 @@ struct NotificationView: View {
         .onDisappear {
             // 알림뷰 탈출 시 전체 읽음 처리
             viewModel.markAllAsRead()
-        
-            // FCM 수신 시 AppDelegate에서 hasUnreadNotifications = true
-            appState.hasUnreadNotifications = true  // TODO: 서버 연동 시 제거: UI 확인용
         }
     }
 
