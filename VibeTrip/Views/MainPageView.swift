@@ -88,10 +88,10 @@ struct MainPageView: View {
             AlbumDetailView(
                 displayModel: album.toDisplayModel(),
                 onBackTap: { selectedAlbum = nil },
-                onEditSaved: { regenerateMusic in
-                    guard regenerateMusic else { return }   // 재생성 안 함: 상세페이지 유지
+                onEditSaved: { outcome in
+                    // 재생성 저장일 때만 메인 복귀 + 스켈레톤/폴링 흐름으로 전환
+                    guard case .regenerated = outcome else { return }   // 재생성 안 함: 상세페이지 유지
 
-                    // 재생성 선택 시: 메인 복귀 + 스켈레톤 폴링 재시작
                     viewModel.markAlbumNotReady(albumId: album.id)
                     selectedAlbum = nil
                     appState.pendingTabNavigation = .home

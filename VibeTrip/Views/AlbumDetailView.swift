@@ -95,10 +95,14 @@ import Combine
 
     // 상세 진입 시 1회 호출: null -> 버튼 비활성, null X -> isMusicUrlReady = true
     func loadMusicUrl() async {
-        guard albumIdInt > 0 else { return }
-        guard let detail = try? await service.fetchAlbum(albumId: albumIdInt) else { return }
+        guard let detail = await fetchAlbumDetail() else { return }
         musicUrl = detail.musicUrl
         isMusicUrlReady = detail.musicUrl != nil
+    }
+
+    func fetchAlbumDetail() async -> AlbumDetail? {
+        guard albumIdInt > 0 else { return nil }
+        return try? await service.fetchAlbum(albumId: albumIdInt)
     }
 
     func requestDeleteAlbum() {
@@ -228,7 +232,7 @@ struct AlbumDetailView: View {
     private let onBackTap: () -> Void
     private let onWriteLogTap: () -> Void
     private let onEditAlbumTap: () -> Void
-    private let onEditSaved: (Bool) -> Void     // 수정 완료 후 분기 콜백(재생성 여부)
+    private let onEditSaved: (EditAlbumSaveOutcome) -> Void
     private let onDeleteAlbumTap: () -> Void
     private let onReportTap: () -> Void
     
@@ -269,6 +273,10 @@ struct AlbumDetailView: View {
 
     // 타이틀 텍스트의 초기 global Y (스크롤 = 0 기준, 1회만 측정)
     @State private var titleContentY: CGFloat = .greatestFiniteMagnitude
+    @State private var albumTitle: String
+    @State private var albumDestination: String
+    @State private var albumDateText: String
+    @State private var albumCoverImageUrl: URL?
     
     //최상단 이동 버튼 표시 -> 블러 네비게이션 바 전환 시
     private var showScrollToTop: Bool { overlayOpacity < 1 }
@@ -280,7 +288,7 @@ struct AlbumDetailView: View {
         onBackTap: @escaping () -> Void = {},
         onWriteLogTap: @escaping () -> Void = {},
         onEditAlbumTap: @escaping () -> Void = {},
-        onEditSaved: @escaping (Bool) -> Void = { _ in },
+        onEditSaved: @escaping (EditAlbumSaveOutcome) -> Void = { _ in },
         onDeleteAlbumTap: @escaping () -> Void = {},
         onReportTap: @escaping () -> Void = {}
     ) {
@@ -292,6 +300,10 @@ struct AlbumDetailView: View {
         self.onDeleteAlbumTap = onDeleteAlbumTap
         self.onReportTap = onReportTap
         _logViewModel = StateObject(wrappedValue: AlbumDetailViewModel(albumId: String(displayModel.albumId)))
+        _albumTitle = State(initialValue: displayModel.title)
+        _albumDestination = State(initialValue: displayModel.destination)
+        _albumDateText = State(initialValue: displayModel.dateText)
+        _albumCoverImageUrl = State(initialValue: displayModel.coverImageUrl)
     }
     
     // MARK: - Body
@@ -330,7 +342,7 @@ struct AlbumDetailView: View {
             
             // 블러 네비게이션 바 -> 커버 이미지 지날 때 사용
             AppNavigationBar(
-                title: displayModel.title,
+                title: albumTitle,
                 style: .blurTransition(scrollOffset: titleNavOffset),
                 onBackTap: onBackTap
             ) {
@@ -497,9 +509,15 @@ struct AlbumDetailView: View {
             EditAlbumView(
                 albumId: displayModel.albumId,
                 onExit: { isEditPresented = false },
-                onSaved: { regenerateMusic in
+                onSaved: { outcome in
                     isEditPresented = false
-                    onEditSaved(regenerateMusic)
+                    if case .metadataUpdated = outcome {
+                        // 재생성 없이 메타데이터만 수정된 경우 상세 헤더를 즉시 반영
+                        Task { await reloadAlbumHeader() }
+                        // 메인 카드 텍스트/썸네일 동기화를 위해 새로고침 신호 전달
+                        appState.needsAlbumRefresh = true
+                    }
+                    onEditSaved(outcome)
                 }
             )
         }
@@ -592,7 +610,7 @@ private extension AlbumDetailView {
             // 앨범 정보
             VStack(alignment: .leading, spacing: Constants.infoTextSpacing) {
                 /// 앨범 제목
-                Text(displayModel.title)
+                Text(albumTitle)
                     .font(.setPretendard(weight: .semiBold, size: Constants.titleFontSize))
                     .foregroundStyle(Color.textPrimary)
                     .lineLimit(1)
@@ -606,13 +624,13 @@ private extension AlbumDetailView {
                     }
                 
                 /// 여행지
-                Text(displayModel.destination)
+                Text(albumDestination)
                     .font(.setPretendard(weight: .medium, size: Constants.subtitleFontSize))
                     .foregroundStyle(Color.textSecondary)
                     .lineLimit(1)
                 
                 /// 여행 날짜
-                Text(displayModel.dateText)
+                Text(albumDateText)
                     .font(.setPretendard(weight: .regular, size: Constants.dateFontSize))
                     .foregroundStyle(Color.textSecondary)
                     .lineLimit(1)
@@ -631,7 +649,7 @@ private extension AlbumDetailView {
     // 커버 이미지: URL 없으면 placeholder 표시
     @ViewBuilder
     var coverImage: some View {
-        AsyncImage(url: displayModel.coverImageUrl) { phase in
+        AsyncImage(url: albumCoverImageUrl) { phase in
             switch phase {
             case .success(let image):
                 image
@@ -742,7 +760,7 @@ private extension AlbumDetailView {
                 isMusicUrlReady: logViewModel.isMusicUrlReady,
                 onDownloadMusic: {
                     isAlbumMenuVisible = false
-                    Task { await logViewModel.downloadMusic(albumTitle: displayModel.title) }
+                    Task { await logViewModel.downloadMusic(albumTitle: albumTitle) }
                 },
                 onEditAlbum: {
                     isAlbumMenuVisible = false
@@ -761,6 +779,36 @@ private extension AlbumDetailView {
             .padding(.top, Constants.menuTopPadding)
             .padding(.trailing, Constants.menuTrailingPadding)
         }
+    }
+
+    func reloadAlbumHeader() async {
+        guard let detail = await logViewModel.fetchAlbumDetail() else { return }
+
+        albumTitle = detail.title?.isEmpty == false ? (detail.title ?? albumTitle) : albumTitle
+        albumDestination = detail.region
+        albumDateText = formatDateRange(
+            startRaw: detail.travelStartDate,
+            endRaw: detail.travelEndDate
+        )
+        albumCoverImageUrl = detail.coverImageUrl
+        titleContentY = .greatestFiniteMagnitude
+    }
+
+    func formatDateRange(startRaw: String, endRaw: String) -> String {
+        let input = DateFormatter()
+        input.locale = Locale(identifier: "en_US_POSIX")
+        input.dateFormat = "yyyy-MM-dd"
+
+        let output = DateFormatter()
+        output.locale = Locale(identifier: "ko_KR")
+        output.dateFormat = "yyyy년 M월 d일"
+
+        guard let start = input.date(from: startRaw),
+              let end = input.date(from: endRaw) else {
+            return "\(startRaw) - \(endRaw)"
+        }
+
+        return "\(output.string(from: start)) - \(output.string(from: end))"
     }
 }
 

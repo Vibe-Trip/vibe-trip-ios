@@ -77,7 +77,7 @@ struct EditAlbumView: View {
 
     // MARK: - Init
 
-    init(albumId: Int, onExit: @escaping () -> Void, onSaved: @escaping (Bool) -> Void) {
+    init(albumId: Int, onExit: @escaping () -> Void, onSaved: @escaping (EditAlbumSaveOutcome) -> Void) {
         _viewModel = StateObject(wrappedValue: EditAlbumViewModel(albumId: albumId, onSaved: onSaved))
         self.onExit = onExit
     }

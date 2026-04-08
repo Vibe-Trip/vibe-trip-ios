@@ -8,6 +8,12 @@
 import UIKit
 import Combine
 
+// 수정 저장 이후 화면 전환/갱신 분기를 위한 결과 타입
+enum EditAlbumSaveOutcome {
+    case regenerated
+    case metadataUpdated
+}
+
 // MARK: - EditAlbumViewModel
 
 @MainActor
@@ -51,7 +57,7 @@ final class EditAlbumViewModel: ObservableObject {
 
     private let albumId: Int
     private let albumService: AlbumServiceProtocol
-    let onSaved: (Bool) -> Void
+    let onSaved: (EditAlbumSaveOutcome) -> Void
 
     // MARK: - Computed
 
@@ -82,7 +88,7 @@ final class EditAlbumViewModel: ObservableObject {
     nonisolated init(
         albumId: Int,
         albumService: AlbumServiceProtocol = AlbumService(),
-        onSaved: @escaping (Bool) -> Void
+        onSaved: @escaping (EditAlbumSaveOutcome) -> Void
     ) {
         self.albumId = albumId
         self.albumService = albumService
@@ -145,6 +151,7 @@ final class EditAlbumViewModel: ObservableObject {
             if let selectedImage {
                 photoData = selectedImage.jpegData(compressionQuality: 0.8)
             } else if regenerateMusic, let coverImageUrl {
+                // 재생성 요청은 커버 이미지가 필요하므로 미변경 시 기존 이미지를 재전송
                 let (data, _) = try await URLSession.shared.data(from: coverImageUrl)
                 photoData = data
             } else {
@@ -164,7 +171,7 @@ final class EditAlbumViewModel: ObservableObject {
                 comment: commentary
             )
             try await albumService.updateAlbum(albumId: String(albumId), request: request)
-            onSaved(regenerateMusic)
+            onSaved(regenerateMusic ? .regenerated : .metadataUpdated)
         } catch {
             toastMessage = "수정에 실패했어요. 다시 시도해 주세요."
         }

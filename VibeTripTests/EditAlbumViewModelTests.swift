@@ -68,7 +68,7 @@ final class EditAlbumViewModelTests: XCTestCase {
 
     // MARK: - 헬퍼
 
-    private func makeSUT(stub: StubAlbumService = StubAlbumService(), onSaved: @escaping (Bool) -> Void = { _ in }) -> EditAlbumViewModel {
+    private func makeSUT(stub: StubAlbumService = StubAlbumService(), onSaved: @escaping (EditAlbumSaveOutcome) -> Void = { _ in }) -> EditAlbumViewModel {
         EditAlbumViewModel(albumId: 1, albumService: stub, onSaved: onSaved)
     }
 
