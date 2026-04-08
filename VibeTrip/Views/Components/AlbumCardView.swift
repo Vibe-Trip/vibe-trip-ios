@@ -49,6 +49,11 @@ struct AlbumCardView: View {
         static let activeCoverShadowRadius: CGFloat    = 7.5
         static let inactiveCoverShadowRadius: CGFloat  = 3.0
 
+        static let activeThumbnailShadowOpacity: CGFloat   = 0.13
+        static let inactiveThumbnailShadowOpacity: CGFloat = 0
+        static let activeThumbnailShadowRadius: CGFloat    = 2.5
+        static let inactiveThumbnailShadowRadius: CGFloat  = 0
+
         static let textTopPadding: CGFloat      = 58
         static let textLeadingPadding: CGFloat  = 16
         static let textSpacing: CGFloat         = 4
@@ -167,7 +172,13 @@ struct AlbumCardView: View {
                 .frame(width: Layout.thumbnailSize, height: Layout.thumbnailSize)
                 .clipShape(Circle())
                 .overlay(Circle().stroke(Color.white, lineWidth: 1))
-                .shadow(color: .black.opacity(0.13), radius: 2.5, x: 0, y: 3)
+                // 비활성 카드 썸네일: shadow X -> 활성 될 때 렌더링
+                .shadow(
+                    color: .black.opacity(isActive ? Layout.activeThumbnailShadowOpacity : Layout.inactiveThumbnailShadowOpacity),
+                    radius: isActive ? Layout.activeThumbnailShadowRadius : Layout.inactiveThumbnailShadowRadius,
+                    x: 0,
+                    y: 3
+                )
             }
 
             // +N 배지: 전체 이미지 수가 4개 이상일 때 항상 표시 (이미지 3개 제외한 나머지)
