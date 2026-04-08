@@ -42,7 +42,6 @@ struct EditAlbumView: View {
     @State private var isDatePickerPresented = false
     @State private var isGenreDescriptionPresented = false
     @State private var isExitAlertPresented = false
-    @State private var musicRegenerationOption: MusicRegenerationOption = .doNotRegenerate
     // 날짜 피커 시트 내 임시 날짜 (확정 전 스테이징)
     @State private var stagedStartDate: Date = Date()
     @State private var stagedEndDate: Date = Date()
@@ -100,8 +99,8 @@ struct EditAlbumView: View {
                                 MakeAlbumSegmentedControl(
                                     options: MusicRegenerationOption.allCases,
                                     title: { $0.title },
-                                    selection: musicRegenerationOption,
-                                    onSelect: { musicRegenerationOption = $0 }
+                                    selection: viewModel.regenerateMusic ? .regenerate : .doNotRegenerate,
+                                    onSelect: { viewModel.regenerateMusic = ($0 == .regenerate) }
                                 )
                             }
                             .padding(.bottom, -12)
@@ -191,7 +190,7 @@ struct EditAlbumView: View {
                             .buttonStyle(.plain)
                         }
 
-                        if musicRegenerationOption == .regenerate {
+                        if viewModel.regenerateMusic {
                             // MARK: - 가사 포함 여부
                             VStack(alignment: .leading, spacing: 8) {
                                 sectionHeader(title: "가사 포함 여부", subtitle: "필수 선택", isRequired: true)
@@ -310,7 +309,7 @@ struct EditAlbumView: View {
                         .padding(.horizontal, 20)
                         .padding(.top, 12)
                         .padding(.bottom, 24)
-                        .animation(.easeInOut(duration: 0.2), value: musicRegenerationOption)
+                        .animation(.easeInOut(duration: 0.2), value: viewModel.regenerateMusic)
                         .animation(.easeInOut(duration: 0.2), value: viewModel.lyricsOption)
                     }
                 }

@@ -15,12 +15,13 @@ final class EditAlbumViewModel: ObservableObject {
 
     // MARK: - Published (편집 필드)
 
-    @Published var selectedImage: UIImage? = nil    // nil: 이미지 미변경 (기존 URL 유지)
-    @Published var albumTitle: String = ""          // UI 표시용 (서버 미전송, 백엔드 title 필드 추가 후 연동 예정)
+    @Published var selectedImage: UIImage? = nil    // nil: 이미지 미변경 (미전송)
+    @Published var albumTitle: String = ""
     @Published var destination: String = ""
     @Published var startDate: Date = Date()
     @Published var endDate: Date = Date()
     @Published var hasDateSelected: Bool = false    // 날짜 선택 완료 여부
+    @Published var regenerateMusic: Bool = false
     @Published var lyricsOption: LyricsOption = .exclude
     @Published var vocalGender: VocalGender? = nil
     @Published var selectedGenre: AlbumGenre? = nil
@@ -33,15 +34,17 @@ final class EditAlbumViewModel: ObservableObject {
 
     // MARK: - 원본 스냅샷 (hasChanges 비교용)
 
+    private var originalTitle: String = ""
     private var originalDestination: String = ""
     private var originalStartDate: Date = Date()
     private var originalEndDate: Date = Date()
+    private var originalRegenerateMusic: Bool = false
     private var originalLyricsOption: LyricsOption = .exclude
     private var originalVocalGender: VocalGender? = nil
     private var originalGenre: AlbumGenre? = nil
     private var originalCommentary: String = ""
 
-    // 이미지 미변경 시 기존 URL에서 재다운로드
+    // 기존 커버 이미지 URL (미리보기/유효성 판단용)
     private(set) var coverImageUrl: URL? = nil
 
     // MARK: - Dependencies
@@ -52,12 +55,14 @@ final class EditAlbumViewModel: ObservableObject {
 
     // MARK: - Computed
 
-    // 서버 전송 대상 필드 기준 (title 제외)
+    // 서버 전송 대상 필드 기준
     var hasChanges: Bool {
         selectedImage != nil
+        || albumTitle != originalTitle
         || destination != originalDestination
         || startDate != originalStartDate
         || endDate != originalEndDate
+        || regenerateMusic != originalRegenerateMusic
         || lyricsOption != originalLyricsOption
         || vocalGender != originalVocalGender
         || selectedGenre != originalGenre
@@ -67,7 +72,7 @@ final class EditAlbumViewModel: ObservableObject {
     var isValid: Bool {
         let hasPhoto = selectedImage != nil || coverImageUrl != nil
         let hasDestination = !destination.trimmingCharacters(in: .whitespaces).isEmpty
-        let hasVocalIfNeeded = lyricsOption == .exclude || vocalGender != nil
+        let hasVocalIfNeeded = !regenerateMusic || lyricsOption == .exclude || vocalGender != nil
         return hasPhoto && hasDestination && hasDateSelected && hasVocalIfNeeded
     }
 
@@ -105,15 +110,18 @@ final class EditAlbumViewModel: ObservableObject {
         startDate = start
         endDate = end
         hasDateSelected = true
+        regenerateMusic = false
         lyricsOption = lyricsOpt
         vocalGender = detail.vocalGender
         selectedGenre = detail.genre
         commentary = detail.comment ?? ""
 
         // 원본 스냅샷 저장
+        originalTitle = albumTitle
         originalDestination = destination
         originalStartDate = startDate
         originalEndDate = endDate
+        originalRegenerateMusic = regenerateMusic
         originalLyricsOption = lyricsOption
         originalVocalGender = vocalGender
         originalGenre = selectedGenre
@@ -131,26 +139,16 @@ final class EditAlbumViewModel: ObservableObject {
         defer { isLoading = false }
 
         do {
-            // 이미지: 새로 선택 → UIImage → Data, 미선택 → 기존 URL에서 재다운로드
-            let imageData: Data
-            if let image = selectedImage, let data = image.jpegData(compressionQuality: 0.8) {
-                imageData = data
-            } else if let url = coverImageUrl {
-                let (data, _) = try await URLSession.shared.data(from: url)
-                imageData = data
-            } else {
-                toastMessage = "사진을 선택해 주세요."
-                return
-            }
-
             let request = AlbumUpdateRequest(
-                photoData: imageData,
+                photoData: selectedImage?.jpegData(compressionQuality: 0.8),
+                title: albumTitle,
                 location: destination,
                 startDate: startDate,
                 endDate: endDate,
                 lyricsOption: lyricsOption,
                 vocalGender: vocalGender,
                 genre: selectedGenre ?? (lyricsOption == .include ? .pop : .loFi),
+                regenerateMusic: regenerateMusic,
                 comment: commentary
             )
             try await albumService.updateAlbum(albumId: String(albumId), request: request)
