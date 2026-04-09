@@ -248,6 +248,12 @@ private struct NotificationRow: View {
         .frame(maxWidth: .infinity)
         // 읽음: 흰 배경, 안읽음: appPrimary100
         .background(item.isRead ? Color.white : Color("appPrimary100"))
+        // 알림 항목 구분선
+        .overlay(alignment: .bottom) {
+            Rectangle()
+                .fill(Color("GrayScale/100"))
+                .frame(height: 2)
+        }
         .contentShape(Rectangle()) // 탭 인식 범위 확대
         .onTapGesture { onTap() }
     }
