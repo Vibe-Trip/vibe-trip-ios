@@ -53,8 +53,12 @@ struct NotificationView: View {
 //                    .animation(.easeInOut(duration: 0.3), value: viewModel.toastMessage)
 //            }
         }
-        // 알림 목록 로드
-        .task { await viewModel.loadNotifications() }
+        // 알림 목록 로드 + 진입 시 기존 알림 읽음 처리
+        .task {
+            await viewModel.loadNotifications()
+            viewModel.markAllAsRead()
+            appState.hasUnreadNotifications = false
+        }
         .onAppear {
             // 탭 진입 시 레드 닷 제거
             appState.hasUnreadNotifications = false
@@ -64,9 +68,9 @@ struct NotificationView: View {
             appState.needsNotificationRefresh = false
             Task { await viewModel.loadNotifications() }
         }
-        .onDisappear {
-            // 알림뷰 탈출 시 전체 읽음 처리
-            viewModel.markAllAsRead()
+        .onReceive(viewModel.$notifications) { items in
+            // red dot은 unread 알림 존재 여부와 동기화
+            appState.hasUnreadNotifications = items.contains { !$0.isRead }
         }
     }
 
@@ -250,10 +254,10 @@ private struct NotificationRow: View {
 
     // createdAt -> 시간 변환 포맷
     private func timeAgo(_ date: Date) -> String {
-        let formatter = RelativeDateTimeFormatter()
-        formatter.locale = Locale(identifier: "ko_KR")
-        formatter.unitsStyle = .abbreviated
-        return formatter.localizedString(for: date, relativeTo: Date())
+        let elapsed = max(0, Int(Date().timeIntervalSince(date)))
+        if elapsed < 60 { return "지금" }
+        let minutes = elapsed / 60
+        return "\(minutes)분 전"
     }
 }
 
