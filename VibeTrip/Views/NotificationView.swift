@@ -66,7 +66,12 @@ struct NotificationView: View {
         .onChange(of: appState.needsNotificationRefresh) { _, needsRefresh in
             guard needsRefresh else { return }
             appState.needsNotificationRefresh = false
-            Task { await viewModel.loadNotifications() }
+            Task {
+                await viewModel.loadNotifications()
+                // 알림 탭에 있는 상태에서 FCM 수신 시 레드닷 방지
+                viewModel.markAllAsRead()
+                appState.hasUnreadNotifications = false
+            }
         }
         .onReceive(viewModel.$notifications) { items in
             // red dot은 unread 알림 존재 여부와 동기화
