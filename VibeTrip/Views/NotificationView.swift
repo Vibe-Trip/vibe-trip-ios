@@ -53,18 +53,29 @@ struct NotificationView: View {
 //                    .animation(.easeInOut(duration: 0.3), value: viewModel.toastMessage)
 //            }
         }
-        // 알림 목록 로드
-        .task { await viewModel.loadNotifications() }
+        // 알림 목록 로드 + 진입 시 기존 알림 읽음 처리
+        .task {
+            await viewModel.loadNotifications()
+            viewModel.markAllAsRead()
+            appState.hasUnreadNotifications = false
+        }
         .onAppear {
             // 탭 진입 시 레드 닷 제거
             appState.hasUnreadNotifications = false
         }
-        .onDisappear {
-            // 알림뷰 탈출 시 전체 읽음 처리
-            viewModel.markAllAsRead()
-        
-            // FCM 수신 시 AppDelegate에서 hasUnreadNotifications = true
-            appState.hasUnreadNotifications = true  // TODO: 서버 연동 시 제거: UI 확인용
+        .onChange(of: appState.needsNotificationRefresh) { _, needsRefresh in
+            guard needsRefresh else { return }
+            appState.needsNotificationRefresh = false
+            Task {
+                await viewModel.loadNotifications()
+                // 알림 탭에 있는 상태에서 FCM 수신 시 레드닷 방지
+                viewModel.markAllAsRead()
+                appState.hasUnreadNotifications = false
+            }
+        }
+        .onReceive(viewModel.$notifications) { items in
+            // red dot은 unread 알림 존재 여부와 동기화
+            appState.hasUnreadNotifications = items.contains { !$0.isRead }
         }
     }
 
@@ -242,16 +253,22 @@ private struct NotificationRow: View {
         .frame(maxWidth: .infinity)
         // 읽음: 흰 배경, 안읽음: appPrimary100
         .background(item.isRead ? Color.white : Color("appPrimary100"))
+        // 알림 항목 구분선
+        .overlay(alignment: .bottom) {
+            Rectangle()
+                .fill(Color("GrayScale/100"))
+                .frame(height: 2)
+        }
         .contentShape(Rectangle()) // 탭 인식 범위 확대
         .onTapGesture { onTap() }
     }
 
     // createdAt -> 시간 변환 포맷
     private func timeAgo(_ date: Date) -> String {
-        let formatter = RelativeDateTimeFormatter()
-        formatter.locale = Locale(identifier: "ko_KR")
-        formatter.unitsStyle = .abbreviated
-        return formatter.localizedString(for: date, relativeTo: Date())
+        let elapsed = max(0, Int(Date().timeIntervalSince(date)))
+        if elapsed < 60 { return "지금" }
+        let minutes = elapsed / 60
+        return "\(minutes)분 전"
     }
 }
 

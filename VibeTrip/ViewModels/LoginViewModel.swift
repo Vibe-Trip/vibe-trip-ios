@@ -45,6 +45,7 @@ final class LoginViewModel: ObservableObject {
     private let appleAuthService: AppleAuthServiceProtocol
     private let backendAuthService: BackendAuthServiceProtocol
     private let keychainService: KeychainServiceProtocol
+    private let fcmTokenProvider: () async -> String
 
     // MARK: - Init
 
@@ -52,12 +53,16 @@ final class LoginViewModel: ObservableObject {
         kakaoAuthService: KakaoAuthServiceProtocol? = nil,
         appleAuthService: AppleAuthServiceProtocol? = nil,
         backendAuthService: BackendAuthServiceProtocol? = nil,
-        keychainService: KeychainServiceProtocol? = nil
+        keychainService: KeychainServiceProtocol? = nil,
+        fcmTokenProvider: (() async -> String)? = nil
     ) {
         self.kakaoAuthService = kakaoAuthService ?? KakaoAuthService()
         self.appleAuthService = appleAuthService ?? AppleAuthService()
         self.backendAuthService = backendAuthService ?? BackendAuthService()
         self.keychainService = keychainService ?? KeychainService()
+        self.fcmTokenProvider = fcmTokenProvider ?? {
+            (try? await Messaging.messaging().token()) ?? ""
+        }
     }
     
     // MARK: - 카카오 로그인
@@ -180,7 +185,7 @@ final class LoginViewModel: ObservableObject {
 
     // FCM 토큰 획득, 실패 시 빈 문자열 반환
     private func fetchFCMToken() async -> String {
-        return (try? await Messaging.messaging().token()) ?? ""
+        await fcmTokenProvider()
     }
 
     // 카카오&애플 공통 백엔드 인증 요청

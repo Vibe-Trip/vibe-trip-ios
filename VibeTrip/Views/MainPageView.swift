@@ -69,18 +69,20 @@ struct MainPageView: View {
         let preloadKey = preloadCoverImageURLs(from: visibleAlbums).map(\.absoluteString).joined(separator: "|")
 
         Group {
-    if viewModel.isInitialLoading {
-        initialLoadingContent
-    } else if visibleAlbums.isEmpty {
-        emptyContent
-    } else {
-        carouselView(visibleAlbums: visibleAlbums)
-    }
-}
+            if viewModel.isInitialLoading {
+                initialLoadingContent
+            } else if visibleAlbums.isEmpty {
+                emptyContent
+            } else {
+                carouselView(visibleAlbums: visibleAlbums)
+            }
+        }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .task { await viewModel.loadAlbums() }
         // 첫 진입 시 현재 카드 주변 이미지 캐시 적재
-        .onAppear { preloadCoverImages(urls: preloadCoverImageURLs(from: visibleAlbums)) }
+        .onAppear {
+            preloadCoverImages(urls: preloadCoverImageURLs(from: visibleAlbums))
+        }
         .onDisappear { viewModel.cancelAllPolling() }
         // 스와이프 후 현재 카드가 바뀌면 주변 이미지 다시 준비
         .onChange(of: currentIndex) { _, _ in

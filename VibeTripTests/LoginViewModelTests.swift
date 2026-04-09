@@ -33,7 +33,11 @@ final class LoginViewModelTests: XCTestCase {
         backend.simulatedError = backendError
         backend.delay = 0   // 테스트에서 딜레이 제거
 
-        return LoginViewModel(kakaoAuthService: kakao, backendAuthService: backend)
+        return LoginViewModel(
+            kakaoAuthService: kakao,
+            backendAuthService: backend,
+            fcmTokenProvider: { "test-fcm-token" }
+        )
     }
 
     // 로그인 Task 시작/종료를 기다리는 대기 헬퍼

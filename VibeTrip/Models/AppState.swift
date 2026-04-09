@@ -13,7 +13,7 @@ import Combine
 // 알림 탭 시 이동할 화면
 // NotificationView: 세팅, MainTabBarView: 처리
 enum NotificationNavigationAction: Equatable {
-    
+
     // 앨범 생성 실패: MakeAlbumView
     case openMakeAlbum
 
@@ -56,6 +56,9 @@ struct AppToastPayload: Equatable {
     // 생성 대기 화면: 화면 숨기기 시 MainPageView에 목록 새로고침을 요청하는 신호
     // MainTabBarView(송신) -> MainPageView(수신), 수신 즉시 false로 초기화
     @Published var needsAlbumRefresh: Bool = false
+
+    // 푸시 수신 시 알림 목록 재조회 요청 신호
+    @Published var needsNotificationRefresh: Bool = false
 
     // APIClient.sessionExpiredPublisher 구독 유지용
     private var cancellables = Set<AnyCancellable>()

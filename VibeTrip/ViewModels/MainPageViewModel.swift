@@ -87,6 +87,27 @@ final class MainPageViewModel: ObservableObject {
         await loadAlbums()
     }
 
+    // 화면 전환 중 백그라운드 새로고침 전용
+    func refreshAlbumsWithoutClearing() async {
+        guard !isFetching else { return }
+        cancelAllPolling()
+        isFetching = true
+        isLoading = true
+        defer { isFetching = false; isLoading = false }
+        do {
+            let payload = try await albumService.fetchAlbums(cursor: nil, limit: 10)
+            albums = payload.content
+            hasNext = payload.hasNext
+            cursor = payload.content.last?.id
+            hasLoaded = true
+            errorMessage = nil
+            startPollingIfNeeded()
+        } catch {
+            // 실패 시 기존 목록을 유지하고 에러만 갱신
+            errorMessage = "앨범을 불러오지 못했습니다."
+        }
+    }
+
     // 앨범 수정 완료 후 해당 앨범을 미준비 상태로 전환 -> 폴링 재시작 대상
     func markAlbumNotReady(albumId: Int) {
         readyAlbumIds.remove(albumId)
@@ -98,7 +119,7 @@ final class MainPageViewModel: ObservableObject {
         readyAlbumIds.contains(albumId)
     }
 
-    // 결과: albums 배열에 누적, 완료 후 title nil 앨범 폴링 시작
+    // 결과: albums 배열에 누적, 완료 후 musicUrl 미준비 앨범 폴링 시작
     private func fetchNextPage() async {
         guard hasNext, !isFetching else { return }
         isFetching = true
@@ -116,11 +137,6 @@ final class MainPageViewModel: ObservableObject {
             hasNext = payload.hasNext
             cursor = payload.content.last?.id // 마지막 albumId: 다음 요청 cursor
             errorMessage = nil
-            // title이 이미 있는 앨범은 음악 생성 완료 상태 → readyAlbumIds에 미리 등록
-            // 수정 후 강제 폴링 대상(pendingPollingIds)은 제외
-            for album in payload.content where album.title != nil && !pendingPollingIds.contains(album.id) {
-                readyAlbumIds.insert(album.id)
-            }
             startPollingIfNeeded()
         } catch {
             errorMessage = "앨범을 불러오지 못했습니다."
@@ -146,10 +162,12 @@ final class MainPageViewModel: ObservableObject {
         }
     }
 
-    // musicUrl 조회: 5초 간격, 최대 120회(10분)
+    // musicUrl 조회: 즉시 1회 확인 후 5초 간격, 최대 120회(10분)
     private func pollMusic(for albumId: Int) async {
-        for _ in 0..<120 {
-            try? await Task.sleep(nanoseconds: pollingInterval)
+        for attempt in 0..<120 {
+            if attempt > 0 {
+                try? await Task.sleep(nanoseconds: pollingInterval)
+            }
             guard !Task.isCancelled else { return }
             guard let detail = try? await albumService.fetchAlbum(albumId: albumId),
                   detail.musicUrl != nil else { continue }
