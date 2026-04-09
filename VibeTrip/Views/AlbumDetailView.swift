@@ -234,7 +234,6 @@ struct AlbumDetailView: View {
     private let onEditAlbumTap: () -> Void
     private let onEditSaved: (EditAlbumSaveOutcome) -> Void
     private let onDeleteAlbumTap: () -> Void
-    private let onReportTap: () -> Void
     
     @StateObject private var logViewModel: AlbumDetailViewModel
 
@@ -252,6 +251,9 @@ struct AlbumDetailView: View {
 
     // 저장공간 부족 토스트 표시 여부
     @State private var isStorageFullToastVisible: Bool = false
+
+    // 신고 완료 토스트 표시 여부
+    @State private var isReportToastVisible: Bool = false
 
     // 음악 공유 시트 표시 여부
     @State private var downloadedMusicURL: URL? = nil
@@ -289,8 +291,7 @@ struct AlbumDetailView: View {
         onWriteLogTap: @escaping () -> Void = {},
         onEditAlbumTap: @escaping () -> Void = {},
         onEditSaved: @escaping (EditAlbumSaveOutcome) -> Void = { _ in },
-        onDeleteAlbumTap: @escaping () -> Void = {},
-        onReportTap: @escaping () -> Void = {}
+        onDeleteAlbumTap: @escaping () -> Void = {}
     ) {
         self.displayModel = displayModel
         self.onBackTap = onBackTap
@@ -298,7 +299,6 @@ struct AlbumDetailView: View {
         self.onEditAlbumTap = onEditAlbumTap
         self.onEditSaved = onEditSaved
         self.onDeleteAlbumTap = onDeleteAlbumTap
-        self.onReportTap = onReportTap
         _logViewModel = StateObject(wrappedValue: AlbumDetailViewModel(albumId: String(displayModel.albumId)))
         _albumTitle = State(initialValue: displayModel.title)
         _albumDestination = State(initialValue: displayModel.destination)
@@ -416,10 +416,21 @@ struct AlbumDetailView: View {
                         .transition(.move(edge: .bottom).combined(with: .opacity))
                 }
             }
+
+            // 신고 완료 토스트
+            if isReportToastVisible {
+                VStack {
+                    Spacer()
+                    AppToastView(message: "신고처리가 완료되었습니다.", systemImageName: "checkmark.circle")
+                        .padding(.bottom, 40)
+                        .transition(.move(edge: .bottom).combined(with: .opacity))
+                }
+            }
         }
         .animation(.easeInOut(duration: 0.2), value: isDeleteAlbumToastVisible)
         .animation(.easeInOut(duration: 0.2), value: isDeleteLogToastVisible)
         .animation(.easeInOut(duration: 0.2), value: isStorageFullToastVisible)
+        .animation(.easeInOut(duration: 0.2), value: isReportToastVisible)
         .navigationBarBackButtonHidden(true)
         .toolbar(.hidden, for: .navigationBar)
         .fullScreenCover(item: $logPresentation, onDismiss: {
@@ -445,8 +456,10 @@ struct AlbumDetailView: View {
             ReportBottomSheetView(isPresented: $isReportSheetPresented) { reason in
                 isReportSheetPresented = false
                 // TODO: 신고하기 API 연동
+                // albumId(displayModel.albumId), reason(reason.rawValue)을 서버로 전송하는 API를 연결하세요.
+                _ = reason
                 DispatchQueue.main.asyncAfter(deadline: .now() + 0.3) {
-                    onReportTap()  // 시트 닫힘 후 메인 이동 + 토스트
+                    showReportToast()
                 }
             }
             .presentationDetents([.height(286)])
@@ -583,6 +596,15 @@ private extension AlbumDetailView {
             try? await Task.sleep(nanoseconds: 3_000_000_000)
             withAnimation { isDeleteLogToastVisible = false }
             logViewModel.consumeDeleteLogToast()
+        }
+    }
+
+    // 신고 완료 토스트 표시 후 자동 숨김
+    func showReportToast() {
+        withAnimation { isReportToastVisible = true }
+        Task {
+            try? await Task.sleep(nanoseconds: 3_000_000_000)
+            withAnimation { isReportToastVisible = false }
         }
     }
 

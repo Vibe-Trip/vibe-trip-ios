@@ -27,8 +27,6 @@ struct MainPageView: View {
     @State private var dragOffset: CGFloat      = 0
     @State private var selectedAlbum: AlbumCard? = nil
 
-    // 신고 완료 토스트
-    @State private var showReportToast: Bool = false
     // 타이틀 생성 중 앨범 탭 시 표시하는 차단 토스트
     @State private var showGeneratingToast: Bool = false
     
@@ -106,33 +104,11 @@ struct MainPageView: View {
                     Task { await viewModel.reloadAlbums() }
                     // 삭제 완료 후 홈 탭으로 강제 이동
                     appState.pendingTabNavigation = .home
-                },
-                onReportTap: {
-                    if let id = selectedAlbum?.id {
-                        viewModel.hideAlbum(id: id)
-                    }
-                    selectedAlbum = nil  // fullScreenCover 닫기 (메인 복귀)
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                        withAnimation(.easeInOut(duration: 0.2)) {
-                            showReportToast = true
-                        }
-                    }
                 }
             )
         }
         .overlay(alignment: .bottom) {
-            if showReportToast {
-                AppToastView(message: "신고처리가 완료되었습니다.")
-                    .padding(.bottom, 88)
-                    .transition(.move(edge: .bottom).combined(with: .opacity))
-                    .onAppear {
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
-                            withAnimation(.easeInOut(duration: 0.2)) {
-                                showReportToast = false
-                            }
-                        }
-                    }
-            } else if showGeneratingToast {
+            if showGeneratingToast {
                 // 타이틀 생성 중 앨범 진입 시도 시 차단 안내
                 AppToastView(
                     message: "앨범을 제작하고 있어요. 잠시만 기다려 주세요!",
@@ -142,7 +118,6 @@ struct MainPageView: View {
                 .transition(.move(edge: .bottom).combined(with: .opacity))
             }
         }
-        .animation(.easeInOut(duration: 0.2), value: showReportToast)
         .animation(.easeInOut(duration: 0.2), value: showGeneratingToast)
     }
     
