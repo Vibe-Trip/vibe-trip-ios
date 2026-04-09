@@ -17,6 +17,7 @@ struct MakeAlbumView: View {
         static let entryPopupDismissKey = "shouldShowMakeAlbumEntryPopup"
         static let entryPopupTitle = "AI 음악을 만들까요?"
         static let entryPopupMessage = "사진을 분석해 어울리는 노래를 만듭니다.\n데이터는 보안이 강화된 AI 엔진을 통해 분석되며\n음악 생성에만 활용됩니다."
+        static let headerHeight: CGFloat = 44
     }
 
     // 앨범 생성 데이터 및 UI 상태 관리
@@ -68,48 +69,49 @@ struct MakeAlbumView: View {
             Color.white
                 .ignoresSafeArea()
             
-            VStack(spacing: 0) {
-                // 현재 단계에 따라 콘텐츠 전환
-                switch viewModel.currentStep {
-                case .requiredInput:
-                    // 필수 입력 뷰
-                    MakeAlbumRequiredInputContent(
-                        viewModel: viewModel,
-                        keyboardHeight: keyboardHeight,
-                        onPhotoTap: {
-                            isPhotoPickerPresented = true
-                        },
-                        onNextTap: viewModel.proceedToOptionalStep
-                    )
-                case .optionalInput:
-                    // 선택 입력 뷰
-                    MakeAlbumOptionalInputContent(
-                        viewModel: viewModel,
-                        keyboardHeight: keyboardHeight,
-                        onCreateTap: {
-                            if shouldShowEntryPopup {
-                                doNotShowEntryPopupAgain = false
-                                withAnimation(.easeInOut(duration: 0.2)) {
-                                    isEntryPopupPresented = true
+            ZStack(alignment: .top) {
+                VStack(spacing: 0) {
+                    // 현재 단계에 따라 콘텐츠 전환
+                    switch viewModel.currentStep {
+                    case .requiredInput:
+                        // 필수 입력 뷰
+                        MakeAlbumRequiredInputContent(
+                            viewModel: viewModel,
+                            keyboardHeight: keyboardHeight,
+                            onPhotoTap: {
+                                isPhotoPickerPresented = true
+                            },
+                            onNextTap: viewModel.proceedToOptionalStep
+                        )
+                    case .optionalInput:
+                        // 선택 입력 뷰
+                        MakeAlbumOptionalInputContent(
+                            viewModel: viewModel,
+                            keyboardHeight: keyboardHeight,
+                            onCreateTap: {
+                                if shouldShowEntryPopup {
+                                    doNotShowEntryPopupAgain = false
+                                    withAnimation(.easeInOut(duration: 0.2)) {
+                                        isEntryPopupPresented = true
+                                    }
+                                } else {
+                                    viewModel.submitAlbum(
+                                        onStarted: onCreationStarted,
+                                        onSuccess: onCreationSuccess,
+                                        onNetworkError: onNetworkError,
+                                        onFatalError: onFatalError
+                                    )
                                 }
-                            } else {
-                                viewModel.submitAlbum(
-                                    onStarted: onCreationStarted,
-                                    onSuccess: onCreationSuccess,
-                                    onNetworkError: onNetworkError,
-                                    onFatalError: onFatalError
-                                )
                             }
-                        }
-                    )
-                case .loading:
-                    // 로딩은 MainTabBarView 오버레이로 처리
-                    Color.white.ignoresSafeArea()
+                        )
+                    case .loading:
+                        // 로딩은 MainTabBarView 오버레이로 처리
+                        Color.white.ignoresSafeArea()
+                    }
                 }
-            }
-            // 네비게이션 바: 상단 SafeArea 영역에 고정
-            .safeAreaInset(edge: .top, spacing: 0) {
-                AppNavigationBar(title: "앨범 만들기", style: .solidWhite, onBackTap: handleBackTap)
+                .safeAreaInset(edge: .top) { headerSpacer }
+
+                AppNavigationBar(title: "앨범 만들기", style: .blurAlways, onBackTap: handleBackTap)
             }
             
             // 장르 설명 모달
@@ -227,6 +229,10 @@ struct MakeAlbumView: View {
     // 키보드가 올라와 있으면 키보드 바로 위에, 그렇지 않으면 하단에서 고정 여백으로 표시
     private var keyboardAwareToastPadding: CGFloat {
         keyboardHeight > 0 ? keyboardHeight + 32 : 96
+    }
+
+    private var headerSpacer: some View {
+        Color.clear.frame(height: Constants.headerHeight)
     }
     
     // 뒤로 가기 탭 처리: 단계에 따라 동작이 다름

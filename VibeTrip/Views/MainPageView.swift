@@ -27,8 +27,6 @@ struct MainPageView: View {
     @State private var dragOffset: CGFloat      = 0
     @State private var selectedAlbum: AlbumCard? = nil
 
-    // 신고 완료 토스트
-    @State private var showReportToast: Bool = false
     // 타이틀 생성 중 앨범 탭 시 표시하는 차단 토스트
     @State private var showGeneratingToast: Bool = false
     
@@ -47,6 +45,20 @@ struct MainPageView: View {
         static let springResponse: Double          = 0.45
         static let springDamping: Double           = 0.82
     }
+
+    // 초기 로딩 시에도 AlbumCardView 프레임을 동일하게 유지하기 위한 placeholder 데이터
+    private var loadingPlaceholderAlbum: AlbumCard {
+        AlbumCard(
+            id: -1,
+            title: nil,
+            location: "",
+            startDate: "",
+            endDate: "",
+            coverImageUrl: nil,
+            logImageCount: 0,
+            previewLogImages: []
+        )
+    }
     
     // MARK: - Body
     
@@ -57,12 +69,14 @@ struct MainPageView: View {
         let preloadKey = preloadCoverImageURLs(from: visibleAlbums).map(\.absoluteString).joined(separator: "|")
 
         Group {
-            if visibleAlbums.isEmpty {
-                emptyContent
-            } else {
-                carouselView(visibleAlbums: visibleAlbums)
-            }
-        }
+    if viewModel.isInitialLoading {
+        initialLoadingContent
+    } else if visibleAlbums.isEmpty {
+        emptyContent
+    } else {
+        carouselView(visibleAlbums: visibleAlbums)
+    }
+}
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .task { await viewModel.loadAlbums() }
         // 첫 진입 시 현재 카드 주변 이미지 캐시 적재
@@ -86,8 +100,10 @@ struct MainPageView: View {
             AlbumDetailView(
                 displayModel: album.toDisplayModel(),
                 onBackTap: { selectedAlbum = nil },
-                onEditSaved: {
-                    // 수정한 앨범은 음악 재생성 중 -> 폴링 재시작
+                onEditSaved: { outcome in
+                    // 재생성 저장일 때만 메인 복귀 + 스켈레톤/폴링 흐름으로 전환
+                    guard case .regenerated = outcome else { return }   // 재생성 안 함: 상세페이지 유지
+
                     viewModel.markAlbumNotReady(albumId: album.id)
                     selectedAlbum = nil
                     appState.pendingTabNavigation = .home
@@ -100,33 +116,11 @@ struct MainPageView: View {
                     Task { await viewModel.reloadAlbums() }
                     // 삭제 완료 후 홈 탭으로 강제 이동
                     appState.pendingTabNavigation = .home
-                },
-                onReportTap: {
-                    if let id = selectedAlbum?.id {
-                        viewModel.hideAlbum(id: id)
-                    }
-                    selectedAlbum = nil  // fullScreenCover 닫기 (메인 복귀)
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
-                        withAnimation(.easeInOut(duration: 0.2)) {
-                            showReportToast = true
-                        }
-                    }
                 }
             )
         }
         .overlay(alignment: .bottom) {
-            if showReportToast {
-                AppToastView(message: "신고처리가 완료되었습니다.")
-                    .padding(.bottom, 88)
-                    .transition(.move(edge: .bottom).combined(with: .opacity))
-                    .onAppear {
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
-                            withAnimation(.easeInOut(duration: 0.2)) {
-                                showReportToast = false
-                            }
-                        }
-                    }
-            } else if showGeneratingToast {
+            if showGeneratingToast {
                 // 타이틀 생성 중 앨범 진입 시도 시 차단 안내
                 AppToastView(
                     message: "앨범을 제작하고 있어요. 잠시만 기다려 주세요!",
@@ -136,11 +130,34 @@ struct MainPageView: View {
                 .transition(.move(edge: .bottom).combined(with: .opacity))
             }
         }
-        .animation(.easeInOut(duration: 0.2), value: showReportToast)
         .animation(.easeInOut(duration: 0.2), value: showGeneratingToast)
     }
     
     // MARK: - 빈 상태 UI
+    
+    private var initialLoadingContent: some View {
+        GeometryReader { geo in
+            let safeTop = geo.safeAreaInsets.top
+            let topY = safeTop + CarouselLayout.activeTopSpacing
+            
+            ZStack {
+                Color(UIColor.systemBackground).ignoresSafeArea()
+                
+                AlbumCardView(album: loadingPlaceholderAlbum, isReady: false)
+                    .offset(x: CarouselLayout.activeSideSpacing, y: topY)
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                
+                AppNavigationBar(style: .transparent) {
+                    Image("AppLogo_Home")
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: 120, height: 30)
+                }
+                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
+            }
+            .ignoresSafeArea()
+        }
+    }
     
     private var emptyContent: some View {
         ZStack {

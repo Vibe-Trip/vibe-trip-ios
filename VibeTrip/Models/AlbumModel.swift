@@ -157,15 +157,16 @@ struct AlbumListPayload: Decodable {
 // MARK: - AlbumUpdateRequest
 
 // 앨범 수정 요청 모델
-// TODO: title 서버에 전송 여부 확정
 struct AlbumUpdateRequest {
-    let photoData: Data         // required (미변경 시 기존 URL에서 재다운로드)
+    let photoData: Data?        // 사진 변경 시에만 전송
+    let title: String
     let location: String
     let startDate: Date
     let endDate: Date
     let lyricsOption: LyricsOption
     let vocalGender: VocalGender?
     let genre: AlbumGenre
+    let regenerateMusic: Bool
     let comment: String
 }
 

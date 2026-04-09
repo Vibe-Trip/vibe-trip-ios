@@ -88,7 +88,9 @@ struct AlbumCardView: View {
                 image
                     .resizable()    /// 비율 유지 채택 시  ->  .scaledToFill()
             default:
-                Color.placeholderSymbol
+                Image("AlbumCard_Placeholder")
+                    .resizable()
+                    .scaledToFill()
             }
         }
         .frame(width: Layout.cardWidth, height: Layout.coverImageHeight)

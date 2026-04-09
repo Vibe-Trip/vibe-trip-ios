@@ -74,12 +74,14 @@ private struct AlbumCreateRequestBody: Encodable {
 }
 
 private struct AlbumUpdateRequestBody: Encodable {
+    let title: String
     let region: String
     let travelStartDate: String
     let travelEndDate: String
     let genre: String
     let withLyrics: Bool
     let vocalGender: String
+    let regenerateMusic: Bool
     let comment: String
 }
 
@@ -148,6 +150,7 @@ final class AlbumService: AlbumServiceProtocol {
     // 커버 이미지 + 앨범 정보: multipart/form-data로 전송해 앨범 수정
     func updateAlbum(albumId: String, request: AlbumUpdateRequest) async throws {
         let body = AlbumUpdateRequestBody(
+            title: request.title,
             region: request.location,
             travelStartDate: Self.dateFormatter.string(from: request.startDate),
             travelEndDate: Self.dateFormatter.string(from: request.endDate),
@@ -155,14 +158,56 @@ final class AlbumService: AlbumServiceProtocol {
             withLyrics: request.lyricsOption == .include,
             // 가사 없음(nil): vocalGender: "N", 가사 있음: "M"/"F"
             vocalGender: request.vocalGender?.serverValue ?? "N",
+            regenerateMusic: request.regenerateMusic,
             comment: request.comment
         )
         var formData = MultipartFormData()
         try formData.append(name: "request", encodable: body)
-        formData.append(name: "coverImage", imageData: request.photoData)
+        if let photoData = request.photoData {
+            formData.append(name: "coverImage", imageData: photoData)
+        }
 
         let endpoint = APIEndpoint(path: "/api/v1/albums/\(albumId)", method: .put)
-        try await apiClient.performUpload(endpoint, formData: formData)
+        #if DEBUG
+        print(
+            """
+            [AlbumUpdate][Request] albumId=\(albumId)
+            - title: \(body.title)
+            - region: \(body.region)
+            - travelStartDate: \(body.travelStartDate)
+            - travelEndDate: \(body.travelEndDate)
+            - genre: \(body.genre)
+            - withLyrics: \(body.withLyrics)
+            - vocalGender: \(body.vocalGender)
+            - regenerateMusic: \(body.regenerateMusic)
+            - comment: \(body.comment)
+            - coverImageIncluded: \(request.photoData != nil)
+            - coverImageBytes: \(request.photoData?.count ?? 0)
+            """
+        )
+        #endif
+
+        do {
+            try await apiClient.performUpload(endpoint, formData: formData)
+            #if DEBUG
+            print("[AlbumUpdate][Response] SUCCESS albumId=\(albumId)")
+            #endif
+        } catch APIClientError.serverError(let code) {
+            #if DEBUG
+            print("[AlbumUpdate][Response] ERROR albumId=\(albumId) serverError=\(code.rawValue)")
+            #endif
+            throw APIClientError.serverError(code)
+        } catch APIClientError.networkError(let urlError) {
+            #if DEBUG
+            print("[AlbumUpdate][Response] ERROR albumId=\(albumId) networkError=\(urlError.code.rawValue)")
+            #endif
+            throw APIClientError.networkError(urlError)
+        } catch {
+            #if DEBUG
+            print("[AlbumUpdate][Response] ERROR albumId=\(albumId) unknown=\(error)")
+            #endif
+            throw error
+        }
     }
     
     func deleteAlbum(albumId: String) async throws {
