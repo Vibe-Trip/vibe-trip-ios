@@ -55,6 +55,8 @@ private final class PollingStubAlbumService: AlbumServiceProtocol {
     var albums: [AlbumCard]
     // N번째 fetchAlbumTitle 호출부터 타이틀 반환 (기본: 첫 번째 호출에서 반환)
     var titleReadyAfterAttempts: Int = 1
+    // 앨범별 폴링 완료 타이틀 오버라이드(없으면 기존 카드 타이틀 유지)
+    var resolvedTitleByAlbumId: [Int: String] = [:]
     private(set) var titleFetchCounts: [Int: Int] = [:]
 
     init(albums: [AlbumCard]) {
@@ -69,7 +71,8 @@ private final class PollingStubAlbumService: AlbumServiceProtocol {
         titleFetchCounts[albumId, default: 0] += 1
         let count = titleFetchCounts[albumId]!
         let ready = count >= titleReadyAfterAttempts
-        let title: String? = ready ? "폴링 타이틀" : nil
+        let existingTitle = albums.first(where: { $0.id == albumId })?.title
+        let title: String? = ready ? (resolvedTitleByAlbumId[albumId] ?? existingTitle ?? "폴링 타이틀") : nil
         let musicUrl: URL? = ready ? URL(string: "https://example.com/music.mp3") : nil
         return AlbumDetail(title: title, coverImageUrl: nil, region: "", travelStartDate: "", travelEndDate: "", musicUrl: musicUrl)
     }
