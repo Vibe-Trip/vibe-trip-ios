@@ -43,6 +43,20 @@ struct MainPageView: View {
         static let springResponse: Double          = 0.45
         static let springDamping: Double           = 0.82
     }
+
+    // 초기 로딩 시에도 AlbumCardView 프레임을 동일하게 유지하기 위한 placeholder 데이터
+    private var loadingPlaceholderAlbum: AlbumCard {
+        AlbumCard(
+            id: -1,
+            title: nil,
+            location: "",
+            startDate: "",
+            endDate: "",
+            coverImageUrl: nil,
+            logImageCount: 0,
+            previewLogImages: []
+        )
+    }
     
     // MARK: - Body
     
@@ -112,19 +126,7 @@ struct MainPageView: View {
             ZStack {
                 Color(UIColor.systemBackground).ignoresSafeArea()
                 
-                Image("AlbumCard_Placeholder")
-                    .resizable()
-                    .scaledToFill()
-                    .frame(
-                        width: AlbumCardView.Layout.cardWidth,
-                        height: AlbumCardView.Layout.cardHeight
-                    )
-                    .clipped()
-                    .cornerRadius(AlbumCardView.Layout.cardCornerRadius)
-                    .overlay {
-                        RoundedRectangle(cornerRadius: AlbumCardView.Layout.cardCornerRadius)
-                            .fill(Color.white.opacity(0.2))
-                    }
+                AlbumCardView(album: loadingPlaceholderAlbum, isReady: false)
                     .offset(x: CarouselLayout.activeSideSpacing, y: topY)
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
                 
