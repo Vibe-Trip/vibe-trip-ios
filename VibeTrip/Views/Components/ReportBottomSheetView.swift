@@ -26,8 +26,8 @@ struct ReportBottomSheetView: View {
 
     private enum Layout {
         static let horizontalPadding: CGFloat  = 20
-        static let topPadding: CGFloat         = 16
-        static let titleBodySpacing: CGFloat   = 12
+        static let topPadding: CGFloat         = 21
+        static let titleBodySpacing: CGFloat   = 13
         static let bodyOptionsSpacing: CGFloat = 20
         static let optionSpacing: CGFloat      = 12
         static let radioSize: CGFloat          = 16
@@ -48,7 +48,7 @@ struct ReportBottomSheetView: View {
 
             // 타이틀 + X 버튼
             HStack(alignment: .center) {
-                Text("신고 유형을 선택해주세요")
+                Text("신고 사유를 선택해주세요")
                     .font(Font.setPretendard(weight: .bold, size: Layout.titleFontSize))
                     .foregroundStyle(Color.textPrimary)
 
@@ -68,7 +68,7 @@ struct ReportBottomSheetView: View {
             Spacer().frame(height: Layout.titleBodySpacing)
 
             // 보조 타이틀
-            Text("신고하신 내용은 안전한 서비스를 위해 \nRetrip 팀에서 검토합니다.")
+            Text("신고하신 내용은 리트립 팀에서 신속하고 꼼꼼하게 검토하여\n안전한 서비스 환경을 만드는 데 반영하겠습니다.")
                 .font(Font.setPretendard(weight: .regular, size: Layout.bodyFontSize))
                 .foregroundStyle(Color.black)
                 .lineSpacing(4)
