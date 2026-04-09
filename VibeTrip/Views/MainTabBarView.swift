@@ -55,6 +55,7 @@ struct MainTabBarView: View {
     private enum Constants {
         static let hideLoadingToastBottomPadding: CGFloat = 88
         static let hideLoadingToastAnimationDuration: Double = 3.0
+        static let deletedAlbumToastMessage = "이미 삭제된 앨범 입니다"
     }
 
     // 현재 선택된 탭 (기본값: 홈)
@@ -353,6 +354,8 @@ struct MainTabBarView: View {
                 selectedTab = .home
                 isTabBarHidden = false
                 isResolvingAlbumDetail = false
+                hiddenLoadingToastShowsIcon = true
+                hiddenLoadingToastMessage = Constants.deletedAlbumToastMessage
             }
             return
         }
