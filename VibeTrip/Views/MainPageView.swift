@@ -11,39 +11,41 @@ import Foundation
 // MARK: - MainPageView
 
 struct MainPageView: View {
-    
+
     // MARK: - ViewModel
 
     @StateObject private var viewModel: MainPageViewModel
     @EnvironmentObject private var appState: AppState
-    
+
     init(viewModel: MainPageViewModel = MainPageViewModel()) {
         _viewModel = StateObject(wrappedValue: viewModel)
     }
 
     // MARK: - Carousel State (UI 전용)
 
-    @State private var currentIndex: Int        = 0
-    @State private var dragOffset: CGFloat      = 0
+    @State private var currentIndex: Int = 0
+    @State private var dragOffset: CGFloat = 0
     @State private var selectedAlbum: AlbumCard? = nil
 
     // 타이틀 생성 중 앨범 탭 시 표시하는 차단 토스트
     @State private var showGeneratingToast: Bool = false
-    
+
     // MARK: - 캐러셀 Layout Constants
-    
+
     private enum CarouselLayout {
-        static let cardWidth: CGFloat              = AlbumCardView.Layout.cardWidth
-        static let cardGap: CGFloat                = 17
+        static let cardWidth: CGFloat = AlbumCardView.Layout.cardWidth
+        static let cardGap: CGFloat = 17
         // 현재 카드 기준 앞/뒤로 미리 준비할 커버 이미지 범위
-        static let preloadRange: Int               = 2
-        static let activeTopSpacing: CGFloat       = 68
-        static let inactiveTopSpacing: CGFloat     = 84
-        static let activeSideSpacing: CGFloat      = 40
-        static let swipeThresholdRatio: CGFloat    = 0.35
+        static let preloadRange: Int = 2
+        static let activeTopSpacing: CGFloat = 68
+        static let inactiveTopSpacing: CGFloat = 84
+        static let activeSideSpacing: CGFloat = 40
+        // 좌우 40 기준으로 카드 스케일 계산
+        static let horizontalPadding: CGFloat = 40
+        static let swipeThresholdRatio: CGFloat = 0.35
         static let swipeVelocityThreshold: CGFloat = 200
-        static let springResponse: Double          = 0.45
-        static let springDamping: Double           = 0.82
+        static let springResponse: Double = 0.45
+        static let springDamping: Double = 0.82
     }
 
     // 초기 로딩 시에도 AlbumCardView 프레임을 동일하게 유지하기 위한 placeholder 데이터
@@ -59,9 +61,9 @@ struct MainPageView: View {
             previewLogImages: []
         )
     }
-    
+
     // MARK: - Body
-    
+
     var body: some View {
         // body 내 반복 접근 시 filter 재계산을 줄이기 위한 로컬 캐시
         let visibleAlbums = viewModel.visibleAlbums
@@ -134,21 +136,23 @@ struct MainPageView: View {
         }
         .animation(.easeInOut(duration: 0.2), value: showGeneratingToast)
     }
-    
+
     // MARK: - 빈 상태 UI
-    
+
     private var initialLoadingContent: some View {
         GeometryReader { geo in
             let safeTop = geo.safeAreaInsets.top
+            let cardScale = cardScale(for: geo.size.width)
             let topY = safeTop + CarouselLayout.activeTopSpacing
-            
+
             ZStack {
                 Color(UIColor.systemBackground).ignoresSafeArea()
-                
-                AlbumCardView(album: loadingPlaceholderAlbum, isReady: false)
+
+                AlbumCardView(album: loadingPlaceholderAlbum, isReady: false, isActive: true)
+                    .scaleEffect(cardScale, anchor: .topLeading)
                     .offset(x: CarouselLayout.activeSideSpacing, y: topY)
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-                
+
                 AppNavigationBar(style: .transparent) {
                     Image("AppLogo_Home")
                         .resizable()
@@ -160,7 +164,7 @@ struct MainPageView: View {
             .ignoresSafeArea()
         }
     }
-    
+
     private var emptyContent: some View {
         ZStack {
             VStack(spacing: 0) {
@@ -180,27 +184,23 @@ struct MainPageView: View {
         }
         .ignoresSafeArea()
     }
-    
+
     private var emptyStateView: some View {
         VStack(alignment: .center, spacing: 8) {
-            
-            // 빈 상태 아이콘
             Image("CreateAlbum")
                 .resizable()
                 .scaledToFit()
                 .frame(width: 200, height: 150)
                 .offset(x: -8)
                 .foregroundStyle(Color.placeholderSymbol)
-            
-            // 메인 텍스트
+
             Text("첫 번째 여행 앨범을 만들어보세요.")
                 .font(Font.setPretendard(weight: .semiBold, size: 22))
                 .multilineTextAlignment(.center)
                 .foregroundStyle(Color.placeholderText)
                 .padding(.horizontal, 39)
                 .frame(maxWidth: .infinity, alignment: .center)
-            
-            // 서브 텍스트
+
             Text("지금 바로 아래 '앨범 만들기'를 눌러 시작 해보세요!")
                 .font(Font.setPretendard(weight: .medium, size: 16))
                 .multilineTextAlignment(.center)
@@ -210,55 +210,59 @@ struct MainPageView: View {
         }
         .frame(maxWidth: .infinity)
     }
-    
+
     // MARK: - 캐러셀
-    
+
     private func carouselView(visibleAlbums: [AlbumCard]) -> some View {
         GeometryReader { geo in
-            let safeTop      = geo.safeAreaInsets.top
-            let safeBottom   = geo.safeAreaInsets.bottom
-            let screenW      = geo.size.width
-            let screenH      = geo.size.height + safeTop + safeBottom
-            
-            let cardStep     = CarouselLayout.cardWidth + CarouselLayout.cardGap
-            let activeTopY   = safeTop + CarouselLayout.activeTopSpacing
+            let safeTop = geo.safeAreaInsets.top
+            let safeBottom = geo.safeAreaInsets.bottom
+            let screenW = geo.size.width
+            let screenH = geo.size.height + safeTop + safeBottom
+            let scaledCardWidth = cardWidth(for: screenW)
+            let cardScale = cardScale(for: screenW)
+            let dragBaseWidth = max(scaledCardWidth, 1)
+
+            let cardStep = scaledCardWidth + CarouselLayout.cardGap
+            let activeTopY = safeTop + CarouselLayout.activeTopSpacing
             let inactiveTopY = safeTop + CarouselLayout.inactiveTopSpacing
             let verticalDiff = inactiveTopY - activeTopY
-            let progress     = min(abs(dragOffset) / CarouselLayout.cardWidth, 1.0)
-            
+            let progress = min(abs(dragOffset) / dragBaseWidth, 1.0)
+
             ZStack {
                 Color(UIColor.systemBackground).ignoresSafeArea()
-                
+
                 ZStack {
-                    ForEach((0..<visibleAlbums.count).reversed(), id: \.self) { index in
-                        let rel        = index - currentIndex
-                        let isActive   = rel == 0
-                        let isNext     = rel == 1
+                    ForEach(Array(visibleAlbums.enumerated()), id: \.element.id) { item in
+                        let index = item.offset
+                        let album = item.element
+                        let rel = index - currentIndex
+                        let isActive = rel == 0
+                        let isNext = rel == 1
                         let isEntering = (isNext && dragOffset < 0) || (rel == -1 && dragOffset > 0)
-                        
+
                         if abs(rel) <= 1 {
                             let baseX: CGFloat = {
                                 if isActive { return 0 }
-                                if isNext   { return  cardStep }
-                                return             -cardStep
+                                if isNext { return cardStep }
+                                return -cardStep
                             }()
-                            
+
                             let topY: CGFloat = {
-                                if isActive   { return activeTopY   + verticalDiff * progress }
+                                if isActive { return activeTopY + verticalDiff * progress }
                                 if isEntering { return inactiveTopY - verticalDiff * progress }
                                 return inactiveTopY
                             }()
-                            
+
                             AlbumCardView(
-                                album: visibleAlbums[index],
-                                isReady: viewModel.isReady(for: visibleAlbums[index].id),
+                                album: album,
+                                isReady: viewModel.isReady(for: album.id),
                                 isActive: isActive
                             )
+                            .scaleEffect(cardScale, anchor: .topLeading)
                             .onTapGesture {
                                 guard isActive else { return }
-                                let album = visibleAlbums[index]
                                 if !viewModel.isReady(for: album.id) {
-                                    // 음악 생성 중 -> 상세페이지 진입 차단 후 토스트 표시
                                     guard !showGeneratingToast else { return }
                                     withAnimation { showGeneratingToast = true }
                                     Task {
@@ -269,12 +273,12 @@ struct MainPageView: View {
                                     selectedAlbum = album
                                 }
                             }
-                                .offset(
-                                    x: CarouselLayout.activeSideSpacing + baseX + dragOffset,
-                                    y: topY
-                                )
-                                .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
-                                .zIndex(isActive ? 1 : 0)
+                            .offset(
+                                x: CarouselLayout.activeSideSpacing + baseX + dragOffset,
+                                y: topY
+                            )
+                            .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
+                            .zIndex(isActive ? 1 : 0)
                         }
                     }
                 }
@@ -283,17 +287,15 @@ struct MainPageView: View {
                 .gesture(
                     DragGesture(minimumDistance: 10)
                         .onChanged { value in
-                            let t        = value.translation.width
-                            let atStart  = currentIndex == 0 && t > 0
-                            let atEnd    = currentIndex == visibleAlbums.count - 1 && t < 0
-                            dragOffset   = (atStart || atEnd) ? t * 0.2 : t
+                            let t = value.translation.width
+                            let atStart = currentIndex == 0 && t > 0
+                            let atEnd = currentIndex == visibleAlbums.count - 1 && t < 0
+                            dragOffset = (atStart || atEnd) ? t * 0.2 : t
                         }
                         .onEnded { value in
-                            let threshold = CarouselLayout.cardWidth * CarouselLayout.swipeThresholdRatio
-                            let velocity  = value.predictedEndTranslation.width
-                            - value.translation.width
+                            let threshold = dragBaseWidth * CarouselLayout.swipeThresholdRatio
+                            let velocity = value.predictedEndTranslation.width - value.translation.width
 
-                            // 스와이프 결과 인덱스를 먼저 계산한 뒤 위치 복귀를 함께 처리
                             let nextIndex = MainPageCarouselLogic.nextIndex(
                                 currentIndex: currentIndex,
                                 albumCount: visibleAlbums.count,
@@ -315,7 +317,6 @@ struct MainPageView: View {
                         }
                 )
 
-                // MARK: - 네비게이션 바 (로고)
                 AppNavigationBar(style: .transparent) {
                     Image("AppLogo_Home")
                         .resizable()
@@ -326,6 +327,14 @@ struct MainPageView: View {
             }
             .ignoresSafeArea()
         }
+    }
+
+    private func cardWidth(for screenWidth: CGFloat) -> CGFloat {
+        max(0, screenWidth - CarouselLayout.horizontalPadding * 2)
+    }
+
+    private func cardScale(for screenWidth: CGFloat) -> CGFloat {
+        cardWidth(for: screenWidth) / AlbumCardView.Layout.cardWidth
     }
 
     private func preloadCoverImageURLs(from visibleAlbums: [AlbumCard]) -> [URL] {
@@ -409,12 +418,12 @@ private extension AlbumCard {
     func toDisplayModel() -> AlbumDetailDisplayModel {
         AlbumDetailDisplayModel(
             albumId: id,
-            title: title ?? "",  // 상세 진입은 title 확정 후에만 허용 (Step 9에서 보장)
+            title: title ?? "",
             destination: location,
             dateText: "\(formatDate(startDate)) - \(formatDate(endDate))",
             coverImageUrl: coverImageUrl,
             contentState: .empty,
-            musicUrl: nil        // 단일 앨범 API 연동 후 AlbumDetailViewModel에서 직접 조회
+            musicUrl: nil
         )
     }
 }
@@ -437,7 +446,7 @@ private extension AlbumCard {
 #Preview("생성 중 앨범") {
     let service = MockAlbumService()
     service.hasGeneratingAlbum = true
-    service.musicReadyAfterAttempts = 2  // 4번째 카드: 2번째 폴링(약 5초)에서 음악 URL 반환
+    service.musicReadyAfterAttempts = 2
     return MainPageView(viewModel: MainPageViewModel(albumService: service))
         .environmentObject(AppState())
 }
