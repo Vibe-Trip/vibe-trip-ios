@@ -47,6 +47,10 @@ final class NotificationViewModel: ObservableObject {
     func loadNotifications() async {
         do {
             let responses = try await alarmService.fetchAlarms()
+            let logItems = responses.map {
+                "{alarmId: \($0.alarmId), albumId: \($0.albumId?.description ?? "nil"), alarmType: \($0.alarmType), title: \($0.title)}"
+            }.joined(separator: "\n")
+            print("[Alarm API] \(logItems)")
             // 재조회 시 기존 읽음 처리된 알림 ID 보존
             let existingReadIds = Set(notifications.filter { $0.isRead }.map { $0.id })
             let newItems = deduplicated(responses)

@@ -280,7 +280,7 @@ struct MainTabBarView: View {
                     selectedTab = .home
                     isTabBarHidden = false
                 },
-                onEditSaved: {
+                onEditSaved: { _ in
                     presentedAlbumDetail = nil
                     selectedTab = .home
                     isTabBarHidden = false
@@ -291,11 +291,6 @@ struct MainTabBarView: View {
                     selectedTab = .home
                     isTabBarHidden = false
                     appState.needsAlbumRefresh = true
-                },
-                onReportTap: {
-                    presentedAlbumDetail = nil
-                    selectedTab = .home
-                    isTabBarHidden = false
                 }
             )
             .onAppear {

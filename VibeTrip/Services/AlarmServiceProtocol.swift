@@ -25,9 +25,7 @@ extension AlarmResponse {
 
     // 서버 DTO  -> 앱 도메인 모델 변환
     func toNotificationItem() -> NotificationItem? {
-        print("[AlarmResponse] alarmId: \(alarmId), alarmType: \(alarmType), albumId: \(albumId?.description ?? "nil")")
         guard let type = toNotificationType() else {
-            print("[AlarmResponse] 변환 실패 - alarmId: \(alarmId), alarmType: \(alarmType), albumId: \(albumId?.description ?? "nil")")
             return nil
         }
         return NotificationItem(
