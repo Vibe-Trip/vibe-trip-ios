@@ -45,7 +45,7 @@ struct MainPageView: View {
         static let swipeThresholdRatio: CGFloat = 0.35
         static let swipeVelocityThreshold: CGFloat = 200
         static let springResponse: Double = 0.45
-        static let springDamping: Double = 0.82
+        static let springDamping: Double = 0.90
     }
 
     // 초기 로딩 시에도 AlbumCardView 프레임을 동일하게 유지하기 위한 placeholder 데이터
@@ -98,6 +98,8 @@ struct MainPageView: View {
             guard needsReload else { return }
             // 중복 트리거 방지를 위해 플래그 먼저 초기화 후 새로고침
             appState.needsAlbumRefresh = false
+            currentIndex = 0
+            dragOffset = 0
             Task { await viewModel.reloadAlbums() }
         }
         .fullScreenCover(item: $selectedAlbum) { album in
