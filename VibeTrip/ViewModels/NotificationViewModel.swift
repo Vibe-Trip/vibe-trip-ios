@@ -49,7 +49,14 @@ final class NotificationViewModel: ObservableObject {
             let responses = try await alarmService.fetchAlarms()
             // 재조회 시 기존 읽음 처리된 알림 ID 보존
             let existingReadIds = Set(notifications.filter { $0.isRead }.map { $0.id })
-            let newItems = deduplicated(responses).compactMap { $0.toNotificationItem() }
+            let newItems = deduplicated(responses)
+                .compactMap { $0.toNotificationItem() }
+                .sorted {
+                    if $0.createdAt == $1.createdAt {
+                        return Int($0.id) ?? 0 > Int($1.id) ?? 0
+                    }
+                    return $0.createdAt > $1.createdAt
+                }
             notifications = newItems.map { item in
                 guard existingReadIds.contains(item.id) else { return item }
                 var read = item
