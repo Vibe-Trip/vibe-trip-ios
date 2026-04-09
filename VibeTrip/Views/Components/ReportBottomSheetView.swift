@@ -19,7 +19,7 @@ struct ReportBottomSheetView: View {
 
     @Binding var isPresented: Bool
 
-    // 신고 이유 선택 후 "신고 및 숨기기" 탭 시 호출
+    // 신고 이유 선택 후 "신고하기" 탭 시 호출
     let onConfirm: (ReportReason) -> Void
 
     @State private var selectedReason: ReportReason = .inappropriateLyrics
@@ -33,7 +33,7 @@ struct ReportBottomSheetView: View {
         static let radioSize: CGFloat          = 16
         static let radioDotSize: CGFloat       = 8
         static let radioStrokeWidth: CGFloat   = 1.5
-        static let closeButtonSize: CGFloat    = 30
+        static let closeButtonSize: CGFloat    = 15
         static let buttonVerticalPadding: CGFloat = 12
         static let buttonCornerRadius: CGFloat = 12
         static let bottomPadding: CGFloat      = 8
@@ -57,13 +57,10 @@ struct ReportBottomSheetView: View {
                 Button {
                     isPresented = false
                 } label: {
-                    Image(systemName: "xmark.circle.fill")
-                        .font(.system(size: Layout.closeButtonSize))
-                        .symbolRenderingMode(.palette)
-                        .foregroundStyle(
-                            Color(red: 0.5, green: 0.5, blue: 0.5).opacity(0.5), // X 색상
-                            Color(UIColor.systemGray4)                             // 원형 배경 색상
-                        )
+                    Image(systemName: "xmark")
+                        .font(.system(size: Layout.closeButtonSize, weight: .medium))
+                        .foregroundStyle(Color.textPrimary)
+                        .frame(width: Layout.closeButtonSize, height: Layout.closeButtonSize)
                 }
             }
             .padding(.top, Layout.topPadding)
@@ -71,7 +68,7 @@ struct ReportBottomSheetView: View {
             Spacer().frame(height: Layout.titleBodySpacing)
 
             // 보조 타이틀
-            Text("신고하신 앨범은 즉시 앨범 목록에서 숨겨지며,\n안전한 서비스를 위해 Retrip 팀에서 검토합니다.")
+            Text("신고하신 내용은 안전한 서비스를 위해 \nRetrip 팀에서 검토합니다.")
                 .font(Font.setPretendard(weight: .regular, size: Layout.bodyFontSize))
                 .foregroundStyle(Color.black)
                 .lineSpacing(4)
@@ -87,11 +84,11 @@ struct ReportBottomSheetView: View {
 
             Spacer()
 
-            // 신고 및 숨기기 버튼
+            // 신고하기 버튼
             Button {
                 onConfirm(selectedReason)
             } label: {
-                Text("신고 및 숨기기")
+                Text("신고하기")
                     .font(Font.setPretendard(weight: .semiBold, size: Layout.buttonFontSize))
                     .foregroundStyle(Color(red: 0.98, green: 0.98, blue: 0.98))
                     .frame(maxWidth: .infinity)
