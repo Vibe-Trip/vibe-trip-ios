@@ -274,6 +274,22 @@ struct MainTabBarView: View {
             selectedTab = tab
             appState.pendingTabNavigation = nil
         }
+        // 포그라운드 FAILED 배너 무시 시: 탭 상태 무관하게 앨범 목록 조용히 갱신
+        .onChange(of: appState.needsSilentAlbumRefresh) { _, needsRefresh in
+            guard needsRefresh else { return }
+            appState.needsSilentAlbumRefresh = false
+            Task { await mainPageViewModel.refreshAlbumsWithoutClearing() }
+        }
+        // 앱 포그라운드 전환 시: 미읽음/FAILED 알림 여부 확인 후 red dot 및 앨범 목록 갱신
+        .onChange(of: appState.needsActiveCheck) { _, needsCheck in
+            guard needsCheck else { return }
+            appState.needsActiveCheck = false
+            Task {
+                let result = await notificationViewModel.checkUnread()
+                if result.hasUnread { appState.hasUnreadNotifications = true }
+                if result.hasFailed { await mainPageViewModel.refreshAlbumsWithoutClearing() }
+            }
+        }
         .fullScreenCover(item: $presentedAlbumDetail) { presentation in
             AlbumDetailView(
                 displayModel: presentation.displayModel,
