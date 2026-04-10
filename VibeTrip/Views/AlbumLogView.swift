@@ -205,7 +205,7 @@ private extension AlbumLogView {
         VStack(spacing: 0) {
             Text(viewModel.createdDate, formatter: Self.dateFormatter)
                 .font(.setPretendard(weight: .regular, size: 16))
-                .foregroundStyle(Color.textSecondary)
+                .foregroundStyle(Color("GrayScale/300"))
                 .frame(maxWidth: .infinity, alignment: .center)
                 .padding(.horizontal, Constants.contentHorizontalPadding)
                 .padding(.vertical, Constants.dateHeaderVerticalPadding)

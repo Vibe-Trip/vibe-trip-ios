@@ -56,7 +56,7 @@ struct DateRangePickerSheetView: View {
 
                 Text("\(startDate.albumDateString) - \(endDate.albumDateString)")
                     .font(.setPretendard(weight: .medium, size: 14))
-                    .foregroundStyle(Color.textSecondary)
+                    .foregroundStyle(Color("GrayScale/300"))
             }
             .padding(.leading, 14)
 
@@ -155,7 +155,7 @@ private struct SwiftUICalendarRangePickerView: View {
             ForEach(weekdaySymbols, id: \.self) { symbol in
                 Text(symbol)
                     .font(.setPretendard(weight: .medium, size: 14))
-                    .foregroundStyle(Color.textSecondary)
+                    .foregroundStyle(Color("GrayScale/300"))
                     .frame(maxWidth: .infinity)
             }
         }

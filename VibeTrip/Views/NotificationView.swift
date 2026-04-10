@@ -238,7 +238,7 @@ private struct NotificationRow: View {
                     .resizable()
                     .scaledToFit()
                     .frame(width: 12.4, height: 14.2)
-                    .foregroundStyle(Color.textSecondary)
+                    .foregroundStyle(Color("GrayScale/300"))
             }
             .buttonStyle(.plain)
         }

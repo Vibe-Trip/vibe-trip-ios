@@ -155,7 +155,7 @@ struct MyPageView: View {
                 if let email = viewModel.userProfile?.email {
                     Text(email)
                         .font(Font.setPretendard(weight: .regular, size: 14))
-                        .foregroundStyle(Color.textSecondary)
+                        .foregroundStyle(Color("GrayScale/300"))
                 }
             }
         }
