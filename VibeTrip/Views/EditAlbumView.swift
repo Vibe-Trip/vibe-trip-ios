@@ -175,7 +175,7 @@ struct EditAlbumView: View {
                                     .font(Font.setPretendard(weight: .regular, size: 16))
                                     .foregroundStyle(
                                         formattedDateRange.isEmpty
-                                        ? Color.textSecondary
+                                        ? Color("GrayScale/300")
                                         : Color.textPrimary
                                     )
 
@@ -242,12 +242,12 @@ struct EditAlbumView: View {
 
                                             Text("선택 입력")
                                                 .font(Font.setPretendard(weight: .medium, size: 12))
-                                                .foregroundStyle(Color.textSecondary)
+                                                .foregroundStyle(Color("GrayScale/300"))
                                         }
 
                                         Text(genreHelperText)
                                             .font(Font.setPretendard(weight: .medium, size: 12))
-                                            .foregroundStyle(Color.textSecondary)
+                                            .foregroundStyle(Color("GrayScale/300"))
                                     }
 
                                     Spacer()
@@ -450,7 +450,7 @@ struct EditAlbumView: View {
 
             Text(subtitle)
                 .font(Font.setPretendard(weight: .medium, size: 12))
-                .foregroundStyle(Color.textSecondary)
+                .foregroundStyle(Color("GrayScale/300"))
         }
     }
 }
@@ -532,7 +532,7 @@ private struct EditAlbumPhotoBox: View {
 
                     Text("앨범 커버 사진을 선택해주세요.")
                         .font(Font.setPretendard(weight: .medium, size: 14))
-                        .foregroundStyle(Color.textSecondary)
+                        .foregroundStyle(Color("GrayScale/300"))
                         .multilineTextAlignment(.center)
                 }
                 .padding(.horizontal, 24)
@@ -560,7 +560,7 @@ private struct CommentarySection: View {
 
                 Text("선택 입력")
                     .font(Font.setPretendard(weight: .medium, size: 12))
-                    .foregroundStyle(Color.textSecondary)
+                    .foregroundStyle(Color("GrayScale/300"))
             }
 
             ZStack(alignment: .topLeading) {
@@ -584,7 +584,7 @@ private struct CommentarySection: View {
                 if commentary.isEmpty {
                     Text("어떤 분위기의 노래를 만들고 싶나요?\n지금 느끼는 감정을 기록해보세요.")
                         .font(Font.setPretendard(weight: .medium, size: 16))
-                        .foregroundStyle(Color.textSecondary)
+                        .foregroundStyle(Color("GrayScale/300"))
                         .padding(.horizontal, 16)
                         .padding(.top, 20)
                         .allowsHitTesting(false)
@@ -597,7 +597,7 @@ private struct CommentarySection: View {
                         Spacer()
                         Text("\(commentary.count)/\(maxCount)")
                             .font(Font.setPretendard(weight: .medium, size: 12))
-                            .foregroundStyle(Color.textSecondary)
+                            .foregroundStyle(Color("GrayScale/300"))
                             .padding(.trailing, 14)
                             .padding(.bottom, 14)
                     }

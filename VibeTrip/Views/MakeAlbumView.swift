@@ -349,7 +349,7 @@ private struct MakeAlbumRequiredInputContent: View {
                             .font(Font.setPretendard(weight: .regular, size: 16))
                             .foregroundStyle(
                                 viewModel.album.formattedTravelDateRange.isEmpty
-                                ? Color.textSecondary
+                                ? Color("GrayScale/300")
                                 : Color.textPrimary
                             )
                             
@@ -459,7 +459,7 @@ private struct MakeAlbumRequiredInputContent: View {
             
             Text(subtitle)
                 .font(Font.setPretendard(weight: .medium, size: 12))
-                .foregroundStyle(Color.textSecondary)
+                .foregroundStyle(Color("GrayScale/300"))
         }
     }
     
@@ -496,12 +496,12 @@ private struct MakeAlbumOptionalInputContent: View {
                                         
                                         Text("선택 입력")
                                             .font(Font.setPretendard(weight: .medium, size: 12))
-                                            .foregroundStyle(Color.textSecondary)
+                                            .foregroundStyle(Color("GrayScale/300"))
                                     }
                                     
                                     Text(viewModel.genreHelperText)
                                         .font(Font.setPretendard(weight: .medium, size: 12))
-                                        .foregroundStyle(Color.textSecondary)
+                                        .foregroundStyle(Color("GrayScale/300"))
                                 }
                                 
                                 Spacer()
@@ -570,7 +570,7 @@ private struct MakeAlbumOptionalInputContent: View {
                                 
                                 Text("선택 입력")
                                     .font(Font.setPretendard(weight: .medium, size: 12))
-                                    .foregroundStyle(Color.textSecondary)
+                                    .foregroundStyle(Color("GrayScale/300"))
                             }
                             
                             // placeholder 및 글자 수 카운터 오버레이
@@ -609,7 +609,7 @@ private struct MakeAlbumOptionalInputContent: View {
                                 if viewModel.album.albumCommentary.isEmpty {
                                     Text("어떤 분위기의 노래를 만들고 싶나요?\n지금 느끼는 감정을 기록해보세요.")
                                         .font(Font.setPretendard(weight: .medium, size: 16))
-                                        .foregroundStyle(Color.textSecondary)
+                                        .foregroundStyle(Color("GrayScale/300"))
                                         .padding(.horizontal, 16)
                                         .padding(.top, 20)
                                     // 터치 비활성화
@@ -625,7 +625,7 @@ private struct MakeAlbumOptionalInputContent: View {
                                         
                                         Text("\(viewModel.album.albumCommentary.count)/500")
                                             .font(Font.setPretendard(weight: .medium, size: 12))
-                                            .foregroundStyle(Color.textSecondary)
+                                            .foregroundStyle(Color("GrayScale/300"))
                                             .padding(.trailing, 14)
                                             .padding(.bottom, 14)
                                     }
@@ -717,7 +717,7 @@ private struct MakeAlbumPhotoBox: View {
                     
                     Text("음악으로 만들고 싶은 찰나의 순간을 올려주세요. \nAI가 사진의 온도와 색감을 곡으로 빚어냅니다.")
                         .font(Font.setPretendard(weight: .medium, size: 14))
-                        .foregroundStyle(Color.textSecondary)
+                        .foregroundStyle(Color("GrayScale/300"))
                         .multilineTextAlignment(.center)
                         .padding(.top, 8)
                 }

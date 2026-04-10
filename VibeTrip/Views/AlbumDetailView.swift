@@ -648,13 +648,13 @@ private extension AlbumDetailView {
                 /// 여행지
                 Text(albumDestination)
                     .font(.setPretendard(weight: .medium, size: Constants.subtitleFontSize))
-                    .foregroundStyle(Color.textSecondary)
+                    .foregroundStyle(Color("GrayScale/300"))
                     .lineLimit(1)
                 
                 /// 여행 날짜
                 Text(albumDateText)
                     .font(.setPretendard(weight: .regular, size: Constants.dateFontSize))
-                    .foregroundStyle(Color.textSecondary)
+                    .foregroundStyle(Color("GrayScale/300"))
                     .lineLimit(1)
             }
             .frame(maxWidth: .infinity, alignment: .leading)

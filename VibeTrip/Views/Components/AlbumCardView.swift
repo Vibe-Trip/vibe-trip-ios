@@ -136,13 +136,13 @@ struct AlbumCardView: View {
 
                     Text(album.location)
                         .font(Font.setPretendard(weight: .medium, size: 12))
-                        .foregroundStyle(Color.textSecondary)
+                        .foregroundStyle(Color("GrayScale/300"))
                         .lineLimit(1)
 
                     Text("\(album.startDate) ~ \(album.endDate)")
                         .font(Font.setPretendard(weight: .medium, size: 12))
                         .kerning(0.2)
-                        .foregroundStyle(Color.textSecondary)
+                        .foregroundStyle(Color("GrayScale/300"))
                         .lineLimit(1)
                 }
                 .padding(.top, Layout.textTopPadding)

@@ -80,7 +80,7 @@ struct ExitPopupView: View {
 
                         Text("다시 보지 않기")
                             .font(Font.setPretendard(weight: .regular, size: 14))
-                            .foregroundStyle(Color.textSecondary)
+                            .foregroundStyle(Color("GrayScale/300"))
                     }
                 }
 
