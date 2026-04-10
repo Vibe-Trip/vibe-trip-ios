@@ -77,6 +77,16 @@ final class NotificationViewModel: ObservableObject {
         await loadNotifications()
     }
 
+    // 앱 포그라운드 진입 시 미읽음/FAILED 알림 여부만 확인 (notifications 배열 미변경)
+    func checkUnread() async -> (hasUnread: Bool, hasFailed: Bool) {
+        guard let responses = try? await alarmService.fetchAlarms() else { return (false, false) }
+        let deduped = deduplicated(responses)
+        return (
+            !deduped.isEmpty,
+            deduped.contains { $0.alarmType == "FAILED" }
+        )
+    }
+
     // 탭 시 배경색 제거
     func markAsRead(id: String) {
         guard let index = notifications.firstIndex(where: { $0.id == id }) else { return }
