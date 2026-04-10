@@ -60,6 +60,14 @@ struct AppToastPayload: Equatable {
     // 푸시 수신 시 알림 목록 재조회 요청 신호
     @Published var needsNotificationRefresh: Bool = false
 
+    // 포그라운드 FAILED 배너 수신 시 앨범 목록 조용히 갱신 요청 신호
+    // AppDelegate(송신) -> MainTabBarView(수신), 수신 즉시 false로 초기화
+    @Published var needsSilentAlbumRefresh: Bool = false
+
+    // 앱 포그라운드 진입 시 미읽음/FAILED 알림 여부 확인 요청 신호
+    // AppDelegate(송신) -> MainTabBarView(수신), 수신 즉시 false로 초기화
+    @Published var needsActiveCheck: Bool = false
+
     // APIClient.sessionExpiredPublisher 구독 유지용
     private var cancellables = Set<AnyCancellable>()
 
