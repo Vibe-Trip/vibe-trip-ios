@@ -236,7 +236,18 @@ struct MainTabBarView: View {
             switch action {
             case .openMakeAlbum:
                 // 생성 실패: MakeAlbumView
-                appState.needsAlbumRefresh = true
+                let shouldRefreshImmediatelyOnHome =
+                    selectedTab == .home &&
+                    !isPresentingMakeAlbum &&
+                    !isPresentingLoadingView
+
+                if shouldRefreshImmediatelyOnHome {
+                    // 홈 탭인 경우: 목록 비우지 않고 즉시 동기화
+                    Task { await mainPageViewModel.refreshAlbumsWithoutClearing() }
+                } else {
+                    // 홈 탭X or 오버레이 전환 중인 경우: 홈 복귀 시 표준 리로드 트리거
+                    appState.needsAlbumRefresh = true
+                }
                 withAnimation(.easeInOut(duration: 0.18)) {
                     isTabBarHidden = true
                 }
