@@ -65,6 +65,13 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
         Messaging.messaging().apnsToken = deviceToken
     }
 
+    // 앱 포그라운드 전환 시: 미읽음/FAILED 알림 여부 확인 요청
+    func applicationDidBecomeActive(_ application: UIApplication) {
+        Task { @MainActor in
+            appState?.needsActiveCheck = true
+        }
+    }
+
     // 포그라운드 푸시: 인앱 배너 표시 + 알림 목록 갱신 신호
     // FAILED 타입: 앨범 목록 조용히 갱신 신호 추가 전송
     func userNotificationCenter(_ center: UNUserNotificationCenter,
