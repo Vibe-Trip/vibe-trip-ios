@@ -295,27 +295,11 @@ struct MainPageView: View {
                             dragOffset = (atStart || atEnd) ? t * 0.2 : t
                         }
                         .onEnded { value in
-                            let threshold = dragBaseWidth * CarouselLayout.swipeThresholdRatio
-                            let velocity = value.predictedEndTranslation.width - value.translation.width
-
-                            let nextIndex = MainPageCarouselLogic.nextIndex(
-                                currentIndex: currentIndex,
+                            handleDragEnded(
+                                value: value,
                                 albumCount: visibleAlbums.count,
-                                dragOffset: dragOffset,
-                                velocity: velocity,
-                                threshold: threshold,
-                                swipeVelocityThreshold: CarouselLayout.swipeVelocityThreshold
+                                dragBaseWidth: dragBaseWidth
                             )
-
-                            withAnimation(.spring(
-                                response: CarouselLayout.springResponse,
-                                dampingFraction: CarouselLayout.springDamping
-                            )) {
-                                currentIndex = nextIndex
-                                dragOffset = 0
-                            }
-
-                            Task { await viewModel.loadMoreIfNeeded(currentIndex: currentIndex) }
                         }
                 )
 
@@ -337,6 +321,35 @@ struct MainPageView: View {
 
     private func cardScale(for screenWidth: CGFloat) -> CGFloat {
         cardWidth(for: screenWidth) / AlbumCardView.Layout.cardWidth
+    }
+
+    // 스와이프 종료 시 정착 인덱스 계산 + 위치 복귀 처리
+    private func handleDragEnded(
+        value: DragGesture.Value,
+        albumCount: Int,
+        dragBaseWidth: CGFloat
+    ) {
+        let threshold = dragBaseWidth * CarouselLayout.swipeThresholdRatio
+        let velocity = value.predictedEndTranslation.width - value.translation.width
+
+        let nextIndex = MainPageCarouselLogic.nextIndex(
+            currentIndex: currentIndex,
+            albumCount: albumCount,
+            dragOffset: dragOffset,
+            velocity: velocity,
+            threshold: threshold,
+            swipeVelocityThreshold: CarouselLayout.swipeVelocityThreshold
+        )
+
+        withAnimation(.spring(
+            response: CarouselLayout.springResponse,
+            dampingFraction: CarouselLayout.springDamping
+        )) {
+            currentIndex = nextIndex
+            dragOffset = 0
+        }
+
+        Task { await viewModel.loadMoreIfNeeded(currentIndex: currentIndex) }
     }
 
     private func preloadCoverImageURLs(from visibleAlbums: [AlbumCard]) -> [URL] {
