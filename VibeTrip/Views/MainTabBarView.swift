@@ -236,6 +236,7 @@ struct MainTabBarView: View {
             switch action {
             case .openMakeAlbum:
                 // 생성 실패: MakeAlbumView
+                appState.needsAlbumRefresh = true
                 withAnimation(.easeInOut(duration: 0.18)) {
                     isTabBarHidden = true
                 }
