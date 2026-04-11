@@ -47,7 +47,8 @@ extension FCMPayload {
         case "CREATING":
             return .openAlbumCreationLoading
         case "COMPLETED":
-            guard let albumId = data?.albumId else { return nil }
+            // albumId 누락 시 홈 탭으로 이동하는 fallback 처리
+            guard let albumId = data?.albumId else { return .openHome }
             return .openAlbumDetail(albumId: String(albumId))
         case "FAILED":
             return .openMakeAlbum
