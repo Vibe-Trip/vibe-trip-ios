@@ -114,6 +114,8 @@ final class MainPageViewModel: ObservableObject {
         } catch {
             // 실패 시 기존 목록을 유지하고 에러만 갱신
             errorMessage = "앨범을 불러오지 못했습니다."
+            // fetch 실패 시에도 기존 앨범 목록 기준으로 폴링 복구
+            await startPollingIfNeeded()
         }
     }
 
