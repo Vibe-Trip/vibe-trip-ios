@@ -95,7 +95,10 @@ struct MainTabBarView: View {
             Task {
                 let result = await notificationViewModel.checkUnread()
                 if result.hasUnread { appState.hasUnreadNotifications = true }
-                if result.hasFailed { await mainPageViewModel.refreshAlbumsWithoutClearing() }
+                // pendingNotificationAction이 설정된 경우 딥링크 경로에서 이미 갱신 처리 -> 중복 스킵
+                if result.hasFailed && appState.pendingNotificationAction == nil {
+                    await mainPageViewModel.refreshAlbumsWithoutClearing()
+                }
             }
         }
         // 포그라운드 FCM COMPLETED 수신 시: 해당 앨범 폴링 취소 후 1회 조회로 완료 처리
@@ -195,6 +198,9 @@ struct MainTabBarView: View {
                     appState.needsDismissAlbumDetail = false
                     Task { await presentAlbumDetailOverlay(albumId: albumId) }
                 }
+            case .openHome:
+                // albumId 누락 등 상세 진입 불가 시: 홈 탭으로 이동
+                selectedTab = .home
             }
             appState.pendingNotificationAction = nil
         }
