@@ -110,7 +110,7 @@ final class MainPageViewModel: ObservableObject {
             cursor = payload.content.last?.id
             hasLoaded = true
             errorMessage = nil
-            startPollingIfNeeded()
+            await startPollingIfNeeded()
         } catch {
             // 실패 시 기존 목록을 유지하고 에러만 갱신
             errorMessage = "앨범을 불러오지 못했습니다."
@@ -146,7 +146,7 @@ final class MainPageViewModel: ObservableObject {
             hasNext = payload.hasNext
             cursor = payload.content.last?.id // 마지막 albumId: 다음 요청 cursor
             errorMessage = nil
-            startPollingIfNeeded()
+            await startPollingIfNeeded()
         } catch {
             errorMessage = "앨범을 불러오지 못했습니다."
         }
@@ -162,17 +162,15 @@ final class MainPageViewModel: ObservableObject {
 
     // 음악 미생성 앨범에 대해 폴링 Task 시작 (이미 준비됐거나 폴링 중이면 스킵)
     // 알림 권한이 있는 경우 FCM COMPLETED 신호로 처리 -> 폴링 스킵
-    private func startPollingIfNeeded() {
-        Task {
-            let status = await notificationAuthorizationChecker()
-            let shouldPoll = status != .authorized
-            for album in albums where !readyAlbumIds.contains(album.id) {
-                guard pollingTasks[album.id] == nil else { continue }
-                guard shouldPoll else { continue }
-                let albumId = album.id
-                pollingTasks[albumId] = Task { [weak self] in
-                    await self?.pollMusic(for: albumId)
-                }
+    private func startPollingIfNeeded() async {
+        let status = await notificationAuthorizationChecker()
+        let shouldPoll = status != .authorized
+        for album in albums where !readyAlbumIds.contains(album.id) {
+            guard pollingTasks[album.id] == nil else { continue }
+            guard shouldPoll else { continue }
+            let albumId = album.id
+            pollingTasks[albumId] = Task { [weak self] in
+                await self?.pollMusic(for: albumId)
             }
         }
     }
