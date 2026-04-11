@@ -23,6 +23,9 @@ enum NotificationNavigationAction: Equatable {
 
     // 앨범 생성 완료: AlbumDetailView
     case openAlbumDetail(albumId: String)
+
+    // 홈 탭으로 이동: albumId 누락 등 상세 진입 불가 시 fallback
+    case openHome
 }
 
 struct AppToastPayload: Equatable {
