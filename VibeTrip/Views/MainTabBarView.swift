@@ -291,6 +291,12 @@ struct MainTabBarView: View {
                 if result.hasFailed { await mainPageViewModel.refreshAlbumsWithoutClearing() }
             }
         }
+        // 포그라운드 FCM COMPLETED 수신 시: 해당 앨범 폴링 취소 후 1회 조회로 완료 처리
+        .onChange(of: appState.fcmCompletedAlbumId) { _, albumId in
+            guard let albumId else { return }
+            appState.fcmCompletedAlbumId = nil
+            Task { await mainPageViewModel.handleAlbumCompleted(albumId: albumId) }
+        }
         .fullScreenCover(item: $presentedAlbumDetail) { presentation in
             AlbumDetailView(
                 displayModel: presentation.displayModel,
