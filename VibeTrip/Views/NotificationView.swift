@@ -62,6 +62,8 @@ struct NotificationView: View {
         .onAppear {
             // 탭 진입 시 레드 닷 제거
             appState.hasUnreadNotifications = false
+            // 탭 진입 시 고착된 갱신 신호 초기화: 이후 추가 푸시 수신 시 onChange 정상 발동 보장
+            appState.needsNotificationRefresh = false
         }
         .onChange(of: appState.needsNotificationRefresh) { _, needsRefresh in
             guard needsRefresh else { return }
