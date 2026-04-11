@@ -161,18 +161,34 @@ final class MainPageViewModel: ObservableObject {
     // MARK: - Polling
 
     // 음악 미생성 앨범에 대해 폴링 Task 시작 (이미 준비됐거나 폴링 중이면 스킵)
-    // 알림 권한이 있는 경우 FCM COMPLETED 신호로 처리 -> 폴링 스킵
+    // 알림 권한이 있는 경우: 이미 완료된 앨범 감지를 위해 1회 즉시 확인만 수행, 반복 폴링 스킵
+    // 알림 권한이 없는 경우: 기존 반복 폴링 유지
     private func startPollingIfNeeded() async {
         let status = await notificationAuthorizationChecker()
         let shouldPoll = status != .authorized
         for album in albums where !readyAlbumIds.contains(album.id) {
             guard pollingTasks[album.id] == nil else { continue }
-            guard shouldPoll else { continue }
             let albumId = album.id
-            pollingTasks[albumId] = Task { [weak self] in
-                await self?.pollMusic(for: albumId)
+            if shouldPoll {
+                pollingTasks[albumId] = Task { [weak self] in
+                    await self?.pollMusic(for: albumId)
+                }
+            } else {
+                // 앱 진입 시 이미 완료된 앨범을 감지하기 위한 1회 즉시 확인
+                pollingTasks[albumId] = Task { [weak self] in
+                    await self?.checkMusicOnce(for: albumId)
+                }
             }
         }
+    }
+
+    // 권한 있는 경우 앱 진입 시 1회만 완료 여부 확인 (이후 완료는 FCM으로 수신)
+    private func checkMusicOnce(for albumId: Int) async {
+        defer { pollingTasks[albumId] = nil }
+        guard !Task.isCancelled else { return }
+        guard let detail = try? await albumService.fetchAlbum(albumId: albumId),
+              detail.musicUrl != nil else { return }
+        applyAlbumReady(title: detail.title, for: albumId)
     }
 
     // FCM COMPLETED 수신 시 호출: 기존 폴링 취소 후 fetchAlbum 1회로 완료 처리
