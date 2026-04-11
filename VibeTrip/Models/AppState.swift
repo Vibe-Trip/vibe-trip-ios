@@ -69,6 +69,14 @@ struct AppToastPayload: Equatable {
     // FCM COMPLETED 수신 시 설정 -> MainTabBarView에서 소비 후 nil 초기화
     @Published var fcmCompletedAlbumId: Int? = nil
 
+    // 딥링크 수신 시 열린 AlbumDetailView 커버 dismiss 요청 신호
+    // MainTabBarView(송신) -> MainPageView/MainTabBarView(수신), 처리 후 false로 초기화
+    @Published var needsDismissAlbumDetail: Bool = false
+
+    // MainPageView or MainTabBarView 경로로 AlbumDetailView 커버가 열려 있는지 여부
+    // 딥링크 수신 시 기존 커버 유무 판단에 사용
+    @Published var isAlbumDetailPresented: Bool = false
+
     // APIClient.sessionExpiredPublisher 구독 유지용
     private var cancellables = Set<AnyCancellable>()
 
