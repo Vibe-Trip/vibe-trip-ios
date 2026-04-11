@@ -259,15 +259,36 @@ struct MainTabBarView: View {
                     }
                 }
             case .openAlbumDetail(let albumId):
-                // 루트에서 바로 상세페이지 진입
+                // 기존에 열린 상세 커버 여부를 변경 전 시점에 캡처
+                let hadOpenDetail = appState.isAlbumDetailPresented
+
+                // MainTabBarView 경유 커버 및 MainPageView 경유 커버 모두 dismiss 처리
+                presentedAlbumDetail = nil
+                appState.needsDismissAlbumDetail = true
+
                 withAnimation(.easeInOut(duration: 0.24)) {
                     isPresentingLoadingView = false
                     isPresentingMakeAlbum = false
                     isTabBarHidden = true
                 }
-                Task { await presentAlbumDetailOverlay(albumId: albumId) }
+
+                if hadOpenDetail {
+                    // 기존 커버가 있었으면 dismiss 애니메이션 완료 후 새 상세 진입
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
+                        appState.needsDismissAlbumDetail = false
+                        Task { await presentAlbumDetailOverlay(albumId: albumId) }
+                    }
+                } else {
+                    // 열린 커버 없으면 즉시 진입
+                    appState.needsDismissAlbumDetail = false
+                    Task { await presentAlbumDetailOverlay(albumId: albumId) }
+                }
             }
             appState.pendingNotificationAction = nil
+        }
+        // presentedAlbumDetail 변화 시 AppState 동기화: 딥링크 수신 시 기존 커버 유무 판단에 사용
+        .onChange(of: presentedAlbumDetail) { _, detail in
+            appState.isAlbumDetailPresented = detail != nil
         }
         // 앨범 삭제 등 특정 탭 이동 요청 처리
         .onChange(of: appState.pendingTabNavigation) { _, tab in
