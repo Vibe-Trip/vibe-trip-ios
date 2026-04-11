@@ -7,6 +7,7 @@
 
 import Foundation
 import Combine
+import UserNotifications
 
 // MARK: - MainPageViewModel
 
@@ -42,6 +43,8 @@ final class MainPageViewModel: ObservableObject {
     // MARK: - Dependencies
 
     private let albumService: AlbumServiceProtocol
+    // 알림 권한 상태 조회 클로저 (테스트 시 주입 가능)
+    private let notificationAuthorizationChecker: @Sendable () async -> UNAuthorizationStatus
 
     // MARK: - Load State
 
@@ -61,10 +64,16 @@ final class MainPageViewModel: ObservableObject {
 
     // MARK: - Init
 
-    nonisolated init(albumService: AlbumServiceProtocol = AlbumService(),
-                     pollingInterval: UInt64 = 5_000_000_000) {
+    nonisolated init(
+        albumService: AlbumServiceProtocol = AlbumService(),
+        pollingInterval: UInt64 = 5_000_000_000,
+        notificationAuthorizationChecker: @escaping @Sendable () async -> UNAuthorizationStatus = {
+            await UNUserNotificationCenter.current().notificationSettings().authorizationStatus
+        }
+    ) {
         self.albumService = albumService
         self.pollingInterval = pollingInterval
+        self.notificationAuthorizationChecker = notificationAuthorizationChecker
     }
 
     // MARK: - Load
@@ -101,7 +110,7 @@ final class MainPageViewModel: ObservableObject {
             cursor = payload.content.last?.id
             hasLoaded = true
             errorMessage = nil
-            startPollingIfNeeded()
+            await startPollingIfNeeded()
         } catch {
             // 실패 시 기존 목록을 유지하고 에러만 갱신
             errorMessage = "앨범을 불러오지 못했습니다."
@@ -137,7 +146,7 @@ final class MainPageViewModel: ObservableObject {
             hasNext = payload.hasNext
             cursor = payload.content.last?.id // 마지막 albumId: 다음 요청 cursor
             errorMessage = nil
-            startPollingIfNeeded()
+            await startPollingIfNeeded()
         } catch {
             errorMessage = "앨범을 불러오지 못했습니다."
         }
@@ -152,14 +161,43 @@ final class MainPageViewModel: ObservableObject {
     // MARK: - Polling
 
     // 음악 미생성 앨범에 대해 폴링 Task 시작 (이미 준비됐거나 폴링 중이면 스킵)
-    private func startPollingIfNeeded() {
+    // 알림 권한이 있는 경우: 이미 완료된 앨범 감지를 위해 1회 즉시 확인만 수행, 반복 폴링 스킵
+    // 알림 권한이 없는 경우: 기존 반복 폴링 유지
+    private func startPollingIfNeeded() async {
+        let status = await notificationAuthorizationChecker()
+        let shouldPoll = status != .authorized
         for album in albums where !readyAlbumIds.contains(album.id) {
             guard pollingTasks[album.id] == nil else { continue }
             let albumId = album.id
-            pollingTasks[albumId] = Task { [weak self] in
-                await self?.pollMusic(for: albumId)
+            if shouldPoll {
+                pollingTasks[albumId] = Task { [weak self] in
+                    await self?.pollMusic(for: albumId)
+                }
+            } else {
+                // 앱 진입 시 이미 완료된 앨범을 감지하기 위한 1회 즉시 확인
+                pollingTasks[albumId] = Task { [weak self] in
+                    await self?.checkMusicOnce(for: albumId)
+                }
             }
         }
+    }
+
+    // 권한 있는 경우 앱 진입 시 1회만 완료 여부 확인 (이후 완료는 FCM으로 수신)
+    private func checkMusicOnce(for albumId: Int) async {
+        defer { pollingTasks[albumId] = nil }
+        guard !Task.isCancelled else { return }
+        guard let detail = try? await albumService.fetchAlbum(albumId: albumId),
+              detail.musicUrl != nil else { return }
+        applyAlbumReady(title: detail.title, for: albumId)
+    }
+
+    // FCM COMPLETED 수신 시 호출: 기존 폴링 취소 후 fetchAlbum 1회로 완료 처리
+    func handleAlbumCompleted(albumId: Int) async {
+        pollingTasks[albumId]?.cancel()
+        pollingTasks[albumId] = nil
+        guard let detail = try? await albumService.fetchAlbum(albumId: albumId),
+              detail.musicUrl != nil else { return }
+        applyAlbumReady(title: detail.title, for: albumId)
     }
 
     // musicUrl 조회: 즉시 1회 확인 후 5초 간격, 최대 120회(10분)

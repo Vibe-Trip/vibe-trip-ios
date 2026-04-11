@@ -51,8 +51,9 @@ final class NotificationViewModel: ObservableObject {
                 "{alarmId: \($0.alarmId), albumId: \($0.albumId?.description ?? "nil"), alarmType: \($0.alarmType), title: \($0.title)}"
             }.joined(separator: "\n")
             print("[Alarm API] \(logItems)")
-            // 재조회 시 기존 읽음 처리된 알림 ID 보존
-            let existingReadIds = Set(notifications.filter { $0.isRead }.map { $0.id })
+            // 인메모리 읽음 ID와 UserDefaults 저장값의 합집합으로 읽음 상태 보존
+            let memoryReadIds = Set(notifications.filter { $0.isRead }.map { $0.id })
+            let existingReadIds = memoryReadIds.union(loadReadIds())
             let newItems = deduplicated(responses)
                 .compactMap { $0.toNotificationItem() }
                 .sorted {
@@ -77,33 +78,69 @@ final class NotificationViewModel: ObservableObject {
         await loadNotifications()
     }
 
-    // 탭 시 배경색 제거
+    // 앱 포그라운드 진입 시 미읽음/FAILED 알림 여부만 확인 (notifications 배열 미변경)
+    func checkUnread() async -> (hasUnread: Bool, hasFailed: Bool) {
+        guard let responses = try? await alarmService.fetchAlarms() else { return (false, false) }
+        let deduped = deduplicated(responses)
+        return (
+            !deduped.isEmpty,
+            deduped.contains { $0.alarmType == "FAILED" }
+        )
+    }
+
+    // 탭 시 배경색 제거 + UserDefaults에 읽음 상태 저장
     func markAsRead(id: String) {
         guard let index = notifications.firstIndex(where: { $0.id == id }) else { return }
         notifications[index].isRead = true
+        var stored = loadReadIds()
+        stored.insert(id)
+        saveReadIds(stored)
     }
 
-    // 알림 삭제
+    // 알림 삭제 + UserDefaults에서 읽음 ID 제거
     func deleteNotification(id: String) async {
         guard let alarmId = Int(id) else { return }
         do {
             try await alarmService.deleteAlarm(alarmId: alarmId)
             notifications.removeAll { $0.id == id }
+            var stored = loadReadIds()
+            stored.remove(id)
+            saveReadIds(stored)
         } catch {
             // 삭제 실패 시 목록 유지 (조용히 처리)
         }
     }
 
-    // 알림 뷰 탈출 시 전체 읽음 처리
+    // 알림 뷰 탈출 시 전체 읽음 처리 + UserDefaults에 저장
     func markAllAsRead() {
         notifications = notifications.map {
             var item = $0
             item.isRead = true
             return item
         }
+        var stored = loadReadIds()
+        stored.formUnion(notifications.map { $0.id })
+        saveReadIds(stored)
     }
 
     // MARK: - Private Methods
+
+    // MARK: UserDefaults 읽음 상태 영구 저장
+
+    private enum UserDefaultsKeys {
+        static let readAlarmIds = "readAlarmIds"
+    }
+
+    // 읽음 처리된 alarmId 목록을 UserDefaults에 저장
+    private func saveReadIds(_ ids: Set<String>) {
+        UserDefaults.standard.set(Array(ids), forKey: UserDefaultsKeys.readAlarmIds)
+    }
+
+    // UserDefaults에서 읽음 처리된 alarmId 목록 로드
+    private func loadReadIds() -> Set<String> {
+        let stored = UserDefaults.standard.stringArray(forKey: UserDefaultsKeys.readAlarmIds) ?? []
+        return Set(stored)
+    }
 
     // 같은 albumId: 최신 항목 하나만 유지
     // CREATING -> COMPLETED or FAILED
