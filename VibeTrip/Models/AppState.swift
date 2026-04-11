@@ -22,7 +22,6 @@ enum NotificationNavigationAction: Equatable {
     case openAlbumCreationLoading
 
     // 앨범 생성 완료: AlbumDetailView
-    // TODO: 서버 연동 시, albumId 기반 AlbumDetailView 라우팅 구현
     case openAlbumDetail(albumId: String)
 }
 
@@ -41,7 +40,6 @@ struct AppToastPayload: Equatable {
 
     // 탭바 레드 닷 표시 여부
     // true: 새 알림 존재, false: 존재X or 탭 진입 후
-    // TODO: 서버 연동 시, FCM 푸시 수신 시 AppDelegate에서 true
     @Published var hasUnreadNotifications: Bool = false
 
     // 알림 탭 시 이동할 화면

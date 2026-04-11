@@ -185,7 +185,6 @@ struct NotificationView: View {
             appState.pendingNotificationAction = .openAlbumCreationLoading
 
         case .completed(let albumId):
-            // TODO: 서버 연동 시,albumId를 이용해 AlbumDetailView 이동
             appState.pendingNotificationAction = .openAlbumDetail(albumId: albumId)
 
         case .failed:
@@ -267,8 +266,23 @@ private struct NotificationRow: View {
     private func timeAgo(_ date: Date) -> String {
         let elapsed = max(0, Int(Date().timeIntervalSince(date)))
         if elapsed < 60 { return "지금" }
-        let minutes = elapsed / 60
-        return "\(minutes)분 전"
+        if elapsed < 3600 {
+            let minutes = elapsed / 60
+            return "\(minutes)분 전"
+        }
+        if elapsed < 86_400 {
+            let hours = elapsed / 3600
+            return "\(hours)시간 전"
+        }
+        if elapsed < 604_800 {
+            let days = elapsed / 86_400
+            return "\(days)일 전"
+        }
+
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "ko_KR")
+        formatter.dateFormat = "M월 d일"
+        return formatter.string(from: date)
     }
 }
 
