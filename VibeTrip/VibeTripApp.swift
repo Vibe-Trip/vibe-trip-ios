@@ -74,16 +74,20 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
 
     // 포그라운드 푸시: 인앱 배너 표시 + 알림 목록 갱신 신호
     // FAILED 타입: 앨범 목록 조용히 갱신 신호 추가 전송
+    // COMPLETED 타입: FCM 완료 신호 전달 -> MainTabBarView에서 앨범 완료 처리
     func userNotificationCenter(_ center: UNUserNotificationCenter,
                                 willPresent notification: UNNotification,
                                 withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void) {
         let userInfo = notification.request.content.userInfo
-        let isFailed = decodeFCMPayload(from: userInfo)?.type == "FAILED"
+        let payload = decodeFCMPayload(from: userInfo)
         Task { @MainActor in
             appState?.hasUnreadNotifications = true
             appState?.needsNotificationRefresh = true
-            if isFailed {
+            if payload?.type == "FAILED" {
                 appState?.needsSilentAlbumRefresh = true
+            }
+            if payload?.type == "COMPLETED", let albumId = payload?.data?.albumId {
+                appState?.fcmCompletedAlbumId = albumId
             }
         }
         completionHandler([.banner, .list, .sound, .badge])

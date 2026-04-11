@@ -68,6 +68,9 @@ struct AppToastPayload: Equatable {
     // AppDelegate(송신) -> MainTabBarView(수신), 수신 즉시 false로 초기화
     @Published var needsActiveCheck: Bool = false
 
+    // FCM COMPLETED 수신 시 설정 -> MainTabBarView에서 소비 후 nil 초기화
+    @Published var fcmCompletedAlbumId: Int? = nil
+
     // APIClient.sessionExpiredPublisher 구독 유지용
     private var cancellables = Set<AnyCancellable>()
 
