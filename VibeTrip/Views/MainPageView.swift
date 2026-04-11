@@ -228,6 +228,7 @@ struct MainPageView: View {
 
     private var emptyStateView: some View {
         VStack(alignment: .center, spacing: 8) {
+            // 빈 상태 아이콘
             Image("CreateAlbum")
                 .resizable()
                 .scaledToFit()
