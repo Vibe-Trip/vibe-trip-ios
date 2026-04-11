@@ -87,6 +87,137 @@ struct MainTabBarView: View {
     }
 
     var body: some View {
+        mainStackWithHandlers
+        // 앱 포그라운드 전환 시: 미읽음/FAILED 알림 여부 확인 후 red dot 및 앨범 목록 갱신
+        .onChange(of: appState.needsActiveCheck) { _, needsCheck in
+            guard needsCheck else { return }
+            appState.needsActiveCheck = false
+            Task {
+                let result = await notificationViewModel.checkUnread()
+                if result.hasUnread { appState.hasUnreadNotifications = true }
+                if result.hasFailed { await mainPageViewModel.refreshAlbumsWithoutClearing() }
+            }
+        }
+        // 포그라운드 FCM COMPLETED 수신 시: 해당 앨범 폴링 취소 후 1회 조회로 완료 처리
+        .onChange(of: appState.fcmCompletedAlbumId) { _, albumId in
+            guard let albumId else { return }
+            appState.fcmCompletedAlbumId = nil
+            Task { await mainPageViewModel.handleAlbumCompleted(albumId: albumId) }
+        }
+        .fullScreenCover(item: $presentedAlbumDetail) { presentation in
+            AlbumDetailView(
+                displayModel: presentation.displayModel,
+                onBackTap: {
+                    presentedAlbumDetail = nil
+                    selectedTab = .home
+                    isTabBarHidden = false
+                },
+                onEditSaved: { _ in
+                    presentedAlbumDetail = nil
+                    selectedTab = .home
+                    isTabBarHidden = false
+                    appState.needsAlbumRefresh = true
+                },
+                onDeleteAlbumTap: {
+                    presentedAlbumDetail = nil
+                    selectedTab = .home
+                    isTabBarHidden = false
+                    appState.needsAlbumRefresh = true
+                }
+            )
+            .onAppear {
+                // 해당 앨범 상세페이지 이동 후 탭 전환
+                DispatchQueue.main.async {
+                    Task { await mainPageViewModel.refreshAlbumsWithoutClearing() }
+                    // 상세 애니메이션 이후에 마스크를 해제 -> 탭 전환 노출 방지
+                    isResolvingAlbumDetail = false
+                }
+            }
+        }
+    }
+
+    // MARK: - Main Stack
+
+    // 타입 체커 부하 분산을 위해 modifier 체인을 두 단계로 분리
+    private var mainStackWithHandlers: some View {
+        mainStack
+        .animation(.easeInOut(duration: 0.24), value: isPresentingMakeAlbum)
+        .animation(.easeInOut(duration: 0.22), value: isTabBarHidden)
+        .animation(.easeInOut(duration: 0.2), value: hiddenLoadingToastMessage)
+        // 알림 탭 시, 화면 이동
+        .onChange(of: appState.pendingNotificationAction) { _, action in
+            guard let action else { return }
+            switch action {
+            case .openMakeAlbum:
+                // 생성 실패: MakeAlbumView 진입 전 탭 상태 무관하게 앨범 목록 즉시 갱신
+                Task { await mainPageViewModel.refreshAlbumsWithoutClearing() }
+                withAnimation(.easeInOut(duration: 0.18)) {
+                    isTabBarHidden = true
+                }
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.08) {
+                    withAnimation(.easeInOut(duration: 0.24)) {
+                        isPresentingMakeAlbum = true
+                    }
+                }
+            case .openAlbumCreationLoading:
+                // 생성 중: MakeAlbumLoadingView
+                // TODO: 서버 연동 시, 기존 생성 중인 ViewModel 상태 복원
+                withAnimation(.easeInOut(duration: 0.18)) {
+                    isTabBarHidden = true
+                }
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.08) {
+                    withAnimation(.easeInOut(duration: 0.24)) {
+                        isPresentingLoadingView = true
+                    }
+                }
+            case .openAlbumDetail(let albumId):
+                // 기존에 열린 상세 커버 여부를 변경 전 시점에 캡처
+                let hadOpenDetail = appState.isAlbumDetailPresented
+
+                // MainTabBarView 경유 커버 및 MainPageView 경유 커버 모두 dismiss 처리
+                presentedAlbumDetail = nil
+                appState.needsDismissAlbumDetail = true
+
+                withAnimation(.easeInOut(duration: 0.24)) {
+                    isPresentingLoadingView = false
+                    isPresentingMakeAlbum = false
+                    isTabBarHidden = true
+                }
+
+                if hadOpenDetail {
+                    // 기존 커버가 있었으면 dismiss 애니메이션 완료 후 새 상세 진입
+                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
+                        appState.needsDismissAlbumDetail = false
+                        Task { await presentAlbumDetailOverlay(albumId: albumId) }
+                    }
+                } else {
+                    // 열린 커버 없으면 즉시 진입
+                    appState.needsDismissAlbumDetail = false
+                    Task { await presentAlbumDetailOverlay(albumId: albumId) }
+                }
+            }
+            appState.pendingNotificationAction = nil
+        }
+        // presentedAlbumDetail 변화 시 AppState 동기화: 딥링크 수신 시 기존 커버 유무 판단에 사용
+        .onChange(of: presentedAlbumDetail?.id) { _, detailId in
+            appState.isAlbumDetailPresented = detailId != nil
+        }
+        // 앨범 삭제 등 특정 탭 이동 요청 처리
+        .onChange(of: appState.pendingTabNavigation) { _, tab in
+            guard let tab else { return }
+            selectedTab = tab
+            appState.pendingTabNavigation = nil
+        }
+        // 포그라운드 FAILED 배너 무시 시: 탭 상태 무관하게 앨범 목록 조용히 갱신
+        .onChange(of: appState.needsSilentAlbumRefresh) { _, needsRefresh in
+            guard needsRefresh else { return }
+            appState.needsSilentAlbumRefresh = false
+            Task { await mainPageViewModel.refreshAlbumsWithoutClearing() }
+        }
+    }
+
+    // ZStack 콘텐츠를 body에서 분리
+    private var mainStack: some View {
         ZStack {
 
             // 기본 배경색
@@ -225,127 +356,6 @@ struct MainTabBarView: View {
                             .controlSize(.large)
                     }
                     .zIndex(4)
-            }
-
-        }
-        .animation(.easeInOut(duration: 0.24), value: isPresentingMakeAlbum)
-        .animation(.easeInOut(duration: 0.22), value: isTabBarHidden)
-        .animation(.easeInOut(duration: 0.2), value: hiddenLoadingToastMessage)
-        // 알림 탭 시, 화면 이동
-        .onChange(of: appState.pendingNotificationAction) { _, action in
-            guard let action else { return }
-            switch action {
-            case .openMakeAlbum:
-                // 생성 실패: MakeAlbumView 진입 전 탭 상태 무관하게 앨범 목록 즉시 갱신
-                Task { await mainPageViewModel.refreshAlbumsWithoutClearing() }
-                withAnimation(.easeInOut(duration: 0.18)) {
-                    isTabBarHidden = true
-                }
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.08) {
-                    withAnimation(.easeInOut(duration: 0.24)) {
-                        isPresentingMakeAlbum = true
-                    }
-                }
-
-            case .openAlbumCreationLoading:
-                // 생성 중: MakeAlbumLoadingView
-                // TODO: 서버 연동 시, 기존 생성 중인 ViewModel 상태 복원
-                withAnimation(.easeInOut(duration: 0.18)) {
-                    isTabBarHidden = true
-                }
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.08) {
-                    withAnimation(.easeInOut(duration: 0.24)) {
-                        isPresentingLoadingView = true
-                    }
-                }
-            case .openAlbumDetail(let albumId):
-                // 기존에 열린 상세 커버 여부를 변경 전 시점에 캡처
-                let hadOpenDetail = appState.isAlbumDetailPresented
-
-                // MainTabBarView 경유 커버 및 MainPageView 경유 커버 모두 dismiss 처리
-                presentedAlbumDetail = nil
-                appState.needsDismissAlbumDetail = true
-
-                withAnimation(.easeInOut(duration: 0.24)) {
-                    isPresentingLoadingView = false
-                    isPresentingMakeAlbum = false
-                    isTabBarHidden = true
-                }
-
-                if hadOpenDetail {
-                    // 기존 커버가 있었으면 dismiss 애니메이션 완료 후 새 상세 진입
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
-                        appState.needsDismissAlbumDetail = false
-                        Task { await presentAlbumDetailOverlay(albumId: albumId) }
-                    }
-                } else {
-                    // 열린 커버 없으면 즉시 진입
-                    appState.needsDismissAlbumDetail = false
-                    Task { await presentAlbumDetailOverlay(albumId: albumId) }
-                }
-            }
-            appState.pendingNotificationAction = nil
-        }
-        // presentedAlbumDetail 변화 시 AppState 동기화: 딥링크 수신 시 기존 커버 유무 판단에 사용
-        .onChange(of: presentedAlbumDetail) { _, detail in
-            appState.isAlbumDetailPresented = detail != nil
-        }
-        // 앨범 삭제 등 특정 탭 이동 요청 처리
-        .onChange(of: appState.pendingTabNavigation) { _, tab in
-            guard let tab else { return }
-            selectedTab = tab
-            appState.pendingTabNavigation = nil
-        }
-        // 포그라운드 FAILED 배너 무시 시: 탭 상태 무관하게 앨범 목록 조용히 갱신
-        .onChange(of: appState.needsSilentAlbumRefresh) { _, needsRefresh in
-            guard needsRefresh else { return }
-            appState.needsSilentAlbumRefresh = false
-            Task { await mainPageViewModel.refreshAlbumsWithoutClearing() }
-        }
-        // 앱 포그라운드 전환 시: 미읽음/FAILED 알림 여부 확인 후 red dot 및 앨범 목록 갱신
-        .onChange(of: appState.needsActiveCheck) { _, needsCheck in
-            guard needsCheck else { return }
-            appState.needsActiveCheck = false
-            Task {
-                let result = await notificationViewModel.checkUnread()
-                if result.hasUnread { appState.hasUnreadNotifications = true }
-                if result.hasFailed { await mainPageViewModel.refreshAlbumsWithoutClearing() }
-            }
-        }
-        // 포그라운드 FCM COMPLETED 수신 시: 해당 앨범 폴링 취소 후 1회 조회로 완료 처리
-        .onChange(of: appState.fcmCompletedAlbumId) { _, albumId in
-            guard let albumId else { return }
-            appState.fcmCompletedAlbumId = nil
-            Task { await mainPageViewModel.handleAlbumCompleted(albumId: albumId) }
-        }
-        .fullScreenCover(item: $presentedAlbumDetail) { presentation in
-            AlbumDetailView(
-                displayModel: presentation.displayModel,
-                onBackTap: {
-                    presentedAlbumDetail = nil
-                    selectedTab = .home
-                    isTabBarHidden = false
-                },
-                onEditSaved: { _ in
-                    presentedAlbumDetail = nil
-                    selectedTab = .home
-                    isTabBarHidden = false
-                    appState.needsAlbumRefresh = true
-                },
-                onDeleteAlbumTap: {
-                    presentedAlbumDetail = nil
-                    selectedTab = .home
-                    isTabBarHidden = false
-                    appState.needsAlbumRefresh = true
-                }
-            )
-            .onAppear {
-                // 해당 앨범 상세페이지 이동 후 탭 전환
-                DispatchQueue.main.async {
-                    Task { await mainPageViewModel.refreshAlbumsWithoutClearing() }
-                    // 상세 애니메이션 이후에 마스크를 해제 -> 탭 전환 노출 방지
-                    isResolvingAlbumDetail = false
-                }
             }
         }
     }
