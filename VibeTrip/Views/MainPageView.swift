@@ -64,12 +64,63 @@ struct MainPageView: View {
 
     // MARK: - Body
 
-    var body: some View {
-        // body 내 반복 접근 시 filter 재계산을 줄이기 위한 로컬 캐시
-        let visibleAlbums = viewModel.visibleAlbums
-        // 현재 위치 기준으로 미리 준비할 커버 이미지 키
-        let preloadKey = preloadCoverImageURLs(from: visibleAlbums).map(\.absoluteString).joined(separator: "|")
+    // body 내 반복 접근 시 filter 재계산을 줄이기 위한 캐시
+    private var visibleAlbums: [AlbumCard] { viewModel.visibleAlbums }
+    // 현재 위치 기준으로 미리 준비할 커버 이미지 키
+    private var preloadKey: String {
+        preloadCoverImageURLs(from: visibleAlbums).map(\.absoluteString).joined(separator: "|")
+    }
 
+    var body: some View {
+        contentView
+            .onChange(of: selectedAlbum?.id) { _, albumId in
+                // 앨범 상세 열림 여부를 AppState에 동기화: 딥링크 수신 시 기존 열림 여부 판단에 사용
+                appState.isAlbumDetailPresented = albumId != nil
+            }
+            .onChange(of: appState.needsDismissAlbumDetail) { _, needsDismiss in
+                // 딥링크 수신 시 현재 열린 앨범 상세 닫기
+                guard needsDismiss else { return }
+                selectedAlbum = nil
+            }
+            .fullScreenCover(item: $selectedAlbum) { album in
+                AlbumDetailView(
+                    displayModel: album.toDisplayModel(),
+                    onBackTap: { selectedAlbum = nil },
+                    onEditSaved: { outcome in
+                        // 재생성 저장일 때만 메인 복귀 + 스켈레톤/폴링 흐름으로 전환
+                        guard case .regenerated = outcome else { return }   // 재생성 안 함: 상세페이지 유지
+
+                        viewModel.markAlbumNotReady(albumId: album.id)
+                        selectedAlbum = nil
+                        appState.pendingTabNavigation = .home
+                        Task { await viewModel.reloadAlbums() }
+                    },
+                    onDeleteAlbumTap: {
+                        selectedAlbum = nil
+                        currentIndex = 0
+                        // 삭제 후 목록 재조회
+                        Task { await viewModel.reloadAlbums() }
+                        // 삭제 완료 후 홈 탭으로 강제 이동
+                        appState.pendingTabNavigation = .home
+                    }
+                )
+            }
+            .overlay(alignment: .bottom) {
+                if showGeneratingToast {
+                    // 타이틀 생성 중 앨범 진입 시도 시 차단 안내
+                    AppToastView(
+                        message: "앨범을 제작하고 있어요. 잠시만 기다려 주세요!",
+                        systemImageName: "exclamationmark.circle"
+                    )
+                    .padding(.bottom, 88)
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+                }
+            }
+            .animation(.easeInOut(duration: 0.2), value: showGeneratingToast)
+    }
+
+    // 타입 체커 부하 분산을 위해 콘텐츠 및 기본 동작 modifier를 별도 분리
+    private var contentView: some View {
         Group {
             if viewModel.isInitialLoading {
                 initialLoadingContent
@@ -102,41 +153,6 @@ struct MainPageView: View {
             dragOffset = 0
             Task { await viewModel.reloadAlbums() }
         }
-        .fullScreenCover(item: $selectedAlbum) { album in
-            AlbumDetailView(
-                displayModel: album.toDisplayModel(),
-                onBackTap: { selectedAlbum = nil },
-                onEditSaved: { outcome in
-                    // 재생성 저장일 때만 메인 복귀 + 스켈레톤/폴링 흐름으로 전환
-                    guard case .regenerated = outcome else { return }   // 재생성 안 함: 상세페이지 유지
-
-                    viewModel.markAlbumNotReady(albumId: album.id)
-                    selectedAlbum = nil
-                    appState.pendingTabNavigation = .home
-                    Task { await viewModel.reloadAlbums() }
-                },
-                onDeleteAlbumTap: {
-                    selectedAlbum = nil
-                    currentIndex = 0
-                    // 삭제 후 목록 재조회
-                    Task { await viewModel.reloadAlbums() }
-                    // 삭제 완료 후 홈 탭으로 강제 이동
-                    appState.pendingTabNavigation = .home
-                }
-            )
-        }
-        .overlay(alignment: .bottom) {
-            if showGeneratingToast {
-                // 타이틀 생성 중 앨범 진입 시도 시 차단 안내
-                AppToastView(
-                    message: "앨범을 제작하고 있어요. 잠시만 기다려 주세요!",
-                    systemImageName: "exclamationmark.circle"
-                )
-                .padding(.bottom, 88)
-                .transition(.move(edge: .bottom).combined(with: .opacity))
-            }
-        }
-        .animation(.easeInOut(duration: 0.2), value: showGeneratingToast)
     }
 
     // MARK: - 빈 상태 UI
