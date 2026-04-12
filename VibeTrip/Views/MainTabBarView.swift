@@ -74,6 +74,10 @@ struct MainTabBarView: View {
     @State private var isResolvingAlbumDetail = false
     @State private var presentedAlbumDetail: PendingAlbumDetailPresentation? = nil
 
+    // MainTabBarView 자체 커버(presentedAlbumDetail) dismiss 완료 후 진입할  albumId
+    // fullScreenCover onDismiss에서 소비
+    @State private var ownCoverPendingAlbumId: String? = nil
+
     @EnvironmentObject private var appState: AppState
     @StateObject private var notificationViewModel = NotificationViewModel()
     @StateObject private var mainPageViewModel = MainPageViewModel()
@@ -107,10 +111,17 @@ struct MainTabBarView: View {
             appState.fcmCompletedAlbumId = nil
             Task { await mainPageViewModel.handleAlbumCompleted(albumId: albumId) }
         }
-        .fullScreenCover(item: $presentedAlbumDetail) { presentation in
+        .fullScreenCover(item: $presentedAlbumDetail, onDismiss: {
+            // 딥링크로 인한 dismiss인 경우: dismiss 완료 직후 새 앨범 상세로 진입
+            guard let albumId = ownCoverPendingAlbumId else { return }
+            ownCoverPendingAlbumId = nil
+            Task { await presentAlbumDetailOverlay(albumId: albumId) }
+        }) { presentation in
             AlbumDetailView(
                 displayModel: presentation.displayModel,
                 onBackTap: {
+                    // 뒤로가기 시 캐러셀을 해당 앨범 카드 위치로 이동
+                    appState.pendingCarouselAlbumId = presentation.displayModel.albumId
                     presentedAlbumDetail = nil
                     selectedTab = .home
                     isTabBarHidden = false
@@ -128,6 +139,8 @@ struct MainTabBarView: View {
                     appState.needsAlbumRefresh = true
                 }
             )
+            // albumId 기준으로 view 재생성 강제 -> @State/@StateObject 확실히 초기화
+            .id(presentation.displayModel.albumId)
             .onAppear {
                 // 해당 앨범 상세페이지 이동 후 탭 전환
                 DispatchQueue.main.async {
@@ -174,12 +187,9 @@ struct MainTabBarView: View {
                     }
                 }
             case .openAlbumDetail(let albumId):
-                // 기존에 열린 상세 커버 여부를 변경 전 시점에 캡처
-                let hadOpenDetail = appState.isAlbumDetailPresented
-
-                // MainTabBarView 경유 커버 및 MainPageView 경유 커버 모두 dismiss 처리
-                presentedAlbumDetail = nil
-                appState.needsDismissAlbumDetail = true
+                // 어느 경로로 커버가 열려 있는지 각각 확인
+                let hadPresentedDetail = presentedAlbumDetail != nil         // MainTabBarView 경유
+                let hadSelectedAlbum = !hadPresentedDetail && appState.isAlbumDetailPresented  // MainPageView 경유
 
                 withAnimation(.easeInOut(duration: 0.24)) {
                     isPresentingLoadingView = false
@@ -187,15 +197,16 @@ struct MainTabBarView: View {
                     isTabBarHidden = true
                 }
 
-                if hadOpenDetail {
-                    // 기존 커버가 있었으면 dismiss 애니메이션 완료 후 새 상세 진입
-                    DispatchQueue.main.asyncAfter(deadline: .now() + 0.4) {
-                        appState.needsDismissAlbumDetail = false
-                        Task { await presentAlbumDetailOverlay(albumId: albumId) }
-                    }
+                if hadPresentedDetail {
+                    // MainTabBarView 자체 커버가 열려 있음 -> fullScreenCover onDismiss에서 dismiss 완료 시점에 새 커버 진입
+                    ownCoverPendingAlbumId = albumId
+                    presentedAlbumDetail = nil
+                } else if hadSelectedAlbum {
+                    // MainPageView 커버가 열려 있음 -> needsDismissAlbumDetail로 dismiss 트리거, onDismiss에서 AppState 시그널 발송
+                    appState.pendingDeeplinkAlbumId = albumId
+                    appState.needsDismissAlbumDetail = true
                 } else {
-                    // 열린 커버 없으면 즉시 진입
-                    appState.needsDismissAlbumDetail = false
+                    // 열린 커버 없음 -> 즉시 진입
                     Task { await presentAlbumDetailOverlay(albumId: albumId) }
                 }
             case .openHome:
@@ -207,6 +218,12 @@ struct MainTabBarView: View {
         // presentedAlbumDetail 변화 시 AppState 동기화: 딥링크 수신 시 기존 커버 유무 판단에 사용
         .onChange(of: presentedAlbumDetail?.id) { _, detailId in
             appState.isAlbumDetailPresented = detailId != nil
+        }
+        // MainPageView 커버 dismiss 완료 시그널 수신: 새 앨범 상세로 진입
+        .onChange(of: appState.deeplinkAlbumReadyToPresent) { _, albumId in
+            guard let albumId else { return }
+            appState.deeplinkAlbumReadyToPresent = nil
+            Task { await presentAlbumDetailOverlay(albumId: albumId) }
         }
         // 앨범 삭제 등 특정 탭 이동 요청 처리
         .onChange(of: appState.pendingTabNavigation) { _, tab in
