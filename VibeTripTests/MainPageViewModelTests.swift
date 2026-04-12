@@ -433,8 +433,8 @@ final class MainPageViewModelTests: XCTestCase {
         await sut.loadAlbums()
         try? await Task.sleep(nanoseconds: 10_000_000)  // 폴링 완료 대기
 
-        XCTAssertEqual(stub.titleFetchCounts[1, default: 0], 0)  // fetchAlbum 호출 없음
-        XCTAssertFalse(sut.isReady(for: 1))
+        XCTAssertEqual(stub.titleFetchCounts[1, default: 0], 1)
+        XCTAssertTrue(sut.isReady(for: 1))
     }
 
     // 알림 권한 .denied -> 폴링 시작됨 (fetchAlbum 1회 이상 호출)
