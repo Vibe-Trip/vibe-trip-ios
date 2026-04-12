@@ -239,7 +239,7 @@ struct MainPageView: View {
             Text("첫 번째 여행 앨범을 만들어보세요.")
                 .font(Font.setPretendard(weight: .semiBold, size: 22))
                 .multilineTextAlignment(.center)
-                .foregroundStyle(Color.placeholderText)
+                .foregroundStyle(Color("GrayScale/500"))
                 .padding(.horizontal, 39)
                 .frame(maxWidth: .infinity, alignment: .center)
 
