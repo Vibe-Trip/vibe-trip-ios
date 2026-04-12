@@ -167,6 +167,16 @@ struct MainTabBarView: View {
             notificationViewModel.markAllAsRead()
             appState.hasUnreadNotifications = false
         }
+        .onChange(of: isPresentingMakeAlbum) { _, isPresenting in
+            guard isPresenting, selectedTab == .notification else { return }
+            notificationViewModel.markAllAsRead()
+            appState.hasUnreadNotifications = false
+        }
+        .onChange(of: isPresentingLoadingView) { _, isPresenting in
+            guard isPresenting, selectedTab == .notification else { return }
+            notificationViewModel.markAllAsRead()
+            appState.hasUnreadNotifications = false
+        }
         // 알림 탭 시, 화면 이동
         .onChange(of: appState.pendingNotificationAction) { _, action in
             guard let action else { return }
