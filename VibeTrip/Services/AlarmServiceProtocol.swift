@@ -32,7 +32,7 @@ extension AlarmResponse {
             id: String(alarmId),
             type: type,
             title: title,
-            body: description,
+            body: formattedDescription(for: type),
             createdAt: Self.parseDate(from: createdAt),
             isRead: false
         )
@@ -52,6 +52,44 @@ extension AlarmResponse {
         default:
             return nil
         }
+    }
+
+    // 서버 본문 문구를 타입별로 줄바꿈 적용
+    private func formattedDescription(for type: NotificationType) -> String {
+        let normalized = normalizeLineSeparators(in: description)
+        switch type {
+        case .completed:
+            return forceLineBreak(in: normalized, after: "완성되었습니다.")
+        case .failed:
+            return forceLineBreak(in: normalized, after: "실패하였습니다.")
+        case .generating:
+            return normalized
+        }
+    }
+
+    private func normalizeLineSeparators(in text: String) -> String {
+        text
+            .replacingOccurrences(of: "\u{2028}", with: "\n")
+            .replacingOccurrences(of: "\u{2029}", with: "\n")
+            .replacingOccurrences(of: "\r\n", with: "\n")
+            .replacingOccurrences(of: "\r", with: "\n")
+    }
+
+    private func forceLineBreak(in text: String, after marker: String) -> String {
+        guard let markerRange = text.range(of: marker) else { return text }
+        let splitIndex = markerRange.upperBound
+        guard splitIndex < text.endIndex else { return text }
+
+        let next = text[splitIndex]
+        if next == "\n" { return text }
+
+        var result = text
+        if next == " " {
+            result.replaceSubrange(splitIndex...splitIndex, with: "\n")
+        } else {
+            result.insert("\n", at: splitIndex)
+        }
+        return result
     }
 
     // ISO8601 날짜 파싱
