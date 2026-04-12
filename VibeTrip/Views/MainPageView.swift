@@ -141,8 +141,15 @@ struct MainPageView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .task { await viewModel.loadAlbums() }
         // 첫 진입 시 현재 카드 주변 이미지 캐시 적재
+        // 홈 탭 진입 시점에 대기 중인 카드 위치 이동 처리 -> onChange가 놓친 경우 보완
         .onAppear {
             preloadCoverImages(urls: preloadCoverImageURLs(from: visibleAlbums))
+            if let albumId = appState.pendingCarouselAlbumId,
+               let idx = visibleAlbums.firstIndex(where: { $0.id == albumId }) {
+                appState.pendingCarouselAlbumId = nil
+                currentIndex = idx
+                dragOffset = 0
+            }
         }
         .onDisappear { viewModel.cancelAllPolling() }
         // 스와이프 후 현재 카드가 바뀌면 주변 이미지 다시 준비
@@ -160,6 +167,14 @@ struct MainPageView: View {
             currentIndex = 0
             dragOffset = 0
             Task { await viewModel.reloadAlbums() }
+        }
+        // 딥링크 상세 뒤로가기 후 해당 앨범 카드로 캐러셀 위치 이동
+        .onChange(of: appState.pendingCarouselAlbumId) { _, albumId in
+            guard let albumId else { return }
+            appState.pendingCarouselAlbumId = nil
+            guard let idx = visibleAlbums.firstIndex(where: { $0.id == albumId }) else { return }
+            currentIndex = idx
+            dragOffset = 0
         }
     }
 

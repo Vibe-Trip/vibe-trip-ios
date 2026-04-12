@@ -120,6 +120,8 @@ struct MainTabBarView: View {
             AlbumDetailView(
                 displayModel: presentation.displayModel,
                 onBackTap: {
+                    // 뒤로가기 시 캐러셀을 해당 앨범 카드 위치로 이동
+                    appState.pendingCarouselAlbumId = presentation.displayModel.albumId
                     presentedAlbumDetail = nil
                     selectedTab = .home
                     isTabBarHidden = false
