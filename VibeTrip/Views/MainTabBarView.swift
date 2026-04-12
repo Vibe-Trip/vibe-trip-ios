@@ -99,8 +99,9 @@ struct MainTabBarView: View {
             Task {
                 let result = await notificationViewModel.checkUnread()
                 if result.hasUnread { appState.hasUnreadNotifications = true }
+                // 앱 직접 복귀 경로: COMPLETED 감지를 위해 1회 동기화
                 // pendingNotificationAction이 설정된 경우 딥링크 경로에서 이미 갱신 처리 -> 중복 스킵
-                if result.hasFailed && appState.pendingNotificationAction == nil {
+                if appState.pendingNotificationAction == nil {
                     await mainPageViewModel.refreshAlbumsWithoutClearing()
                 }
             }
@@ -160,6 +161,22 @@ struct MainTabBarView: View {
         .animation(.easeInOut(duration: 0.24), value: isPresentingMakeAlbum)
         .animation(.easeInOut(duration: 0.22), value: isTabBarHidden)
         .animation(.easeInOut(duration: 0.2), value: hiddenLoadingToastMessage)
+        // 알림 탭 탈출 시 전체 읽음 처리
+        .onChange(of: selectedTab) { oldTab, newTab in
+            guard oldTab == .notification, newTab != .notification else { return }
+            notificationViewModel.markAllAsRead()
+            appState.hasUnreadNotifications = false
+        }
+        .onChange(of: isPresentingMakeAlbum) { _, isPresenting in
+            guard isPresenting, selectedTab == .notification else { return }
+            notificationViewModel.markAllAsRead()
+            appState.hasUnreadNotifications = false
+        }
+        .onChange(of: isPresentingLoadingView) { _, isPresenting in
+            guard isPresenting, selectedTab == .notification else { return }
+            notificationViewModel.markAllAsRead()
+            appState.hasUnreadNotifications = false
+        }
         // 알림 탭 시, 화면 이동
         .onChange(of: appState.pendingNotificationAction) { _, action in
             guard let action else { return }
@@ -187,6 +204,11 @@ struct MainTabBarView: View {
                     }
                 }
             case .openAlbumDetail(let albumId):
+                // 백그라운드 푸시 탭 진입 경로에서도 완료 처리 동기화
+                if let numericAlbumId = Int(albumId) {
+                    Task { await mainPageViewModel.handleAlbumCompleted(albumId: numericAlbumId) }
+                }
+
                 // 어느 경로로 커버가 열려 있는지 각각 확인
                 let hadPresentedDetail = presentedAlbumDetail != nil         // MainTabBarView 경유
                 let hadSelectedAlbum = !hadPresentedDetail && appState.isAlbumDetailPresented  // MainPageView 경유
