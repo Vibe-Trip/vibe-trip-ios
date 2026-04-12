@@ -58,7 +58,7 @@ struct GenreDescriptionModalView: View {
                                     .multilineTextAlignment(.leading)
 
                                 Text(item.description)
-                                    .font(Font.setPretendard(weight: .regular, size: 12))
+                                    .font(Font.setPretendard(weight: .regular, size: 14))
                                     .foregroundStyle(Color.textPrimary)
                                     .frame(maxWidth: .infinity, alignment: .leading)
                                     .multilineTextAlignment(.leading)
