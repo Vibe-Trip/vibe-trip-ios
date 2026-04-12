@@ -373,6 +373,7 @@ struct AlbumDetailView: View {
             if logViewModel.showDeleteConfirm {
                 ExitPopupView(
                     title: "앨범을 삭제 하시겠어요?",
+                    message: "삭제된 앨범은 다시 복구할 수 없습니다.",
                     onCancel: { logViewModel.dismissDeleteConfirm() },
                     onConfirm: { Task { await logViewModel.confirmDeleteAlbum() } }
                 )
@@ -382,6 +383,7 @@ struct AlbumDetailView: View {
             if logViewModel.showDeleteLogConfirm {
                 ExitPopupView(
                     title: "로그를 삭제하시겠어요?",
+                    message: "삭제된 로그는 다시 복구할 수 없습니다.",
                     onCancel: { logViewModel.dismissDeleteLogConfirm() },
                     onConfirm: { Task { await logViewModel.confirmDeleteLog() } }
                 )

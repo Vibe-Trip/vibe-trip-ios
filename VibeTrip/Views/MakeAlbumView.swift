@@ -156,15 +156,17 @@ struct MakeAlbumView: View {
         .overlay {
             if viewModel.isExitAlertPresented {
                 ExitPopupView(
-                    title: "앨범 생성을 멈출까요?",
-                    message: "페이지를 벗어나면 작성 중인 내용이\n저장되지 않고 사라지게 돼요.",
+                    title: "작성을 멈출까요?",
+                    message: "지금 나가면 작성 중인 소중한 기록들이 사라져요.",
                     onCancel: {
                         viewModel.isExitAlertPresented = false
                     },
                     onConfirm: {
                         viewModel.isExitAlertPresented = false
                         onExit()
-                    }
+                    },
+                    confirmTitle: "나가기",
+                    cancelTitle: "계속 작성하기"
                 )
             }
         }
