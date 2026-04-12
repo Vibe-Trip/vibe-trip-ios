@@ -124,7 +124,7 @@ struct NotificationView: View {
             Text("새로운 소식이 없어요.")
                 .font(Font.setPretendard(weight: .semiBold, size: Layout.emptyTitleSize))
                 .multilineTextAlignment(.center)
-                .foregroundStyle(Color.textPrimary)
+                .foregroundStyle(Color("GrayScale/500"))
                 .padding(.horizontal, Layout.emptyTextPadding)
                 .frame(maxWidth: .infinity, alignment: .center)
 
