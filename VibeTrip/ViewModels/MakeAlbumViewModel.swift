@@ -150,7 +150,7 @@ final class MakeAlbumViewModel: ObservableObject {
         let limitedText = String(text.prefix(maximumDestinationCount))
         
         if text != limitedText {
-            showToast("25자 이상 입력 불가해요.")
+            showToast("여행지 이름은 25자까지만 쓸 수 있어요.")
         }
         
         album.travelDestination = limitedText

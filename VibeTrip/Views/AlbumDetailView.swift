@@ -413,7 +413,7 @@ struct AlbumDetailView: View {
             if isStorageFullToastVisible {
                 VStack {
                     Spacer()
-                    AppToastView(message: "저장공간이 부족합니다.")
+                    AppToastView(message: "저장공간이 부족해요.")
                         .padding(.bottom, 40)
                         .transition(.move(edge: .bottom).combined(with: .opacity))
                 }
@@ -424,7 +424,7 @@ struct AlbumDetailView: View {
                 VStack {
                     Spacer()
                     AppToastView(message: "신고처리가 완료되었습니다.", systemImageName: "checkmark.circle")
-                        .padding(.bottom, 40)
+                        .padding(.bottom, 20)
                         .transition(.move(edge: .bottom).combined(with: .opacity))
                 }
             }
