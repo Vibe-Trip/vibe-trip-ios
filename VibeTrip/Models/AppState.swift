@@ -80,6 +80,15 @@ struct AppToastPayload: Equatable {
     // 딥링크 수신 시 기존 커버 유무 판단에 사용
     @Published var isAlbumDetailPresented: Bool = false
 
+    // MainPageView 커버 dismiss 후 이동할 앨범 ID (nil: 대기 없음)
+    // MainTabBarView(송신) -> MainPageView onDismiss에서 소비 후 nil 초기화
+    @Published var pendingDeeplinkAlbumId: String? = nil
+
+    // MainPageView 커버 dismiss 완료 시 MainTabBarView로 전달하는 앨범 ID 시그널
+    // MainPageView onDismiss(송신) -> MainTabBarView onChange(수신) 후 nil 초기화
+    @Published var deeplinkAlbumReadyToPresent: String? = nil
+
+
     // APIClient.sessionExpiredPublisher 구독 유지용
     private var cancellables = Set<AnyCancellable>()
 
