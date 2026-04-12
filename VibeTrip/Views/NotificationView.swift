@@ -53,11 +53,9 @@ struct NotificationView: View {
 //                    .animation(.easeInOut(duration: 0.3), value: viewModel.toastMessage)
 //            }
         }
-        // 알림 목록 로드 + 진입 시 기존 알림 읽음 처리
+        // 알림 목록 로드
         .task {
             await viewModel.loadNotifications()
-            viewModel.markAllAsRead()
-            appState.hasUnreadNotifications = false
         }
         .onAppear {
             // 탭 진입 시 레드 닷 제거
