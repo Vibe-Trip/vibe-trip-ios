@@ -161,6 +161,12 @@ struct MainTabBarView: View {
         .animation(.easeInOut(duration: 0.24), value: isPresentingMakeAlbum)
         .animation(.easeInOut(duration: 0.22), value: isTabBarHidden)
         .animation(.easeInOut(duration: 0.2), value: hiddenLoadingToastMessage)
+        // 알림 탭 탈출 시 전체 읽음 처리
+        .onChange(of: selectedTab) { oldTab, newTab in
+            guard oldTab == .notification, newTab != .notification else { return }
+            notificationViewModel.markAllAsRead()
+            appState.hasUnreadNotifications = false
+        }
         // 알림 탭 시, 화면 이동
         .onChange(of: appState.pendingNotificationAction) { _, action in
             guard let action else { return }
