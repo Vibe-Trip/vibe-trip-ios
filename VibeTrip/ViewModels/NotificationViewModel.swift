@@ -82,8 +82,9 @@ final class NotificationViewModel: ObservableObject {
     func checkUnread() async -> (hasUnread: Bool, hasFailed: Bool) {
         guard let responses = try? await alarmService.fetchAlarms() else { return (false, false) }
         let deduped = deduplicated(responses)
+        let storedReadIds = loadReadIds()
         return (
-            !deduped.isEmpty,
+            deduped.contains { !storedReadIds.contains(String($0.alarmId)) },
             deduped.contains { $0.alarmType == "FAILED" }
         )
     }
