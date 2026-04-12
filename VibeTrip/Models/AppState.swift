@@ -88,6 +88,10 @@ struct AppToastPayload: Equatable {
     // MainPageView onDismiss(송신) -> MainTabBarView onChange(수신) 후 nil 초기화
     @Published var deeplinkAlbumReadyToPresent: String? = nil
 
+    // 딥링크 상세 뒤로가기 후 캐러셀을 해당 앨범 카드 위치로 이동
+    // MainTabBarView onBackTap(송신) -> MainPageView onChange(수신) 후 nil 초기화
+    @Published var pendingCarouselAlbumId: Int? = nil
+
 
     // APIClient.sessionExpiredPublisher 구독 유지용
     private var cancellables = Set<AnyCancellable>()
