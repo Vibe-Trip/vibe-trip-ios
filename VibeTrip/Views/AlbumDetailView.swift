@@ -275,6 +275,9 @@ struct AlbumDetailView: View {
 
     // 타이틀 텍스트의 초기 global Y (스크롤 = 0 기준, 1회만 측정)
     @State private var titleContentY: CGFloat = .greatestFiniteMagnitude
+
+    // 액션 버튼 섹션의 초기 global Y (스크롤 = 0 기준, 1회만 측정)
+    @State private var actionButtonsY: CGFloat = .greatestFiniteMagnitude
     @State private var albumTitle: String
     @State private var albumDestination: String
     @State private var albumDateText: String
@@ -363,7 +366,10 @@ struct AlbumDetailView: View {
             )
             .opacity(overlayOpacity)
             .allowsHitTesting(isOverlayActive)
-            
+
+            // 액션 버튼 오버레이 (스크롤 추적 → 네비게이션 바 하단 고정)
+            actionButtonsOverlay
+
             // 앨범 옵션 팝업
             if isAlbumMenuVisible {
                 albumMenuOverlay
@@ -373,6 +379,7 @@ struct AlbumDetailView: View {
             if logViewModel.showDeleteConfirm {
                 ExitPopupView(
                     title: "앨범을 삭제 하시겠어요?",
+                    message: "삭제된 앨범은 다시 복구할 수 없습니다.",
                     onCancel: { logViewModel.dismissDeleteConfirm() },
                     onConfirm: { Task { await logViewModel.confirmDeleteAlbum() } }
                 )
@@ -382,6 +389,7 @@ struct AlbumDetailView: View {
             if logViewModel.showDeleteLogConfirm {
                 ExitPopupView(
                     title: "로그를 삭제하시겠어요?",
+                    message: "삭제된 로그는 다시 복구할 수 없습니다.",
                     onCancel: { logViewModel.dismissDeleteLogConfirm() },
                     onConfirm: { Task { await logViewModel.confirmDeleteLog() } }
                 )
@@ -411,7 +419,7 @@ struct AlbumDetailView: View {
             if isStorageFullToastVisible {
                 VStack {
                     Spacer()
-                    AppToastView(message: "저장공간이 부족합니다.")
+                    AppToastView(message: "저장공간이 부족해요.")
                         .padding(.bottom, 40)
                         .transition(.move(edge: .bottom).combined(with: .opacity))
                 }
@@ -422,7 +430,7 @@ struct AlbumDetailView: View {
                 VStack {
                     Spacer()
                     AppToastView(message: "신고처리가 완료되었습니다.", systemImageName: "checkmark.circle")
-                        .padding(.bottom, 40)
+                        .padding(.bottom, 20)
                         .transition(.move(edge: .bottom).combined(with: .opacity))
                 }
             }
@@ -543,12 +551,16 @@ private extension AlbumDetailView {
     
     // MARK: - 블러 네비게이션 바
     
-    // 네비게이션 바 콘텐츠 하단 Y (safeTop + 44pt)
-    private var navBarBottom: CGFloat {
-        let safeTop = UIApplication.shared.connectedScenes
+    // 디바이스 safe area top (상태바 높이)
+    private var safeAreaTop: CGFloat {
+        UIApplication.shared.connectedScenes
             .compactMap { ($0 as? UIWindowScene)?.keyWindow }
             .first?.safeAreaInsets.top ?? 0
-        return safeTop + 44
+    }
+
+    // 네비게이션 바 콘텐츠 하단 Y (safeTop + 44pt), global 좌표 기준
+    private var navBarBottom: CGFloat {
+        safeAreaTop + 44
     }
     
     // 타이틀 텍스트 및 네비게이션 바 하단의 거리
@@ -568,6 +580,21 @@ private extension AlbumDetailView {
     // hitTest 전환 기준: opacity 연속값 대신 명확한 임계값으로 스냅
     // 전환 구간(0 < opacity < 1)에서 두 네비게이션 바가 동시에 터치를 받는 문제 방지
     private var isOverlayActive: Bool { titleNavOffset > 15 }
+
+    // 오버레이 Y 위치 (ZStack-local 좌표)
+    // actionButtonsY: global 좌표
+    // 스크롤을 따라 올라가다가 nav bar 바로 아래(44pt)에서 클램프
+    private var actionButtonsOverlayY: CGFloat {
+        guard actionButtonsY != .greatestFiniteMagnitude else { return 0 }
+        let localCurrentY = actionButtonsY - scrollContentOffset - safeAreaTop
+        return max(localCurrentY, 44) // 44 = navBarBottom - safeAreaTop (ZStack-local 기준)
+    }
+
+    // 오버레이가 네비게이션 바에 고정된 상태인지 여부
+    private var isActionButtonsSticky: Bool {
+        guard actionButtonsY != .greatestFiniteMagnitude else { return false }
+        return (actionButtonsY - scrollContentOffset) <= navBarBottom
+    }
     
     // 앨범 삭제 실패 토스트 표시 후 자동 숨김
     func showDeleteAlbumToast() {
@@ -648,13 +675,13 @@ private extension AlbumDetailView {
                 /// 여행지
                 Text(albumDestination)
                     .font(.setPretendard(weight: .medium, size: Constants.subtitleFontSize))
-                    .foregroundStyle(Color.textSecondary)
+                    .foregroundStyle(Color("GrayScale/300"))
                     .lineLimit(1)
                 
                 /// 여행 날짜
                 Text(albumDateText)
                     .font(.setPretendard(weight: .regular, size: Constants.dateFontSize))
-                    .foregroundStyle(Color.textSecondary)
+                    .foregroundStyle(Color("GrayScale/300"))
                     .lineLimit(1)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -711,6 +738,52 @@ private extension AlbumDetailView {
         }
         .padding(.horizontal, Constants.horizontalPadding)
         .padding(.bottom, Constants.actionsBottomPadding)
+        // 오버레이 준비되면 원본 숨김 (레이아웃 공간은 유지)
+        .opacity(actionButtonsY == .greatestFiniteMagnitude ? 1 : 0)
+        .allowsHitTesting(actionButtonsY == .greatestFiniteMagnitude)
+        .onGeometryChange(for: CGFloat.self) {
+            $0.frame(in: .global).minY
+        } action: { minY in
+            guard actionButtonsY == .greatestFiniteMagnitude else { return }
+            actionButtonsY = minY
+        }
+    }
+
+    // 스크롤을 따라 움직이다가 네비게이션 바에 도달하면 고정되는 액션 버튼 오버레이
+    // VStack+spacer 방식: 뷰 이탈 애니메이션과 함께 자연스럽게 사라짐
+    var actionButtonsOverlay: some View {
+        Group {
+            if actionButtonsY != .greatestFiniteMagnitude {
+                VStack(spacing: 0) {
+                    Color.clear.frame(height: actionButtonsOverlayY)
+                    HStack(spacing: Constants.actionButtonSpacing) {
+                        AlbumDetailActionButton(
+                            title: musicService.isPlaying ? "일시정지" : "재생",
+                            systemImageName: musicService.isPlaying ? "pause.fill" : "play.fill",
+                            showSparkle: true,
+                            referenceTitle: "일시정지",
+                            action: {
+                                guard logViewModel.isMusicUrlReady else { return }
+                                musicService.toggle()
+                            }
+                        )
+                        .opacity(logViewModel.isMusicUrlReady ? 1.0 : 0.4)
+                        .disabled(!logViewModel.isMusicUrlReady)
+                        .background(Color.white, in: RoundedRectangle(cornerRadius: 28))
+
+                        AlbumDetailActionButton(
+                            title: "로그 작성",
+                            systemImageName: "pencil.line",
+                            action: { logPresentation = .create }
+                        )
+                        .background(Color.white, in: RoundedRectangle(cornerRadius: 28))
+                    }
+                    .padding(.horizontal, Constants.horizontalPadding)
+                    .padding(.bottom, Constants.actionsBottomPadding)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
+        }
     }
     
     // ViewModel 상태에 따라 빈 상태 / 로딩 / 로그 피드 표시
@@ -809,6 +882,7 @@ private extension AlbumDetailView {
         )
         albumCoverImageUrl = detail.coverImageUrl
         titleContentY = .greatestFiniteMagnitude
+        actionButtonsY = .greatestFiniteMagnitude
     }
 
     func formatDateRange(startRaw: String, endRaw: String) -> String {

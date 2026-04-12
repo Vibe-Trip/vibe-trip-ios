@@ -115,7 +115,7 @@ struct NotificationView: View {
         VStack(alignment: .center, spacing: Layout.emptyContentSpacing) {
 
             // 빈 상태 심볼
-            Image("EmptyAlarm")
+            Image("Alarm_Placeholder")
                 .resizable()
                 .scaledToFit()
                 .frame(width: Layout.emptySymbolSize, height: Layout.emptySymbolSize)
@@ -124,7 +124,7 @@ struct NotificationView: View {
             Text("새로운 소식이 없어요.")
                 .font(Font.setPretendard(weight: .semiBold, size: Layout.emptyTitleSize))
                 .multilineTextAlignment(.center)
-                .foregroundStyle(Color.textPrimary)
+                .foregroundStyle(Color("GrayScale/500"))
                 .padding(.horizontal, Layout.emptyTextPadding)
                 .frame(maxWidth: .infinity, alignment: .center)
 
@@ -221,7 +221,7 @@ private struct NotificationRow: View {
                 /// 본문
                 Text(item.body)
                     .font(Font.setPretendard(weight: .regular, size: Layout.bodySize))
-                    .foregroundStyle(Color("GrayScale/600"))
+                    .foregroundStyle(Color("GrayScale/500"))
                     .lineSpacing(Layout.bodyLineSpacing)
                     .frame(maxWidth: .infinity, alignment: .leading)
                     .fixedSize(horizontal: false, vertical: true) // 본문 줄바꿈 허용
@@ -229,7 +229,7 @@ private struct NotificationRow: View {
                 /// 경과 시간
                 Text(timeAgo(item.createdAt))
                     .font(Font.setPretendard(weight: .regular, size: Layout.bodySize))
-                    .foregroundStyle(Color("GrayScale/400"))
+                    .foregroundStyle(Color("GrayScale/500"))
             }
 
             // 알림 삭제 버튼
@@ -238,7 +238,7 @@ private struct NotificationRow: View {
                     .resizable()
                     .scaledToFit()
                     .frame(width: 12.4, height: 14.2)
-                    .foregroundStyle(Color.textSecondary)
+                    .foregroundStyle(Color("GrayScale/300"))
             }
             .buttonStyle(.plain)
         }
@@ -251,7 +251,7 @@ private struct NotificationRow: View {
         .overlay(alignment: .bottom) {
             Rectangle()
                 .fill(Color("GrayScale/100"))
-                .frame(height: 2)
+                .frame(height: 1)
         }
         .contentShape(Rectangle()) // 탭 인식 범위 확대
         .onTapGesture { onTap() }

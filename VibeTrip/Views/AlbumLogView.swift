@@ -205,7 +205,7 @@ private extension AlbumLogView {
         VStack(spacing: 0) {
             Text(viewModel.createdDate, formatter: Self.dateFormatter)
                 .font(.setPretendard(weight: .regular, size: 16))
-                .foregroundStyle(Color.textSecondary)
+                .foregroundStyle(Color("GrayScale/300"))
                 .frame(maxWidth: .infinity, alignment: .center)
                 .padding(.horizontal, Constants.contentHorizontalPadding)
                 .padding(.vertical, Constants.dateHeaderVerticalPadding)
@@ -312,7 +312,7 @@ private extension AlbumLogView {
                 // 카메라 아이콘
                 Button {
                     guard viewModel.selectedPhotos.count < 5 else {
-                        viewModel.showToast("사진은 최대 5장까지 등록할 수 있어요")
+                        viewModel.showToast("사진은 최대 5장까지 고를 수 있어요")
                         return
                     }
                     isPhotoPickerPresented = true
@@ -350,14 +350,17 @@ private extension AlbumLogView {
     // 종료 확인 팝업
     var exitPopup: some View {
         ExitPopupView(
-            title: "저장하지 않고 나갈까요?",
-            message: "페이지를 벗어나면 작성 중인 내용이\n저장되지 않고 사라지게 돼요.",
+            title: "작성을 멈출까요?",
+            message: "지금 나가면 작성 중인 소중한 기록들이 사라져요.",
             onCancel: {
                 viewModel.isExitAlertPresented = false
             },
             onConfirm: {
+                viewModel.isExitAlertPresented = false
                 dismiss()
-            }
+            },
+            confirmTitle: "나가기",
+            cancelTitle: "계속 작성하기"
         )
     }
 

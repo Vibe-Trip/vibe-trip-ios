@@ -104,7 +104,7 @@ import FirebaseMessaging
     func logout(appState: AppState) {
         // 로컬 인증 정보 제거 후 로그인 화면으로 복귀
         try? keychainService.clear()
-        appState.showToast(message: "로그아웃이 완료되었습니다", systemImageName: nil)
+        appState.showToast(message: "로그아웃이 완료되었습니다", systemImageName: "checkmark.circle")
         appState.isLoggedIn = false
     }
     
@@ -116,7 +116,7 @@ import FirebaseMessaging
                 // 서버 탈퇴 후 로컬 인증 정보 정리
                 try await userService.deleteAccount()
                 try? keychainService.clear()
-                appState.showToast(message: "탈퇴가 완료되었어요", systemImageName: nil)
+                appState.showToast(message: "탈퇴가 완료되었어요", systemImageName: "checkmark.circle")
                 appState.isLoggedIn = false
             } catch {
                 showToast("탈퇴 처리 중 오류가 발생했어요.")

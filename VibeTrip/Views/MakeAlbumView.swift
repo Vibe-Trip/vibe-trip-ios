@@ -156,15 +156,17 @@ struct MakeAlbumView: View {
         .overlay {
             if viewModel.isExitAlertPresented {
                 ExitPopupView(
-                    title: "앨범 생성을 멈출까요?",
-                    message: "페이지를 벗어나면 작성 중인 내용이\n저장되지 않고 사라지게 돼요.",
+                    title: "작성을 멈출까요?",
+                    message: "지금 나가면 작성 중인 소중한 기록들이 사라져요.",
                     onCancel: {
                         viewModel.isExitAlertPresented = false
                     },
                     onConfirm: {
                         viewModel.isExitAlertPresented = false
                         onExit()
-                    }
+                    },
+                    confirmTitle: "나가기",
+                    cancelTitle: "계속 작성하기"
                 )
             }
         }
@@ -324,7 +326,7 @@ private struct MakeAlbumRequiredInputContent: View {
                             let limited = String(newValue.prefix(25))
                             if newValue != limited {
                                 destinationInput = limited
-                                viewModel.showToast("25자 이상 입력 불가해요.")
+                                viewModel.showToast("여행지 이름은 25자까지만 쓸 수 있어요.")
                             }
                             viewModel.album.travelDestination = limited
                         }
@@ -349,7 +351,7 @@ private struct MakeAlbumRequiredInputContent: View {
                             .font(Font.setPretendard(weight: .regular, size: 16))
                             .foregroundStyle(
                                 viewModel.album.formattedTravelDateRange.isEmpty
-                                ? Color.textSecondary
+                                ? Color("GrayScale/300")
                                 : Color.textPrimary
                             )
                             
@@ -459,7 +461,7 @@ private struct MakeAlbumRequiredInputContent: View {
             
             Text(subtitle)
                 .font(Font.setPretendard(weight: .medium, size: 12))
-                .foregroundStyle(Color.textSecondary)
+                .foregroundStyle(Color("GrayScale/300"))
         }
     }
     
@@ -496,12 +498,12 @@ private struct MakeAlbumOptionalInputContent: View {
                                         
                                         Text("선택 입력")
                                             .font(Font.setPretendard(weight: .medium, size: 12))
-                                            .foregroundStyle(Color.textSecondary)
+                                            .foregroundStyle(Color("GrayScale/300"))
                                     }
                                     
                                     Text(viewModel.genreHelperText)
                                         .font(Font.setPretendard(weight: .medium, size: 12))
-                                        .foregroundStyle(Color.textSecondary)
+                                        .foregroundStyle(Color("GrayScale/300"))
                                 }
                                 
                                 Spacer()
@@ -570,7 +572,7 @@ private struct MakeAlbumOptionalInputContent: View {
                                 
                                 Text("선택 입력")
                                     .font(Font.setPretendard(weight: .medium, size: 12))
-                                    .foregroundStyle(Color.textSecondary)
+                                    .foregroundStyle(Color("GrayScale/300"))
                             }
                             
                             // placeholder 및 글자 수 카운터 오버레이
@@ -609,7 +611,7 @@ private struct MakeAlbumOptionalInputContent: View {
                                 if viewModel.album.albumCommentary.isEmpty {
                                     Text("어떤 분위기의 노래를 만들고 싶나요?\n지금 느끼는 감정을 기록해보세요.")
                                         .font(Font.setPretendard(weight: .medium, size: 16))
-                                        .foregroundStyle(Color.textSecondary)
+                                        .foregroundStyle(Color("GrayScale/300"))
                                         .padding(.horizontal, 16)
                                         .padding(.top, 20)
                                     // 터치 비활성화
@@ -625,7 +627,7 @@ private struct MakeAlbumOptionalInputContent: View {
                                         
                                         Text("\(viewModel.album.albumCommentary.count)/500")
                                             .font(Font.setPretendard(weight: .medium, size: 12))
-                                            .foregroundStyle(Color.textSecondary)
+                                            .foregroundStyle(Color("GrayScale/300"))
                                             .padding(.trailing, 14)
                                             .padding(.bottom, 14)
                                     }
@@ -717,7 +719,7 @@ private struct MakeAlbumPhotoBox: View {
                     
                     Text("음악으로 만들고 싶은 찰나의 순간을 올려주세요. \nAI가 사진의 온도와 색감을 곡으로 빚어냅니다.")
                         .font(Font.setPretendard(weight: .medium, size: 14))
-                        .foregroundStyle(Color.textSecondary)
+                        .foregroundStyle(Color("GrayScale/300"))
                         .multilineTextAlignment(.center)
                         .padding(.top, 8)
                 }

@@ -33,7 +33,7 @@ struct MakeAlbumLoadingView: View {
         static let imageToTitleSpacing: CGFloat   = 12
         static let titleToBodySpacing: CGFloat    = 12
         static let bodyToButtonMinSpacing: CGFloat = 53
-        static let buttonWidth: CGFloat           = 240
+        static let buttonHorizontalPadding: CGFloat = 101
         static let buttonVerticalPadding: CGFloat = 12
         static let buttonCornerRadius: CGFloat    = 12
         static let titleFontSize: CGFloat         = 22
@@ -85,12 +85,13 @@ struct MakeAlbumLoadingView: View {
                     Text("화면 숨기기")
                         .font(Font.setPretendard(weight: .semiBold, size: Layout.buttonFontSize))
                         .multilineTextAlignment(.center)
-                        .foregroundStyle(Color.GrayScale._50)
-                        .frame(width: Layout.buttonWidth)
+                        .foregroundStyle(Color("GrayScale/50"))
+                        .frame(maxWidth: .infinity)
                         .padding(.vertical, Layout.buttonVerticalPadding)
+                        .background(isCreating ? Color("GrayScale/100") : Color.appPrimary)
+                        .cornerRadius(Layout.buttonCornerRadius)
                 }
-                .background(isCreating ? Color.appPrimary.opacity(0.5) : Color.appPrimary)
-                .cornerRadius(Layout.buttonCornerRadius)
+                .padding(.horizontal, Layout.buttonHorizontalPadding)
                 .disabled(isCreating)
 
                 Spacer().frame(height: Layout.bottomPadding)
@@ -114,7 +115,7 @@ struct MakeAlbumLoadingView: View {
                 case .fatalError:
                     // 생성 실패: 재시도 불가
                     ExitPopupView(
-                        title: "음악 생성 실패",
+                        title: "음악을 만들지 못했어요",
                         message: "음악 생성 중 오류가 발생했습니다.\n잠시 후 다시 시도해 주세요.",
                         onCancel: {},
                         onConfirm: onDismissToMain,

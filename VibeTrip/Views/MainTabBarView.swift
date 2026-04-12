@@ -333,8 +333,8 @@ struct MainTabBarView: View {
                         withAnimation(.easeInOut(duration: 0.24)) {
                             isPresentingLoadingView = false
                             isPresentingMakeAlbum = false
-                            hiddenLoadingToastShowsIcon = false
-                            hiddenLoadingToastMessage = "음악을 백그라운드에서 만들고 있어요. \n알림 리스트에서 확인해 보세요!"
+                            hiddenLoadingToastShowsIcon = true
+                            hiddenLoadingToastMessage = "앨범을 제작하고 있어요. 잠시만 기다려 주세요!"
                         }
                         DispatchQueue.main.asyncAfter(deadline: .now() + 0.18) {
                             withAnimation(.easeInOut(duration: 0.22)) {
@@ -417,7 +417,7 @@ struct MainTabBarView: View {
             isPresentingLoadingView = false
             isPresentingMakeAlbum = false
             hiddenLoadingToastShowsIcon = true
-            hiddenLoadingToastMessage = "앨범 생성이 취소되었습니다."
+            hiddenLoadingToastMessage = "앨범 만들기를 취소했어요."
         }
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.18) {
             withAnimation(.easeInOut(duration: 0.22)) {

@@ -131,7 +131,7 @@ final class MakeAlbumViewModel: ObservableObject {
         
         guard data.count <= maximumPhotoBytes else {
             clearPhotoSelection()
-            showToast("10MB 이하의 사진만 올릴 수 있어요")
+            showToast("10MB보다 작은 사진을 골라주세요.")
             return
         }
         
@@ -150,7 +150,7 @@ final class MakeAlbumViewModel: ObservableObject {
         let limitedText = String(text.prefix(maximumDestinationCount))
         
         if text != limitedText {
-            showToast("25자 이상 입력 불가해요.")
+            showToast("여행지 이름은 25자까지만 쓸 수 있어요.")
         }
         
         album.travelDestination = limitedText

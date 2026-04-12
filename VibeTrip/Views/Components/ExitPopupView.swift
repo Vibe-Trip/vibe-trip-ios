@@ -80,7 +80,7 @@ struct ExitPopupView: View {
 
                         Text("다시 보지 않기")
                             .font(Font.setPretendard(weight: .regular, size: 14))
-                            .foregroundStyle(Color.textSecondary)
+                            .foregroundStyle(Color("GrayScale/300"))
                     }
                 }
 
@@ -95,13 +95,14 @@ struct ExitPopupView: View {
             .padding(.horizontal, 16)
             .padding(.top, 24)
             .padding(.bottom, 16)
-            .frame(width: 362, alignment: .top)
+            .frame(maxWidth: 362, alignment: .top)
             .background(Color.white)
             .clipShape(RoundedRectangle(cornerRadius: 12))
             .overlay(
                 RoundedRectangle(cornerRadius: 12)
                     .stroke(Color.fieldBorder, lineWidth: 1)
             )
+            .padding(.horizontal, 20)
         }
     }
 
