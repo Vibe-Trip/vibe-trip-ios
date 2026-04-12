@@ -82,7 +82,13 @@ struct MainPageView: View {
                 guard needsDismiss else { return }
                 selectedAlbum = nil
             }
-            .fullScreenCover(item: $selectedAlbum) { album in
+            .fullScreenCover(item: $selectedAlbum, onDismiss: {
+                // 딥링크로 인한 dismiss인 경우: AppState 시그널로 MainTabBarView에 알림
+                guard let albumId = appState.pendingDeeplinkAlbumId else { return }
+                appState.pendingDeeplinkAlbumId = nil
+                appState.needsDismissAlbumDetail = false
+                appState.deeplinkAlbumReadyToPresent = albumId
+            }) { album in
                 AlbumDetailView(
                     displayModel: album.toDisplayModel(),
                     onBackTap: { selectedAlbum = nil },
@@ -104,6 +110,8 @@ struct MainPageView: View {
                         appState.pendingTabNavigation = .home
                     }
                 )
+                // albumId 기준으로 view 재생성 강제 -> @State/@StateObject 확실히 초기화
+                .id(album.id)
             }
             .overlay(alignment: .bottom) {
                 if showGeneratingToast {
