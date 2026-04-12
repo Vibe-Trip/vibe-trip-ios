@@ -53,7 +53,10 @@ import UIKit
         if logText != initialText { return true }
         switch mode {
         case .create: return !selectedPhotos.isEmpty
-        case .edit:   return selectedPhotos.count > existingPhotosCount
+        case .edit:
+            let hasAddedPhotos = selectedPhotos.count > existingPhotosCount
+            let hasRemovedPhotos = !removedImageIds.isEmpty
+            return hasAddedPhotos || hasRemovedPhotos
         }
     }
 
