@@ -326,7 +326,7 @@ private struct MakeAlbumRequiredInputContent: View {
                             let limited = String(newValue.prefix(25))
                             if newValue != limited {
                                 destinationInput = limited
-                                viewModel.showToast("25자 이상 입력 불가해요.")
+                                viewModel.showToast("여행지 이름은 25자까지만 쓸 수 있어요.")
                             }
                             viewModel.album.travelDestination = limited
                         }

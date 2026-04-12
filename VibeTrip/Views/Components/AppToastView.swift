@@ -53,7 +53,7 @@ struct AppToastView: View {
         Color.white
         VStack {
             Spacer()
-            AppToastView(message: "사진은 최대 5장까지 등록할 수 있어요")
+            AppToastView(message: "사진은 최대 5장까지 고를 수 있어요.")
             AppToastView(message: "로그아웃이 완료되었습니다", systemImageName: nil)
                 .padding(.bottom, 40)
         }

@@ -312,7 +312,7 @@ private extension AlbumLogView {
                 // 카메라 아이콘
                 Button {
                     guard viewModel.selectedPhotos.count < 5 else {
-                        viewModel.showToast("사진은 최대 5장까지 등록할 수 있어요")
+                        viewModel.showToast("사진은 최대 5장까지 고를 수 있어요")
                         return
                     }
                     isPhotoPickerPresented = true
