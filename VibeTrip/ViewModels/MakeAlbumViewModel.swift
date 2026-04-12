@@ -131,7 +131,7 @@ final class MakeAlbumViewModel: ObservableObject {
         
         guard data.count <= maximumPhotoBytes else {
             clearPhotoSelection()
-            showToast("10MB 이하의 사진만 올릴 수 있어요")
+            showToast("10MB보다 작은 사진을 골라주세요.")
             return
         }
         
