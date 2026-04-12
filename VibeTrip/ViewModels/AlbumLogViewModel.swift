@@ -72,7 +72,9 @@ import UIKit
 
     private enum Constants {
         static let maxPhotoCount = 5
+        static let maximumPhotoBytes = 10 * 1024 * 1024
         static let photoLimitMessage = "사진은 최대 5장까지 등록할 수 있어요"
+        static let photoSizeLimitMessage = "10MB보다 작은 사진을 골라주세요."
         static let saveErrorMessage = "저장 중 오류가 발생했어요."
         static let timeFormat = "a h:mm"
     }
@@ -118,13 +120,21 @@ import UIKit
 
     // 사진 추가 -> 5장 초과 시 토스트 표시
     func addPhotos(_ images: [UIImage]) {
+        let validImages = images.filter { image in
+            guard let data = image.jpegData(compressionQuality: 1.0) else { return false }
+            return data.count <= Constants.maximumPhotoBytes
+        }
+        if validImages.count < images.count {
+            showToast(Constants.photoSizeLimitMessage)
+        }
+
         let available = Constants.maxPhotoCount - selectedPhotos.count
         guard available > 0 else {
             showToast(Constants.photoLimitMessage)
             return
         }
-        selectedPhotos.append(contentsOf: images.prefix(available))
-        if images.count > available {
+        selectedPhotos.append(contentsOf: validImages.prefix(available))
+        if validImages.count > available {
             showToast(Constants.photoLimitMessage)
         }
     }

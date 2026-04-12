@@ -363,7 +363,7 @@ struct EditAlbumView: View {
                 guard let data else { return }
                 let maxBytes = 10 * 1024 * 1024
                 guard data.count <= maxBytes else {
-                    viewModel.toastMessage = "10MB 이하의 사진만 올릴 수 있어요"
+                    viewModel.toastMessage = "10MB보다 작은 사진을 골라주세요."
                     return
                 }
                 guard let image = UIImage(data: data) else { return }
