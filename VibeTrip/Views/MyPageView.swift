@@ -104,7 +104,7 @@ struct MyPageView: View {
             // 회원탈퇴 확인 팝업
             if viewModel.isWithdrawalAlertPresented {
                 ExitPopupView(
-                    title: "정말 탈퇴할까요?",
+                    title: "정말 탈퇴하시겠습니까?",
                     message: "탈퇴 후 7일 이내 재로그인 시 데이터가 복구됩니다.\n7일 이후에는 모든 정보가 영구 삭제됩니다.",
                     onCancel: {
                         viewModel.isWithdrawalAlertPresented = false

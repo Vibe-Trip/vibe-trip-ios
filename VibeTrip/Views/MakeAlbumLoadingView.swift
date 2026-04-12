@@ -114,7 +114,7 @@ struct MakeAlbumLoadingView: View {
                 case .fatalError:
                     // 생성 실패: 재시도 불가
                     ExitPopupView(
-                        title: "음악 생성 실패",
+                        title: "음악을 만들지 못했어요",
                         message: "음악 생성 중 오류가 발생했습니다.\n잠시 후 다시 시도해 주세요.",
                         onCancel: {},
                         onConfirm: onDismissToMain,
