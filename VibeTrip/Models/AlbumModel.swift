@@ -67,14 +67,14 @@ extension VocalGender: Decodable {
 // MARK: - PreviewLogImage
 
 // 앨범 목록 카드 로그 미리보기 이미지
-struct PreviewLogImage: Decodable {
+struct PreviewLogImage: Decodable, Equatable {
     let imageUrl: URL
 }
 
 // MARK: - AlbumCard
 
 // 메인 페이지 앨범 목록 카드 모델 (GET /api/v1/albums)
-struct AlbumCard: Identifiable, Decodable {
+struct AlbumCard: Identifiable, Decodable, Equatable {
     let id: Int                              // "albumId": 페이지네이션 cursor값
     let title: String?                       // nil: 서버에서 타이틀 생성 중 상태 (빈 문자열도 nil 처리)
     let location: String                     // "region"

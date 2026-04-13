@@ -9,13 +9,17 @@ import SwiftUI
 
 // MARK: - AlbumCardView
 
-struct AlbumCardView: View {
+struct AlbumCardView: View, Equatable {
 
     private let album: AlbumCard
     // false: 음악 생성 중 -> skeleton 표시 + 상세 진입 차단
     private let isReady: Bool
     // 현재 카드 여부 (비활성 카드는 그림자 비용 완화)
     private let isActive: Bool
+
+    static func == (lhs: AlbumCardView, rhs: AlbumCardView) -> Bool {
+        lhs.album == rhs.album && lhs.isReady == rhs.isReady && lhs.isActive == rhs.isActive
+    }
 
     init(album: AlbumCard, isReady: Bool, isActive: Bool = true) {
         self.album = album

@@ -127,11 +127,18 @@ struct MainTabBarView: View {
                     selectedTab = .home
                     isTabBarHidden = false
                 },
-                onEditSaved: { _ in
+                onEditSaved: { outcome in
+                    let albumId = presentation.displayModel.albumId
                     presentedAlbumDetail = nil
                     selectedTab = .home
                     isTabBarHidden = false
-                    appState.needsAlbumRefresh = true
+                    // 재생성 저장: 해당 앨범 스켈레톤 전환 + 폴링 재시작 대기
+                    if case .regenerated = outcome {
+                        mainPageViewModel.markAlbumNotReady(albumId: albumId)
+                    }
+                    // 위치 리셋 없이 조용한 갱신 + 해당 앨범 카드로 이동
+                    appState.needsSilentAlbumRefresh = true
+                    appState.pendingCarouselAlbumId = albumId
                 },
                 onDeleteAlbumTap: {
                     presentedAlbumDetail = nil
@@ -268,17 +275,17 @@ struct MainTabBarView: View {
             // 기본 배경색
             Color(UIColor.systemBackground).ignoresSafeArea()
 
-            Group {
-                // 탭 전환
-                switch selectedTab {
-                case .home:
-                    MainPageView(viewModel: mainPageViewModel)
-                case .notification:
+            ZStack {
+                // 홈: 항상 마운트 유지 -> @State currentIndex 등 탭 전환에도 보존
+                MainPageView(viewModel: mainPageViewModel)
+                    .opacity(selectedTab == .home ? 1 : 0)
+                    .allowsHitTesting(selectedTab == .home)
+
+                // 나머지 탭: 기존 조건부 렌더링 유지 -> 불필요한 선제 네트워크 호출 방지
+                if selectedTab == .notification {
                     NotificationView(viewModel: notificationViewModel)
-                case .myPage:
+                } else if selectedTab == .myPage {
                     MyPageView()
-                case .makeAlbum:
-                    Color(UIColor.systemBackground).ignoresSafeArea()
                 }
             }
 

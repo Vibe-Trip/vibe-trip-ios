@@ -537,8 +537,13 @@ struct AlbumDetailView: View {
                         Task { await reloadAlbumHeader() }
                         // 메인 카드 텍스트/썸네일 동기화를 위해 새로고침 신호 전달
                         appState.needsAlbumRefresh = true
+                        onEditSaved(outcome)
+                    } else {
+                        // .regenerated: EditAlbumView dismiss 애니메이션 완료 후 AlbumDetailView dismiss
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.65) {
+                            onEditSaved(outcome)
+                        }
                     }
-                    onEditSaved(outcome)
                 }
             )
         }
