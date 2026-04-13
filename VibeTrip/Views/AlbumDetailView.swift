@@ -694,8 +694,8 @@ private extension AlbumDetailView {
             /// 재생/일시정지
             AlbumDetailActionButton(
                 title: musicService.isPlaying ? "일시정지" : "재생",
-                systemImageName: musicService.isPlaying ? "pause.fill" : "play.fill",
-                showSparkle: true,
+                systemImageName: musicService.isPlaying ? "Pause" : "Play",
+                isAssetImage: true,
                 referenceTitle: "일시정지",
                 action: {
                     guard logViewModel.isMusicUrlReady else { return }
@@ -709,6 +709,7 @@ private extension AlbumDetailView {
             AlbumDetailActionButton(
                 title: "로그 작성",
                 systemImageName: "pencil.line",
+                iconColor: Color("appPrimary500"),
                 action: { navigationPath.append(.createLog) }
             )
         }
@@ -735,8 +736,8 @@ private extension AlbumDetailView {
                     HStack(spacing: Constants.actionButtonSpacing) {
                         AlbumDetailActionButton(
                             title: musicService.isPlaying ? "일시정지" : "재생",
-                            systemImageName: musicService.isPlaying ? "pause.fill" : "play.fill",
-                            showSparkle: true,
+                            systemImageName: musicService.isPlaying ? "Pause" : "Play",
+                            isAssetImage: true,
                             referenceTitle: "일시정지",
                             action: {
                                 guard logViewModel.isMusicUrlReady else { return }
@@ -750,6 +751,7 @@ private extension AlbumDetailView {
                         AlbumDetailActionButton(
                             title: "로그 작성",
                             systemImageName: "pencil.line",
+                            iconColor: Color("appPrimary500"),
                             action: { navigationPath.append(.createLog) }
                         )
                         .background(Color.white, in: RoundedRectangle(cornerRadius: 28))
@@ -1049,28 +1051,17 @@ private struct AlbumDetailActionButton: View {
         static let iconTextSpacing: CGFloat = 8
         static let fontSize: CGFloat = 16
         static let iconSize: CGFloat = 18
+        static let assetIconSize: CGFloat = 22
         
         static let iconFrameWidth: CGFloat = 22
         static let horizontalPadding: CGFloat = 20
         static let verticalPadding: CGFloat = 12
-        
-        // 스파클 데코
-        static let bigSparkleSize: CGFloat = 9
-        static let bigSparkleWidth: CGFloat = 9.38
-        static let bigSparkleHeight: CGFloat = 9.66
-        static let smallSparkleSize: CGFloat = 4.5
-        static let smallSparkleWidth: CGFloat = 2.97
-        static let smallSparkleHeight: CGFloat = 4.39
-        /// 작은 스파클
-        static let smallSparkleOffsetX: CGFloat = 0.31
-        /// 스파클 그룹
-        static let sparkleGroupOffsetX: CGFloat = 5
-        static let sparkleGroupOffsetY: CGFloat = -5
     }
     
     let title: String
     let systemImageName: String
-    var showSparkle: Bool = false   /// 스파클 데코 표시 여부
+    var isAssetImage: Bool = false
+    var iconColor: Color = .appPrimary400
     var referenceTitle: String? = nil
     let action: () -> Void
     
@@ -1079,25 +1070,20 @@ private struct AlbumDetailActionButton: View {
             HStack(spacing: Constants.iconTextSpacing) {
                 // 아이콘 고정 너비
                 ZStack(alignment: .topTrailing) {
-                    Image(systemName: systemImageName)
-                        .font(.system(size: Constants.iconSize, weight: .medium))
-                        .contentTransition(.symbolEffect(.replace.offUp)) /// 심볼 전환 효과
-                        .frame(width: Constants.iconFrameWidth, height: Constants.iconSize)
-                    
-                    if showSparkle {
-                        // 큰 스파클 + 작은 스파클
-                        ZStack(alignment: .bottomTrailing) {
-                            Image(systemName: "sparkle")
-                                .font(.system(size: Constants.bigSparkleSize, weight: .medium))
-                                .frame(width: Constants.bigSparkleWidth, height: Constants.bigSparkleHeight)
-                            
-                            Image(systemName: "sparkle")
-                                .font(.system(size: Constants.smallSparkleSize, weight: .medium))
-                                .frame(width: Constants.smallSparkleWidth, height: Constants.smallSparkleHeight)
-                                .offset(x: Constants.smallSparkleOffsetX)
+                    Group {
+                        if isAssetImage {
+                            Image(systemImageName)
+                                .resizable()
+                                .scaledToFit()
+                                .frame(width: Constants.assetIconSize, height: Constants.assetIconSize)
+                        } else {
+                            Image(systemName: systemImageName)
+                                .font(.system(size: Constants.iconSize, weight: .medium))
+                                .contentTransition(.symbolEffect(.replace.offUp)) /// 심볼 전환 효과
+                                .foregroundStyle(iconColor)
                         }
-                        .offset(x: Constants.sparkleGroupOffsetX, y: Constants.sparkleGroupOffsetY)
                     }
+                    .frame(width: Constants.iconFrameWidth, height: Constants.assetIconSize)
                 }
                 
                 ZStack {
