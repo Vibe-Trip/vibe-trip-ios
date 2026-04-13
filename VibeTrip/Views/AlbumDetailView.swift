@@ -11,7 +11,7 @@ import Combine
 // MARK: - AlbumDetailViewModel
 
 @MainActor final class AlbumDetailViewModel: ObservableObject {
-
+    
     @Published private(set) var logs: [AlbumLogEntry] = []
     @Published private(set) var isLoading: Bool = false
     @Published private(set) var hasNext: Bool = false
@@ -28,7 +28,7 @@ import Combine
     @Published private(set) var isDownloadingMusic: Bool = false
     @Published private(set) var downloadedMusicFileURL: URL? = nil  // 공유 시트 트리거
     @Published private(set) var isStorageFull: Bool = false
-
+    
     private let albumId: String
     private let albumIdInt: Int    // Int 변환값, init에서 1회만 처리
     private var cursor: Int? = nil
@@ -46,20 +46,20 @@ import Combine
         formatter.formatOptions = [.withInternetDateTime]
         return formatter
     }()
-
+    
     @MainActor init(albumId: String, service: AlbumServiceProtocol = AlbumService()) {
         self.albumId = albumId
         self.albumIdInt = Int(albumId) ?? 0
         self.service = service
     }
-
+    
     func loadInitialLogs() async {
         guard !isLoading else { return }
         cursor = nil
         logs = []
         await fetchLogs()
     }
-
+    
     // 음악 파일을 임시 폴더에 다운로드 후 공유 시트 트리거
     func downloadMusic(albumTitle: String?) async {
         guard let url = musicUrl else { return }
@@ -80,7 +80,7 @@ import Combine
             // 기타 에러 무시
         }
     }
-
+    
     // 공유 시트 닫힌 후 임시 파일 정리
     func clearDownloadedMusicFile() {
         if let url = downloadedMusicFileURL {
@@ -88,36 +88,36 @@ import Combine
         }
         downloadedMusicFileURL = nil
     }
-
+    
     func consumeStorageFullFlag() {
         isStorageFull = false
     }
-
+    
     // 상세 진입 시 1회 호출: null -> 버튼 비활성, null X -> isMusicUrlReady = true
     func loadMusicUrl() async {
         guard let detail = await fetchAlbumDetail() else { return }
         musicUrl = detail.musicUrl
         isMusicUrlReady = detail.musicUrl != nil
     }
-
+    
     func fetchAlbumDetail() async -> AlbumDetail? {
         guard albumIdInt > 0 else { return nil }
         return try? await service.fetchAlbum(albumId: albumIdInt)
     }
-
+    
     func requestDeleteAlbum() {
         showDeleteConfirm = true
     }
-
+    
     // ExitPopupView 취소 탭 시 팝업 비활성화
     func dismissDeleteConfirm() {
         showDeleteConfirm = false
     }
-
+    
     func consumeDeleteAlbumToast() {
         deleteAlbumToastMessage = nil
     }
-
+    
     func confirmDeleteAlbum() async {
         isDeleting = true
         defer { isDeleting = false }
@@ -128,22 +128,22 @@ import Combine
             deleteAlbumToastMessage = "앨범 삭제에 실패했습니다."
         }
     }
-
+    
     func requestDeleteLog(id: Int) {
         pendingDeleteLogId = id
         showDeleteLogConfirm = true
     }
-
+    
     // 팝업 취소 탭: 팝업 비활성화
     func dismissDeleteLogConfirm() {
         showDeleteLogConfirm = false
         pendingDeleteLogId = nil
     }
-
+    
     func consumeDeleteLogToast() {
         deleteLogToastMessage = nil
     }
-
+    
     func confirmDeleteLog() async {
         guard let logId = pendingDeleteLogId else { return }
         isDeletingLog = true
@@ -157,12 +157,12 @@ import Combine
             deleteLogToastMessage = "로그 삭제에 실패했습니다."
         }
     }
-
+    
     func loadMoreIfNeeded(lastId: Int) async {
         guard hasNext, !isLoading, logs.last?.id == lastId else { return }
         await fetchLogs()
     }
-
+    
     private func fetchLogs() async {
         isLoading = true
         defer { isLoading = false }
@@ -180,19 +180,19 @@ import Combine
             // TODO: 에러 토스트 처리 (로그 수정/삭제 작업 시 함께 정리)
         }
     }
-
+    
     // postedAt(ISO8601) 기준 날짜별 그룹핑
     // 반환: [(dateLabel: "3월 25일 화요일", logs: [AlbumLogEntry])]
     var groupedLogs: [(dateLabel: String, logs: [AlbumLogEntry])] {
         let labelFormatter = DateFormatter()
         labelFormatter.locale = Locale(identifier: "ko_KR")
         labelFormatter.dateFormat = "M월 d일 EEEE"
-
+        
         let grouped = Dictionary(grouping: logs) { entry -> String in
             guard let date = Self.parseISO8601Date(entry.postedAt) else { return "" }
             return labelFormatter.string(from: date)
         }
-
+        
         return grouped.compactMap { label, items -> (String, [AlbumLogEntry])? in
             guard !label.isEmpty else { return nil }
             return (label, items)
@@ -203,7 +203,7 @@ import Combine
             return l > r
         }
     }
-
+    
     static func parseISO8601Date(_ value: String) -> Date? {
         if let date = isoFormatterWithFractionalSeconds.date(from: value) { return date }
         if let date = isoFormatter.date(from: value) { return date }
@@ -236,32 +236,35 @@ struct AlbumDetailView: View {
     private let onDeleteAlbumTap: () -> Void
     
     @StateObject private var logViewModel: AlbumDetailViewModel
-
+    
     // 앨범 옵션 팝업 표시 여부
     @State private var isAlbumMenuVisible: Bool = false
-
+    
     // 신고 바텀시트 표시 여부
     @State private var isReportSheetPresented: Bool = false
-
+    
     // 앨범 삭제 실패 토스트 표시 여부
     @State private var isDeleteAlbumToastVisible: Bool = false
-
+    
     // 로그 삭제 실패 토스트 표시 여부
     @State private var isDeleteLogToastVisible: Bool = false
-
+    
     // 저장공간 부족 토스트 표시 여부
     @State private var isStorageFullToastVisible: Bool = false
-
+    
     // 신고 완료 토스트 표시 여부
     @State private var isReportToastVisible: Bool = false
-
+    
     // 음악 공유 시트 표시 여부
     @State private var downloadedMusicURL: URL? = nil
-
-    // 로그 작성/수정/앨범 수정 화면 전환 경로
-    @State private var navigationPath: [DetailNavigationRoute] = []
-
-    // 실제 저장 완료 여부: pop 후 재조회 조건 판단
+    
+    // 로그 작성/수정 화면 전환 상태 (nil: 미표시)
+    @State private var logPresentation: LogPresentationState? = nil
+    
+    // 앨범 수정 화면 표시 여부
+    @State private var isEditPresented: Bool = false
+    
+    // 실제 저장 완료 여부: onDismiss 재조회 조건 판단
     @State private var didSaveLog: Bool = false
     
     @EnvironmentObject private var musicService: BackgroundMusicService
@@ -269,10 +272,10 @@ struct AlbumDetailView: View {
     
     // UIScrollView KVO로 감지한 contentOffset.y (스크롤 이벤트와 동일 사이클 반영)
     @State private var scrollContentOffset: CGFloat = 0
-
+    
     // 타이틀 텍스트의 초기 global Y (스크롤 = 0 기준, 1회만 측정)
     @State private var titleContentY: CGFloat = .greatestFiniteMagnitude
-
+    
     // 액션 버튼 섹션의 초기 global Y (스크롤 = 0 기준, 1회만 측정)
     @State private var actionButtonsY: CGFloat = .greatestFiniteMagnitude
     @State private var albumTitle: String
@@ -307,9 +310,9 @@ struct AlbumDetailView: View {
     }
     
     // MARK: - Body
-
+    
     var body: some View {
-        NavigationStack(path: $navigationPath) {
+        
         ZStack(alignment: .topTrailing) {
             
             // ScrollView: empty -> scrollDisabled, hasLogs -> 스크롤 활성화
@@ -322,7 +325,7 @@ struct AlbumDetailView: View {
                             .id("scrollTop")
                         ScrollOffsetObserver(contentOffset: $scrollContentOffset)
                             .frame(height: 0)
-
+                        
                         coverImageSection
                         actionButtonsSection
                         contentSection
@@ -355,7 +358,7 @@ struct AlbumDetailView: View {
             }
             .opacity(1 - overlayOpacity)
             .allowsHitTesting(!isOverlayActive)
-
+            
             // 투명 네비게이션 바
             AlbumDetailNavigationOverlay(
                 onBackTap: onBackTap,
@@ -363,15 +366,15 @@ struct AlbumDetailView: View {
             )
             .opacity(overlayOpacity)
             .allowsHitTesting(isOverlayActive)
-
+            
             // 액션 버튼 오버레이 (스크롤 추적 → 네비게이션 바 하단 고정)
             actionButtonsOverlay
-
+            
             // 앨범 옵션 팝업
             if isAlbumMenuVisible {
                 albumMenuOverlay
             }
-
+            
             // 앨범 삭제 확인 팝업
             if logViewModel.showDeleteConfirm {
                 ExitPopupView(
@@ -381,7 +384,7 @@ struct AlbumDetailView: View {
                     onConfirm: { Task { await logViewModel.confirmDeleteAlbum() } }
                 )
             }
-
+            
             // 로그 삭제 확인 팝업
             if logViewModel.showDeleteLogConfirm {
                 ExitPopupView(
@@ -391,7 +394,7 @@ struct AlbumDetailView: View {
                     onConfirm: { Task { await logViewModel.confirmDeleteLog() } }
                 )
             }
-
+            
             // 앨범 삭제 실패 토스트
             if isDeleteAlbumToastVisible, let message = logViewModel.deleteAlbumToastMessage {
                 VStack {
@@ -401,7 +404,7 @@ struct AlbumDetailView: View {
                         .transition(.move(edge: .bottom).combined(with: .opacity))
                 }
             }
-
+            
             // 로그 삭제 실패 토스트
             if isDeleteLogToastVisible, let message = logViewModel.deleteLogToastMessage {
                 VStack {
@@ -411,7 +414,7 @@ struct AlbumDetailView: View {
                         .transition(.move(edge: .bottom).combined(with: .opacity))
                 }
             }
-
+            
             // 저장공간 부족 토스트
             if isStorageFullToastVisible {
                 VStack {
@@ -421,7 +424,7 @@ struct AlbumDetailView: View {
                         .transition(.move(edge: .bottom).combined(with: .opacity))
                 }
             }
-
+            
             // 신고 완료 토스트
             if isReportToastVisible {
                 VStack {
@@ -438,8 +441,23 @@ struct AlbumDetailView: View {
         .animation(.easeInOut(duration: 0.2), value: isReportToastVisible)
         .navigationBarBackButtonHidden(true)
         .toolbar(.hidden, for: .navigationBar)
-        .navigationDestination(for: DetailNavigationRoute.self) { route in
-            destinationView(for: route)
+        .fullScreenCover(item: $logPresentation, onDismiss: {
+            // 목록 재조회: 저장이 발생한 경우만
+            if didSaveLog {
+                Task { await logViewModel.loadInitialLogs() }
+                // 메인 페이지 앨범 카드 미리보기 썸네일 갱신
+                appState.needsAlbumRefresh = true
+            }
+            didSaveLog = false
+        }) { state in
+            switch state {
+            case .create:
+                AlbumLogView(albumId: String(displayModel.albumId), mode: .create, onSaved: { didSaveLog = true })
+                    .environmentObject(musicService)
+            case .edit(let entry):
+                AlbumLogView(albumId: String(displayModel.albumId), mode: .edit(entry), onSaved: { didSaveLog = true })
+                    .environmentObject(musicService)
+            }
         }
         // 신고 바텀시트
         .sheet(isPresented: $isReportSheetPresented) {
@@ -502,22 +520,33 @@ struct AlbumDetailView: View {
             guard isReady, let url = logViewModel.musicUrl else { return }
             musicService.play(url: url)
         }
-        // 상세 페이지 닫힐 때 음악 정지: 하위 화면으로 push 중인 경우는 정지하지 않음
+        // 상세 페이지 닫힐 때 음악 정지 + 초기화
         .onDisappear {
-            guard navigationPath.isEmpty else { return }
+            guard logPresentation == nil, !isEditPresented else { return } // 로그/수정 페이지 전환 시 음악 정지 방지
             musicService.stop()
         }
-        // 로그 route에서 pop될 때 저장이 발생했으면 목록 재조회
-        .onChange(of: navigationPath) { oldPath, newPath in
-            let hadLogRoute = oldPath.contains { $0.isLogRoute }
-            let hasLogRoute = newPath.contains { $0.isLogRoute }
-            guard hadLogRoute, !hasLogRoute, didSaveLog else { return }
-            Task { await logViewModel.loadInitialLogs() }
-            // 메인 페이지 앨범 카드 미리보기 썸네일 갱신
-            appState.needsAlbumRefresh = true
-            didSaveLog = false
+        // 앨범 수정 화면
+        .fullScreenCover(isPresented: $isEditPresented) {
+            EditAlbumView(
+                albumId: displayModel.albumId,
+                onExit: { isEditPresented = false },
+                onSaved: { outcome in
+                    isEditPresented = false
+                    if case .metadataUpdated = outcome {
+                        // 재생성 없이 메타데이터만 수정된 경우 상세 헤더를 즉시 반영
+                        Task { await reloadAlbumHeader() }
+                        // 메인 카드 텍스트/썸네일 동기화를 위해 새로고침 신호 전달
+                        appState.needsAlbumRefresh = true
+                        onEditSaved(outcome)
+                    } else {
+                        // .regenerated: EditAlbumView dismiss 애니메이션 완료 후 AlbumDetailView dismiss
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.65) {
+                            onEditSaved(outcome)
+                        }
+                    }
+                }
+            )
         }
-        } // NavigationStack 닫기
     }
 }
 
@@ -533,7 +562,7 @@ private extension AlbumDetailView {
             .compactMap { ($0 as? UIWindowScene)?.keyWindow }
             .first?.safeAreaInsets.top ?? 0
     }
-
+    
     // 네비게이션 바 콘텐츠 하단 Y (safeTop + 44pt), global 좌표 기준
     private var navBarBottom: CGFloat {
         safeAreaTop + 44
@@ -552,11 +581,11 @@ private extension AlbumDetailView {
         if titleNavOffset <= 0 { return 0 }
         return Double(titleNavOffset / fadeWindow)
     }
-
+    
     // hitTest 전환 기준: opacity 연속값 대신 명확한 임계값으로 스냅
     // 전환 구간(0 < opacity < 1)에서 두 네비게이션 바가 동시에 터치를 받는 문제 방지
     private var isOverlayActive: Bool { titleNavOffset > 15 }
-
+    
     // 오버레이 Y 위치 (ZStack-local 좌표)
     // actionButtonsY: global 좌표
     // 스크롤을 따라 올라가다가 nav bar 바로 아래(44pt)에서 클램프
@@ -565,7 +594,7 @@ private extension AlbumDetailView {
         let localCurrentY = actionButtonsY - scrollContentOffset - safeAreaTop
         return max(localCurrentY, 44) // 44 = navBarBottom - safeAreaTop (ZStack-local 기준)
     }
-
+    
     // 오버레이가 네비게이션 바에 고정된 상태인지 여부
     private var isActionButtonsSticky: Bool {
         guard actionButtonsY != .greatestFiniteMagnitude else { return false }
@@ -581,7 +610,7 @@ private extension AlbumDetailView {
             logViewModel.consumeDeleteAlbumToast()
         }
     }
-
+    
     // 저장공간 부족 토스트 표시 후 자동 숨김
     func showStorageFullToast() {
         withAnimation { isStorageFullToastVisible = true }
@@ -591,7 +620,7 @@ private extension AlbumDetailView {
             logViewModel.consumeStorageFullFlag()
         }
     }
-
+    
     // 로그 삭제 실패 토스트 표시 후 자동 숨김
     func showDeleteLogToast() {
         withAnimation { isDeleteLogToastVisible = true }
@@ -601,7 +630,7 @@ private extension AlbumDetailView {
             logViewModel.consumeDeleteLogToast()
         }
     }
-
+    
     // 신고 완료 토스트 표시 후 자동 숨김
     func showReportToast() {
         withAnimation { isReportToastVisible = true }
@@ -610,7 +639,7 @@ private extension AlbumDetailView {
             withAnimation { isReportToastVisible = false }
         }
     }
-
+    
     // 앨범 메뉴 팝업 표시 헬퍼
     func showAlbumMenu() {
         withAnimation(.easeInOut(duration: Constants.menuAnimationDuration)) {
@@ -651,13 +680,13 @@ private extension AlbumDetailView {
                 /// 여행지
                 Text(albumDestination)
                     .font(.setPretendard(weight: .medium, size: Constants.subtitleFontSize))
-                    .foregroundStyle(Color("GrayScale/300"))
+                    .foregroundStyle(Color("GrayScale/400"))
                     .lineLimit(1)
                 
                 /// 여행 날짜
                 Text(albumDateText)
                     .font(.setPretendard(weight: .regular, size: Constants.dateFontSize))
-                    .foregroundStyle(Color("GrayScale/300"))
+                    .foregroundStyle(Color("GrayScale/400"))
                     .lineLimit(1)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -710,7 +739,7 @@ private extension AlbumDetailView {
                 title: "로그 작성",
                 systemImageName: "pencil.line",
                 iconColor: Color("appPrimary500"),
-                action: { navigationPath.append(.createLog) }
+                action: { logPresentation = .create }
             )
         }
         .padding(.horizontal, Constants.horizontalPadding)
@@ -725,7 +754,7 @@ private extension AlbumDetailView {
             actionButtonsY = minY
         }
     }
-
+    
     // 스크롤을 따라 움직이다가 네비게이션 바에 도달하면 고정되는 액션 버튼 오버레이
     // VStack+spacer 방식: 뷰 이탈 애니메이션과 함께 자연스럽게 사라짐
     var actionButtonsOverlay: some View {
@@ -747,12 +776,12 @@ private extension AlbumDetailView {
                         .opacity(logViewModel.isMusicUrlReady ? 1.0 : 0.4)
                         .disabled(!logViewModel.isMusicUrlReady)
                         .background(Color.white, in: RoundedRectangle(cornerRadius: 28))
-
+                        
                         AlbumDetailActionButton(
                             title: "로그 작성",
                             systemImageName: "pencil.line",
                             iconColor: Color("appPrimary500"),
-                            action: { navigationPath.append(.createLog) }
+                            action: { logPresentation = .create }
                         )
                         .background(Color.white, in: RoundedRectangle(cornerRadius: 28))
                     }
@@ -768,7 +797,7 @@ private extension AlbumDetailView {
     @ViewBuilder
     var contentSection: some View {
         if !logViewModel.logs.isEmpty {
-            AlbumDetailLogFeedSection(viewModel: logViewModel, onEdit: { navigationPath.append(.editLog($0.id)) })
+            AlbumDetailLogFeedSection(viewModel: logViewModel, onEdit: { logPresentation = .edit($0) })
         } else if logViewModel.isLoading {
             ProgressView()
                 .frame(maxWidth: .infinity)
@@ -832,7 +861,7 @@ private extension AlbumDetailView {
                 },
                 onEditAlbum: {
                     isAlbumMenuVisible = false
-                    navigationPath.append(.editAlbum)
+                    isEditPresented = true
                     onEditAlbumTap()
                 },
                 onDeleteAlbum: {
@@ -848,61 +877,10 @@ private extension AlbumDetailView {
             .padding(.trailing, Constants.menuTrailingPadding)
         }
     }
-
-    // 각 route에 대응하는 destination 뷰 반환
-    @ViewBuilder
-    func destinationView(for route: DetailNavigationRoute) -> some View {
-        switch route {
-        case .createLog:
-            AlbumLogView(
-                albumId: String(displayModel.albumId),
-                mode: .create,
-                onSaved: { didSaveLog = true }
-            )
-            .environmentObject(musicService)
-            .toolbar(.hidden, for: .navigationBar)
-
-        case .editLog(let logId):
-            if let entry = logViewModel.logs.first(where: { $0.id == logId }) {
-                AlbumLogView(
-                    albumId: String(displayModel.albumId),
-                    mode: .edit(entry),
-                    onSaved: { didSaveLog = true }
-                )
-                .environmentObject(musicService)
-                .toolbar(.hidden, for: .navigationBar)
-            } else {
-                // 로그 데이터가 없으면 즉시 pop
-                Color.clear.onAppear { navigationPath.removeLast() }
-            }
-
-        case .editAlbum:
-            EditAlbumView(
-                albumId: displayModel.albumId,
-                onExit: { navigationPath.removeLast() },
-                onSaved: { outcome in
-                    navigationPath.removeLast()
-                    if case .metadataUpdated = outcome {
-                        // 재생성 없이 메타데이터만 수정된 경우 상세 헤더를 즉시 반영
-                        Task { await reloadAlbumHeader() }
-                        // 메인 카드 텍스트/썸네일 동기화를 위해 새로고침 신호 전달
-                        appState.needsAlbumRefresh = true
-                        onEditSaved(outcome)
-                    } else {
-                        // .regenerated: EditAlbumView dismiss 애니메이션 완료 후 AlbumDetailView dismiss
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.65) {
-                            onEditSaved(outcome)
-                        }
-                    }
-                }
-            )
-            .toolbar(.hidden, for: .navigationBar)
-        }
-    }
-
+    
     func reloadAlbumHeader() async {
         guard let detail = await logViewModel.fetchAlbumDetail() else { return }
-
+        
         albumTitle = detail.title?.isEmpty == false ? (detail.title ?? albumTitle) : albumTitle
         albumDestination = detail.region
         albumDateText = formatDateRange(
@@ -913,21 +891,21 @@ private extension AlbumDetailView {
         titleContentY = .greatestFiniteMagnitude
         actionButtonsY = .greatestFiniteMagnitude
     }
-
+    
     func formatDateRange(startRaw: String, endRaw: String) -> String {
         let input = DateFormatter()
         input.locale = Locale(identifier: "en_US_POSIX")
         input.dateFormat = "yyyy-MM-dd"
-
+        
         let output = DateFormatter()
         output.locale = Locale(identifier: "ko_KR")
         output.dateFormat = "yyyy년 M월 d일"
-
+        
         guard let start = input.date(from: startRaw),
               let end = input.date(from: endRaw) else {
             return "\(startRaw) - \(endRaw)"
         }
-
+        
         return "\(output.string(from: start)) - \(output.string(from: end))"
     }
 }
@@ -955,7 +933,7 @@ private extension AlbumDetailView {
         
         // 액션 버튼 영역
         static let actionButtonSpacing: CGFloat = 12
-        static let actionsBottomPadding: CGFloat = 28
+        static let actionsBottomPadding: CGFloat = 16
         
         // 빈 상태 영역
         static let emptyStateTopPadding: CGFloat = 40
@@ -981,21 +959,19 @@ private extension AlbumDetailView {
     }
 }
 
-// MARK: - DetailNavigationRoute
-// 로그 작성/수정/앨범 수정 화면 전환 경로
+// MARK: - LogPresentationState
+// 로그 작성/수정 화면 전환 상태
 
 private extension AlbumDetailView {
-
-    enum DetailNavigationRoute: Hashable {
-        case createLog
-        case editLog(Int)
-        case editAlbum
-
-        // 로그 관련 route 여부: pop 시 재조회 조건 판단에 사용
-        var isLogRoute: Bool {
+    
+    enum LogPresentationState: Identifiable {
+        case create
+        case edit(AlbumLogEntry)
+        
+        var id: String {
             switch self {
-            case .createLog, .editLog: return true
-            case .editAlbum:           return false
+            case .create:           return "create"
+            case .edit(let entry):  return "edit-\(entry.id)"
             }
         }
     }
@@ -1164,7 +1140,7 @@ private struct AlbumMenuItemButtonStyle: ButtonStyle {
 // MARK: - LogMenuItemButtonStyle
 
 private struct LogMenuItemButtonStyle: ButtonStyle {
-
+    
     private enum Constants {
         static let horizontalPadding: CGFloat = 16
         static let verticalPadding: CGFloat = 8
@@ -1172,7 +1148,7 @@ private struct LogMenuItemButtonStyle: ButtonStyle {
         static let highlightBackground = Color(red: 0.92, green: 0.92, blue: 0.98)
         static let animationDuration: Double = 0.1
     }
-
+    
     func makeBody(configuration: Configuration) -> some View {
         configuration.label
             .padding(.horizontal, Constants.horizontalPadding)
@@ -1305,20 +1281,20 @@ private struct AlbumDetailLogMenuPopup: View {
 // MARK: - AlbumDetailLogFeedSection
 
 private struct AlbumDetailLogFeedSection: View {
-
+    
     @ObservedObject var viewModel: AlbumDetailViewModel
     let onEdit: (AlbumLogEntry) -> Void
-
+    
     private enum Constants {
         static let horizontalPadding: CGFloat = 20
         static let topPadding: CGFloat = 8
         static let bottomPadding: CGFloat = 40
     }
-
+    
     var body: some View {
         let groups = viewModel.groupedLogs
         let lastEntryId = viewModel.logs.last?.id
-
+        
         VStack(alignment: .leading, spacing: 20) {
             ForEach(groups.indices, id: \.self) { groupIndex in
                 AlbumDetailLogDateGroup(
@@ -1353,12 +1329,12 @@ private struct AlbumDetailLogDateGroup: View {
     let onLastAppear: (() async -> Void)?
     let onDeleteLog: (Int) -> Void
     let onEdit: (AlbumLogEntry) -> Void
-
+    
     private enum Constants {
         /// 로그 카드 간 간격
         static let itemSpacing: CGFloat = 20
     }
-
+    
     var body: some View {
         VStack(alignment: .leading, spacing: Constants.itemSpacing) {
             ForEach(entries) { entry in
@@ -1383,10 +1359,10 @@ private struct AlbumDetailLogItemCard: View {
     let onLastAppear: (() async -> Void)?
     let onDeleteLog: (Int) -> Void
     let onEdit: (AlbumLogEntry) -> Void
-
+    
     /// 로그 옵션 팝업 표시 여부
     @State private var isMenuVisible: Bool = false
-
+    
     private enum Constants {
         static let dateFontSize: CGFloat = 14
         static let menuIconSize: CGFloat = 16
@@ -1397,7 +1373,7 @@ private struct AlbumDetailLogItemCard: View {
         static let menuTrailingPadding: CGFloat = 17
         static let labelColor = Color(red: 0.74, green: 0.75, blue: 0.76)
     }
-
+    
     /// postedAt ISO8601 → "yyyy년 M월 d일" 포맷
     private var dateLabel: String {
         let displayFormatter = DateFormatter()
@@ -1408,7 +1384,7 @@ private struct AlbumDetailLogItemCard: View {
         }
         return displayFormatter.string(from: date)
     }
-
+    
     var body: some View {
         ZStack(alignment: .topTrailing) {
             VStack(alignment: .leading, spacing: Constants.contentSpacing) {
@@ -1438,11 +1414,11 @@ private struct AlbumDetailLogItemCard: View {
                 if !entry.images.isEmpty {
                     AlbumDetailLogImageSlider(images: entry.images)
                 }
-
+                
                 // 텍스트 + 더보기/접기
                 AlbumDetailLogTextSection(text: entry.description)
             }
-
+            
             // 팝업 표시 시: 외부 탭 dismiss 영역 + 팝업
             if isMenuVisible {
                 // 카드 범위 내 외부 탭 감지
@@ -1453,7 +1429,7 @@ private struct AlbumDetailLogItemCard: View {
                             isMenuVisible = false
                         }
                     }
-
+                
                 // 수정 및 삭제 팝업
                 AlbumDetailLogMenuPopup(
                     onEditLog: {
@@ -1483,9 +1459,9 @@ private struct AlbumDetailLogItemCard: View {
 
 private struct AlbumDetailLogImageSlider: View {
     let images: [AlbumLogImage]
-
+    
     @State private var currentIndex: Int = 0
-
+    
     private enum Constants {
         static let cornerRadius: CGFloat = 12
         static let dotSize: CGFloat = 6
@@ -1499,7 +1475,7 @@ private struct AlbumDetailLogImageSlider: View {
             (UIScreen.main.bounds.width - 40) * 3 / 4
         }
     }
-
+    
     var body: some View {
         ZStack(alignment: .bottom) {
             // 이미지 슬라이더
@@ -1528,7 +1504,7 @@ private struct AlbumDetailLogImageSlider: View {
             .tabViewStyle(.page(indexDisplayMode: .never))
             .frame(height: Constants.sliderHeight)
             .clipShape(RoundedRectangle(cornerRadius: Constants.cornerRadius))
-
+            
             // 커스텀 페이지 인디케이터
             if images.count > 1 {
                 HStack(spacing: Constants.dotSpacing) {

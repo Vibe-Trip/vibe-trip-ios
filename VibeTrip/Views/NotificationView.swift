@@ -98,6 +98,13 @@ struct NotificationView: View {
             .first?.safeAreaInsets.top ?? 0
     }
 
+    // UIApplication 기반 safeArea bottom 조회
+    private var safeBottom: CGFloat {
+        UIApplication.shared.connectedScenes
+            .compactMap { ($0 as? UIWindowScene)?.keyWindow }
+            .first?.safeAreaInsets.bottom ?? 0
+    }
+
     // MARK: - 빈 상태 UI
 
     private var emptyStateView: some View {
@@ -162,7 +169,7 @@ struct NotificationView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color.white)
         .safeAreaInset(edge: .top) { headerSpacer }
-        .safeAreaInset(edge: .bottom) { Color.clear.frame(height: Layout.tabBarHeight) }
+        .safeAreaInset(edge: .bottom) { Color.clear.frame(height: Layout.tabBarHeight + safeBottom) }
     }
 
     // MARK: - 알림 탭 네비게이션
