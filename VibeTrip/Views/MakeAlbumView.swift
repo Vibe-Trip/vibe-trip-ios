@@ -19,36 +19,39 @@ struct MakeAlbumView: View {
         static let entryPopupMessage = "사진을 분석해 어울리는 노래를 만듭니다.\n데이터는 보안이 강화된 AI 엔진을 통해 분석되며\n음악 생성에만 활용됩니다."
         static let headerHeight: CGFloat = 44
     }
-
+    
     // 앨범 생성 데이터 및 UI 상태 관리
     @StateObject private var viewModel: MakeAlbumViewModel
-
+    
     // 토스트 메시지의 하단 여백: 키보드 높이에 따라 동적으로 계산
     @State private var keyboardHeight: CGFloat = 0
-
+    
     // 사진 선택 시트 표시 여부
     @State private var isPhotoPickerPresented = false
-
+    
     // 앨범 생성 전 안내 팝업
     @AppStorage(Constants.entryPopupDismissKey) private var shouldShowEntryPopup = true
     @State private var isEntryPopupPresented = false
     @State private var doNotShowEntryPopupAgain = false
     
+    // 필수 -> 선택 입력 단계 전환을 위한 NavigationStack 경로
+    @State private var navigationPath: [MakeAlbumNavigationRoute] = []
+    
     // 앨범 생성 플로우를 벗어날 때 호출되는 콜백
     private let onExit: () -> Void
-
+    
     // 앨범 생성 시작: LoadingView 노출 트리거
     private let onCreationStarted: () -> Void
-
+    
     // 앨범 생성 성공: albumId 전달
     private let onCreationSuccess: (Int) -> Void
-
+    
     // 네트워크 오류: 재시도 클로저 -> MainTabBarView로 전달
     private let onNetworkError: (@escaping () -> Void) -> Void
-
+    
     // 재시도 불가 오류: 확인 팝업 트리거
     private let onFatalError: () -> Void
-
+    
     init(
         onExit: @escaping () -> Void = {},
         onCreationStarted: @escaping () -> Void = {},
@@ -70,47 +73,36 @@ struct MakeAlbumView: View {
                 .ignoresSafeArea()
             
             ZStack(alignment: .top) {
-                VStack(spacing: 0) {
-                    // 현재 단계에 따라 콘텐츠 전환
-                    switch viewModel.currentStep {
-                    case .requiredInput:
-                        // 필수 입력 뷰
-                        MakeAlbumRequiredInputContent(
-                            viewModel: viewModel,
-                            keyboardHeight: keyboardHeight,
-                            onPhotoTap: {
-                                isPhotoPickerPresented = true
-                            },
-                            onNextTap: viewModel.proceedToOptionalStep
-                        )
-                    case .optionalInput:
-                        // 선택 입력 뷰
-                        MakeAlbumOptionalInputContent(
-                            viewModel: viewModel,
-                            keyboardHeight: keyboardHeight,
-                            onCreateTap: {
-                                if shouldShowEntryPopup {
-                                    doNotShowEntryPopupAgain = false
-                                    withAnimation(.easeInOut(duration: 0.2)) {
-                                        isEntryPopupPresented = true
-                                    }
-                                } else {
-                                    viewModel.submitAlbum(
-                                        onStarted: onCreationStarted,
-                                        onSuccess: onCreationSuccess,
-                                        onNetworkError: onNetworkError,
-                                        onFatalError: onFatalError
-                                    )
-                                }
-                            }
-                        )
-                    case .loading:
-                        // 로딩은 MainTabBarView 오버레이로 처리
-                        Color.white.ignoresSafeArea()
+                NavigationStack(path: $navigationPath) {
+                    // 필수 입력이 루트 뷰
+                    MakeAlbumRequiredInputContent(
+                        viewModel: viewModel,
+                        keyboardHeight: keyboardHeight,
+                        onPhotoTap: {
+                            isPhotoPickerPresented = true
+                        },
+                        onNextTap: handleProceedToOptionalStep
+                    )
+                    // safeAreaInset: NavigationStack이 아닌 각 뷰에 직접 적용
+                    .safeAreaInset(edge: .top) { headerSpacer }
+                    .navigationDestination(for: MakeAlbumNavigationRoute.self) { route in
+                        switch route {
+                        case .optionalInput:
+                            // 선택 입력 뷰: 우측에서 push 전환
+                            MakeAlbumOptionalInputContent(
+                                viewModel: viewModel,
+                                keyboardHeight: keyboardHeight,
+                                onCreateTap: handleCreateTap
+                            )
+                            .safeAreaInset(edge: .top) { headerSpacer }
+                            .toolbar(.hidden, for: .navigationBar)
+                            // toolbar hidden 시 비활성화되는 스와이프 뒤로가기 복원
+                            .background(SwipeBackEnabler())
+                        }
                     }
+                    .toolbar(.hidden, for: .navigationBar)
                 }
-                .safeAreaInset(edge: .top) { headerSpacer }
-
+                
                 AppNavigationBar(title: "앨범 만들기", style: .blurAlways, onBackTap: handleBackTap)
             }
             
@@ -226,13 +218,19 @@ struct MakeAlbumView: View {
         .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillHideNotification)) { _ in
             keyboardHeight = 0
         }
+        // 스와이프 뒤로가기로 pop됐을 때 ViewModel 단계 동기화
+        .onChange(of: navigationPath) { _, path in
+            if path.isEmpty, viewModel.currentStep == .optionalInput {
+                viewModel.returnToRequiredStep()
+            }
+        }
     }
     
     // 키보드가 올라와 있으면 키보드 바로 위에, 그렇지 않으면 하단에서 고정 여백으로 표시
     private var keyboardAwareToastPadding: CGFloat {
         keyboardHeight > 0 ? keyboardHeight + 32 : 96
     }
-
+    
     private var headerSpacer: some View {
         Color.clear.frame(height: Constants.headerHeight)
     }
@@ -248,12 +246,53 @@ struct MakeAlbumView: View {
                 onExit()
             }
         case .optionalInput:
-            // 선택 입력 단계에서는 필수 입력 단계로 되돌아감
-            viewModel.returnToRequiredStep()
+            // 선택 입력 단계에서는 NavigationStack pop으로 필수 입력으로 복귀
+            popToRequiredStep()
         case .loading:
             // 로딩 중에는 뒤로 가면 플로우 전체 종료
             onExit()
         }
+    }
+    
+    // 필수 입력 검증 통과 시 선택 입력 화면으로 push
+    private func handleProceedToOptionalStep() {
+        viewModel.proceedToOptionalStep()
+        guard viewModel.currentStep == .optionalInput else { return }
+        if navigationPath.last != .optionalInput {
+            navigationPath.append(.optionalInput)
+        }
+    }
+    
+    // 선택 입력에서 필수 입력으로 pop
+    private func popToRequiredStep() {
+        navigationPath.removeAll()
+        if viewModel.currentStep == .optionalInput {
+            viewModel.returnToRequiredStep()
+        }
+    }
+    
+    // 앨범 생성 버튼 탭 처리
+    private func handleCreateTap() {
+        if shouldShowEntryPopup {
+            doNotShowEntryPopupAgain = false
+            withAnimation(.easeInOut(duration: 0.2)) {
+                isEntryPopupPresented = true
+            }
+        } else {
+            viewModel.submitAlbum(
+                onStarted: onCreationStarted,
+                onSuccess: onCreationSuccess,
+                onNetworkError: onNetworkError,
+                onFatalError: onFatalError
+            )
+        }
+    }
+}
+
+private extension MakeAlbumView {
+    // 필수 -> 선택 입력 전환 경로
+    enum MakeAlbumNavigationRoute: Hashable {
+        case optionalInput
     }
 }
 
@@ -278,154 +317,154 @@ private struct MakeAlbumRequiredInputContent: View {
         let displayedPhotoImage = viewModel.displayedPhotoImage
         
         ScrollViewReader { proxy in
-        ScrollView(showsIndicators: false) {
-            // 섹션 간격
-            VStack(alignment: .leading, spacing: 20) {
-                
-                // MARK: - 사진 + 여행지
-                VStack(alignment: .leading, spacing: 8) {
+            ScrollView(showsIndicators: false) {
+                // 섹션 간격
+                VStack(alignment: .leading, spacing: 20) {
                     
-                    // 사진 섹션
-                    albumSectionHeader(
-                        title: "사진",
-                        subtitle: "필수 선택",
-                        showsIndicator: true
-                    )
-                    
-                    // 사진 선택 유무 분기
-                    Button(action: onPhotoTap) {
-                        MakeAlbumPhotoBox(image: displayedPhotoImage)
-                    }
-                    .buttonStyle(.plain)
-                    .contentShape(RoundedRectangle(cornerRadius: 12))
-                    
-                    // 여행지 섹션
-                    albumSectionHeader(
-                        title: "여행지",
-                        subtitle: "필수 입력 (최대 25자)",
-                        showsIndicator: true
-                    )
-                    
-                    TextField("여행지의 이름을 입력해주세요.", text: $destinationInput)
-                        .font(Font.setPretendard(weight: .regular, size: 16))
-                        .foregroundColor(Color.textPrimary)
-                        .padding(.horizontal, 16)
-                        .frame(maxWidth: .infinity, minHeight: 48, maxHeight: 48, alignment: .leading)
-                        .background(Color.fieldBackground)
-                        .clipShape(RoundedRectangle(cornerRadius: 8))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 8)
-                                .stroke(Color.fieldBorder, lineWidth: 1)
+                    // MARK: - 사진 + 여행지
+                    VStack(alignment: .leading, spacing: 8) {
+                        
+                        // 사진 섹션
+                        albumSectionHeader(
+                            title: "사진",
+                            subtitle: "필수 선택",
+                            showsIndicator: true
                         )
-                        .shadow(color: .black.opacity(0.06), radius: 1.5, x: 0, y: 1)
-                        .onAppear {
-                            destinationInput = viewModel.album.travelDestination
+                        
+                        // 사진 선택 유무 분기
+                        Button(action: onPhotoTap) {
+                            MakeAlbumPhotoBox(image: displayedPhotoImage)
                         }
-                        // 25자 초과 예외처리
-                        .onChange(of: destinationInput) { _, newValue in
-                            let limited = String(newValue.prefix(25))
-                            if newValue != limited {
-                                destinationInput = limited
-                                viewModel.showToast("여행지 이름은 25자까지만 쓸 수 있어요.")
-                            }
-                            viewModel.album.travelDestination = limited
-                        }
-                }
-                
-                // MARK: - 여행기간
-                
-                VStack(alignment: .leading, spacing: 8) {
-                    albumSectionHeader(
-                        title: "여행기간",
-                        subtitle: "필수 입력",
-                        showsIndicator: true
-                    )
-                    
-                    Button(action: viewModel.presentDatePicker) {
-                        HStack {
-                            Text(
-                                viewModel.album.formattedTravelDateRange.isEmpty
-                                ? "여행 기간을 입력해주세요."
-                                : viewModel.album.formattedTravelDateRange
-                            )
+                        .buttonStyle(.plain)
+                        .contentShape(RoundedRectangle(cornerRadius: 12))
+                        
+                        // 여행지 섹션
+                        albumSectionHeader(
+                            title: "여행지",
+                            subtitle: "필수 입력 (최대 25자)",
+                            showsIndicator: true
+                        )
+                        
+                        TextField("여행지의 이름을 입력해주세요.", text: $destinationInput)
                             .font(Font.setPretendard(weight: .regular, size: 16))
-                            .foregroundStyle(
-                                viewModel.album.formattedTravelDateRange.isEmpty
-                                ? Color("GrayScale/300")
-                                : Color.textPrimary
+                            .foregroundColor(Color.textPrimary)
+                            .padding(.horizontal, 16)
+                            .frame(maxWidth: .infinity, minHeight: 48, maxHeight: 48, alignment: .leading)
+                            .background(Color.fieldBackground)
+                            .clipShape(RoundedRectangle(cornerRadius: 8))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 8)
+                                    .stroke(Color.fieldBorder, lineWidth: 1)
                             )
-                            
-                            Spacer()
-                        }
-                        .padding(.horizontal, 16)
-                        .frame(maxWidth: .infinity, minHeight: 48, maxHeight: 48, alignment: .leading)
-                        .background(Color.fieldBackground)
-                        .clipShape(RoundedRectangle(cornerRadius: 8))
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 8)
-                                .stroke(Color.fieldBorder, lineWidth: 1)
-                        )
-                        .shadow(color: .black.opacity(0.06), radius: 1.5, x: 0, y: 1)
+                            .shadow(color: .black.opacity(0.06), radius: 1.5, x: 0, y: 1)
+                            .onAppear {
+                                destinationInput = viewModel.album.travelDestination
+                            }
+                        // 25자 초과 예외처리
+                            .onChange(of: destinationInput) { _, newValue in
+                                let limited = String(newValue.prefix(25))
+                                if newValue != limited {
+                                    destinationInput = limited
+                                    viewModel.showToast("여행지 이름은 25자까지만 쓸 수 있어요.")
+                                }
+                                viewModel.album.travelDestination = limited
+                            }
                     }
-                    .buttonStyle(.plain)
-                }
-                
-                // MARK: - 가사 포함 여부
-                VStack(alignment: .leading, spacing: 8) {
-                    albumSectionHeader(
-                        title: "가사 포함 여부",
-                        subtitle: "필수 선택",
-                        showsIndicator: true
-                    )
                     
-                    // 가사 포함 or 미포함 선택  세그먼트
-                    MakeAlbumSegmentedControl(
-                        options: LyricsOption.allCases,
-                        title: { $0.title },
-                        selection: viewModel.album.lyricsOption,
-                        onSelect: viewModel.updateLyricsOption
-                    )
-                }
-                
-                // MARK: - 보컬 성별 선택
-                
-                ZStack(alignment: .topLeading) {
-                    if viewModel.album.lyricsOption == .include {
-                        VStack(alignment: .leading, spacing: 8) {
-                            albumSectionHeader(
-                                title: "보컬 성별 선택",
-                                subtitle: "필수 선택",
-                                showsIndicator: true
+                    // MARK: - 여행기간
+                    
+                    VStack(alignment: .leading, spacing: 8) {
+                        albumSectionHeader(
+                            title: "여행기간",
+                            subtitle: "필수 입력",
+                            showsIndicator: true
+                        )
+                        
+                        Button(action: viewModel.presentDatePicker) {
+                            HStack {
+                                Text(
+                                    viewModel.album.formattedTravelDateRange.isEmpty
+                                    ? "여행 기간을 입력해주세요."
+                                    : viewModel.album.formattedTravelDateRange
+                                )
+                                .font(Font.setPretendard(weight: .regular, size: 16))
+                                .foregroundStyle(
+                                    viewModel.album.formattedTravelDateRange.isEmpty
+                                    ? Color("GrayScale/300")
+                                    : Color.textPrimary
+                                )
+                                
+                                Spacer()
+                            }
+                            .padding(.horizontal, 16)
+                            .frame(maxWidth: .infinity, minHeight: 48, maxHeight: 48, alignment: .leading)
+                            .background(Color.fieldBackground)
+                            .clipShape(RoundedRectangle(cornerRadius: 8))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 8)
+                                    .stroke(Color.fieldBorder, lineWidth: 1)
                             )
-                            
-                            MakeAlbumSegmentedControl(
-                                options: VocalGender.allCases,
-                                title: { $0.title },
-                                selection: viewModel.album.vocalGender,
-                                onSelect: { viewModel.album.vocalGender = $0 }
-                            )
+                            .shadow(color: .black.opacity(0.06), radius: 1.5, x: 0, y: 1)
                         }
-                        .transition(.opacity)
+                        .buttonStyle(.plain)
+                    }
+                    
+                    // MARK: - 가사 포함 여부
+                    VStack(alignment: .leading, spacing: 8) {
+                        albumSectionHeader(
+                            title: "가사 포함 여부",
+                            subtitle: "필수 선택",
+                            showsIndicator: true
+                        )
+                        
+                        // 가사 포함 or 미포함 선택  세그먼트
+                        MakeAlbumSegmentedControl(
+                            options: LyricsOption.allCases,
+                            title: { $0.title },
+                            selection: viewModel.album.lyricsOption,
+                            onSelect: viewModel.updateLyricsOption
+                        )
+                    }
+                    
+                    // MARK: - 보컬 성별 선택
+                    
+                    ZStack(alignment: .topLeading) {
+                        if viewModel.album.lyricsOption == .include {
+                            VStack(alignment: .leading, spacing: 8) {
+                                albumSectionHeader(
+                                    title: "보컬 성별 선택",
+                                    subtitle: "필수 선택",
+                                    showsIndicator: true
+                                )
+                                
+                                MakeAlbumSegmentedControl(
+                                    options: VocalGender.allCases,
+                                    title: { $0.title },
+                                    selection: viewModel.album.vocalGender,
+                                    onSelect: { viewModel.album.vocalGender = $0 }
+                                )
+                            }
+                            .transition(.opacity)
+                        }
+                    }
+                    .frame(height: Layout.vocalSectionSlotHeight)
+                    .id("vocalGenderSection")
+                }
+                // 가사 옵션 전환 에니메이션: fade
+                .animation(.easeInOut(duration: 0.2), value: viewModel.album.lyricsOption)
+                .padding(.horizontal, 20)
+                .padding(.top, 24)
+                .padding(.bottom, 24)
+            }
+            .onChange(of: viewModel.album.lyricsOption) { _, newValue in
+                guard newValue == .include else { return }
+                Task {
+                    try? await Task.sleep(for: .milliseconds(150))
+                    withAnimation(.easeInOut(duration: 0.3)) {
+                        proxy.scrollTo("vocalGenderSection", anchor: .bottom)
                     }
                 }
-                .frame(height: Layout.vocalSectionSlotHeight)
-                .id("vocalGenderSection")
             }
-            // 가사 옵션 전환 에니메이션: fade
-            .animation(.easeInOut(duration: 0.2), value: viewModel.album.lyricsOption)
-            .padding(.horizontal, 20)
-            .padding(.top, 24)
-            .padding(.bottom, 24)
-        }
-        .onChange(of: viewModel.album.lyricsOption) { _, newValue in
-            guard newValue == .include else { return }
-            Task {
-                try? await Task.sleep(for: .milliseconds(150))
-                withAnimation(.easeInOut(duration: 0.3)) {
-                    proxy.scrollTo("vocalGenderSection", anchor: .bottom)
-                }
-            }
-        }
         }
         // 하단 버튼: SafeArea 위에 고정
         .safeAreaInset(edge: .bottom, spacing: 0) {
@@ -654,7 +693,7 @@ private struct MakeAlbumOptionalInputContent: View {
                 }
                 .scrollDisabled(true)
             }
-
+            
             MakeAlbumBottomButton(
                 title: "앨범 생성하기",
                 isEnabled: true,
@@ -671,7 +710,7 @@ private struct MakeAlbumOptionalInputContent: View {
 private struct MakeAlbumPhotoBox: View {
     
     let image: UIImage?
-
+    
     private enum Layout {
         static let containerHeight: CGFloat = 272
         // 디자이너 스펙: 전체 박스 대비 실제 이미지 표시 영역의 가로 비율
@@ -696,12 +735,12 @@ private struct MakeAlbumPhotoBox: View {
                 GeometryReader { proxy in
                     let imageWidth = proxy.size.width * Layout.imageWidthRatio
                     let imageHeight = proxy.size.height
-
+                    
                     ZStack {
                         // 좌우 여백: GrayScale/900
                         RoundedRectangle(cornerRadius: 12)
                             .fill(Color("GrayScale/900"))
-
+                        
                         Image(uiImage: image)
                             .resizable()    /// 비율 유지 채택 시  ->  .scaledToFill()
                             .frame(width: imageWidth, height: imageHeight - 0.5) // 업로드 이미지 높이 조절 -> 박스 벗어남 방지
@@ -750,7 +789,7 @@ private struct MakeAlbumBottomButton: View {
                 .foregroundStyle(isEnabled ? .white : Color.buttonDisabledForeground)
                 .frame(maxWidth: .infinity)
                 .frame(height: 52)
-                /// 배경색 조정
+            /// 배경색 조정
                 .background(isEnabled ? Color.appPrimary : Color.buttonDisabledBackground)
                 .clipShape(Capsule())
         }
