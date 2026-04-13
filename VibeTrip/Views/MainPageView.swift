@@ -66,10 +66,6 @@ struct MainPageView: View {
 
     // body 내 반복 접근 시 filter 재계산을 줄이기 위한 캐시
     private var visibleAlbums: [AlbumCard] { viewModel.visibleAlbums }
-    // 현재 위치 기준으로 미리 준비할 커버 이미지 키
-    private var preloadKey: String {
-        preloadCoverImageURLs(from: visibleAlbums).map(\.absoluteString).joined(separator: "|")
-    }
 
     var body: some View {
         contentView
@@ -156,9 +152,9 @@ struct MainPageView: View {
         .onChange(of: currentIndex) { _, _ in
             preloadCoverImages(urls: preloadCoverImageURLs(from: visibleAlbums))
         }
-        // 페이지네이션 등으로 주변 카드 구성이 바뀌면 캐시 갱신
-        .onChange(of: preloadKey) { _, _ in
-            preloadCoverImages(urls: preloadCoverImageURLs(from: visibleAlbums))
+        // 페이지네이션·폴링 완료로 albums 배열이 바뀌면 캐시 갱신
+        .onChange(of: viewModel.albums) { _, _ in
+            preloadCoverImages(urls: preloadCoverImageURLs(from: viewModel.visibleAlbums))
         }
         .onChange(of: appState.needsAlbumRefresh) { _, needsReload in
             guard needsReload else { return }
@@ -229,7 +225,7 @@ struct MainPageView: View {
     private var emptyStateView: some View {
         VStack(alignment: .center, spacing: 8) {
             // 빈 상태 아이콘
-            Image("CreateAlbum")
+            Image("Main_Placeholder")
                 .resizable()
                 .scaledToFit()
                 .frame(width: 200, height: 150)
@@ -301,6 +297,7 @@ struct MainPageView: View {
                                 isReady: viewModel.isReady(for: album.id),
                                 isActive: isActive
                             )
+                            .equatable()
                             .scaleEffect(cardScale, anchor: .topLeading)
                             .onTapGesture {
                                 guard isActive else { return }
