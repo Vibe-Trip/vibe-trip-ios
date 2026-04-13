@@ -165,6 +165,12 @@ struct AlbumLogView: View {
         .navigationBarBackButtonHidden(true)
         .toolbar(.hidden, for: .navigationBar)  // 시스템 네비게이션바 숨김
         .background(Color.white)
+        .background(
+            SwipeBackEnabler(
+                isEnabled: !viewModel.hasUnsavedChanges,
+                onBlocked: { viewModel.isExitAlertPresented = true }
+            )
+        )
         // 키보드 높이 추적: 최초 등장 및 자동완성 바 높이 변화까지 모두 커버
         .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillChangeFrameNotification)) { notification in
             guard let frame = notification.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? CGRect else { return }

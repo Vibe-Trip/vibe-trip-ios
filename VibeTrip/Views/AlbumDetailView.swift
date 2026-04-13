@@ -258,13 +258,10 @@ struct AlbumDetailView: View {
     // 음악 공유 시트 표시 여부
     @State private var downloadedMusicURL: URL? = nil
 
-    // 로그 작성/수정 화면 전환 상태 (nil: 미표시)
-    @State private var logPresentation: LogPresentationState? = nil
+    // 로그 작성/수정/앨범 수정 화면 전환 경로
+    @State private var navigationPath: [DetailNavigationRoute] = []
 
-    // 앨범 수정 화면 표시 여부
-    @State private var isEditPresented: Bool = false
-
-    // 실제 저장 완료 여부: onDismiss 재조회 조건 판단
+    // 실제 저장 완료 여부: pop 후 재조회 조건 판단
     @State private var didSaveLog: Bool = false
     
     @EnvironmentObject private var musicService: BackgroundMusicService
@@ -310,9 +307,9 @@ struct AlbumDetailView: View {
     }
     
     // MARK: - Body
-    
+
     var body: some View {
-        
+        NavigationStack(path: $navigationPath) {
         ZStack(alignment: .topTrailing) {
             
             // ScrollView: empty -> scrollDisabled, hasLogs -> 스크롤 활성화
@@ -441,23 +438,8 @@ struct AlbumDetailView: View {
         .animation(.easeInOut(duration: 0.2), value: isReportToastVisible)
         .navigationBarBackButtonHidden(true)
         .toolbar(.hidden, for: .navigationBar)
-        .fullScreenCover(item: $logPresentation, onDismiss: {
-            // 목록 재조회: 저장이 발생한 경우만
-            if didSaveLog {
-                Task { await logViewModel.loadInitialLogs() }
-                // 메인 페이지 앨범 카드 미리보기 썸네일 갱신
-                appState.needsAlbumRefresh = true
-            }
-            didSaveLog = false
-        }) { state in
-            switch state {
-            case .create:
-                AlbumLogView(albumId: String(displayModel.albumId), mode: .create, onSaved: { didSaveLog = true })
-                    .environmentObject(musicService)
-            case .edit(let entry):
-                AlbumLogView(albumId: String(displayModel.albumId), mode: .edit(entry), onSaved: { didSaveLog = true })
-                    .environmentObject(musicService)
-            }
+        .navigationDestination(for: DetailNavigationRoute.self) { route in
+            destinationView(for: route)
         }
         // 신고 바텀시트
         .sheet(isPresented: $isReportSheetPresented) {
@@ -520,33 +502,22 @@ struct AlbumDetailView: View {
             guard isReady, let url = logViewModel.musicUrl else { return }
             musicService.play(url: url)
         }
-        // 상세 페이지 닫힐 때 음악 정지 + 초기화
+        // 상세 페이지 닫힐 때 음악 정지: 하위 화면으로 push 중인 경우는 정지하지 않음
         .onDisappear {
-            guard logPresentation == nil, !isEditPresented else { return } // 로그/수정 페이지 전환 시 음악 정지 방지
+            guard navigationPath.isEmpty else { return }
             musicService.stop()
         }
-        // 앨범 수정 화면
-        .fullScreenCover(isPresented: $isEditPresented) {
-            EditAlbumView(
-                albumId: displayModel.albumId,
-                onExit: { isEditPresented = false },
-                onSaved: { outcome in
-                    isEditPresented = false
-                    if case .metadataUpdated = outcome {
-                        // 재생성 없이 메타데이터만 수정된 경우 상세 헤더를 즉시 반영
-                        Task { await reloadAlbumHeader() }
-                        // 메인 카드 텍스트/썸네일 동기화를 위해 새로고침 신호 전달
-                        appState.needsAlbumRefresh = true
-                        onEditSaved(outcome)
-                    } else {
-                        // .regenerated: EditAlbumView dismiss 애니메이션 완료 후 AlbumDetailView dismiss
-                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.65) {
-                            onEditSaved(outcome)
-                        }
-                    }
-                }
-            )
+        // 로그 route에서 pop될 때 저장이 발생했으면 목록 재조회
+        .onChange(of: navigationPath) { oldPath, newPath in
+            let hadLogRoute = oldPath.contains { $0.isLogRoute }
+            let hasLogRoute = newPath.contains { $0.isLogRoute }
+            guard hadLogRoute, !hasLogRoute, didSaveLog else { return }
+            Task { await logViewModel.loadInitialLogs() }
+            // 메인 페이지 앨범 카드 미리보기 썸네일 갱신
+            appState.needsAlbumRefresh = true
+            didSaveLog = false
         }
+        } // NavigationStack 닫기
     }
 }
 
@@ -738,7 +709,7 @@ private extension AlbumDetailView {
             AlbumDetailActionButton(
                 title: "로그 작성",
                 systemImageName: "pencil.line",
-                action: { logPresentation = .create }
+                action: { navigationPath.append(.createLog) }
             )
         }
         .padding(.horizontal, Constants.horizontalPadding)
@@ -779,7 +750,7 @@ private extension AlbumDetailView {
                         AlbumDetailActionButton(
                             title: "로그 작성",
                             systemImageName: "pencil.line",
-                            action: { logPresentation = .create }
+                            action: { navigationPath.append(.createLog) }
                         )
                         .background(Color.white, in: RoundedRectangle(cornerRadius: 28))
                     }
@@ -795,7 +766,7 @@ private extension AlbumDetailView {
     @ViewBuilder
     var contentSection: some View {
         if !logViewModel.logs.isEmpty {
-            AlbumDetailLogFeedSection(viewModel: logViewModel, onEdit: { logPresentation = .edit($0) })
+            AlbumDetailLogFeedSection(viewModel: logViewModel, onEdit: { navigationPath.append(.editLog($0.id)) })
         } else if logViewModel.isLoading {
             ProgressView()
                 .frame(maxWidth: .infinity)
@@ -859,7 +830,7 @@ private extension AlbumDetailView {
                 },
                 onEditAlbum: {
                     isAlbumMenuVisible = false
-                    isEditPresented = true
+                    navigationPath.append(.editAlbum)
                     onEditAlbumTap()
                 },
                 onDeleteAlbum: {
@@ -873,6 +844,57 @@ private extension AlbumDetailView {
             )
             .padding(.top, Constants.menuTopPadding)
             .padding(.trailing, Constants.menuTrailingPadding)
+        }
+    }
+
+    // 각 route에 대응하는 destination 뷰 반환
+    @ViewBuilder
+    func destinationView(for route: DetailNavigationRoute) -> some View {
+        switch route {
+        case .createLog:
+            AlbumLogView(
+                albumId: String(displayModel.albumId),
+                mode: .create,
+                onSaved: { didSaveLog = true }
+            )
+            .environmentObject(musicService)
+            .toolbar(.hidden, for: .navigationBar)
+
+        case .editLog(let logId):
+            if let entry = logViewModel.logs.first(where: { $0.id == logId }) {
+                AlbumLogView(
+                    albumId: String(displayModel.albumId),
+                    mode: .edit(entry),
+                    onSaved: { didSaveLog = true }
+                )
+                .environmentObject(musicService)
+                .toolbar(.hidden, for: .navigationBar)
+            } else {
+                // 로그 데이터가 없으면 즉시 pop
+                Color.clear.onAppear { navigationPath.removeLast() }
+            }
+
+        case .editAlbum:
+            EditAlbumView(
+                albumId: displayModel.albumId,
+                onExit: { navigationPath.removeLast() },
+                onSaved: { outcome in
+                    navigationPath.removeLast()
+                    if case .metadataUpdated = outcome {
+                        // 재생성 없이 메타데이터만 수정된 경우 상세 헤더를 즉시 반영
+                        Task { await reloadAlbumHeader() }
+                        // 메인 카드 텍스트/썸네일 동기화를 위해 새로고침 신호 전달
+                        appState.needsAlbumRefresh = true
+                        onEditSaved(outcome)
+                    } else {
+                        // .regenerated: EditAlbumView dismiss 애니메이션 완료 후 AlbumDetailView dismiss
+                        DispatchQueue.main.asyncAfter(deadline: .now() + 0.65) {
+                            onEditSaved(outcome)
+                        }
+                    }
+                }
+            )
+            .toolbar(.hidden, for: .navigationBar)
         }
     }
 
@@ -957,19 +979,21 @@ private extension AlbumDetailView {
     }
 }
 
-// MARK: - LogPresentationState
-// 로그 작성/수정 화면 전환 상태
+// MARK: - DetailNavigationRoute
+// 로그 작성/수정/앨범 수정 화면 전환 경로
 
 private extension AlbumDetailView {
 
-    enum LogPresentationState: Identifiable {
-        case create
-        case edit(AlbumLogEntry)
+    enum DetailNavigationRoute: Hashable {
+        case createLog
+        case editLog(Int)
+        case editAlbum
 
-        var id: String {
+        // 로그 관련 route 여부: pop 시 재조회 조건 판단에 사용
+        var isLogRoute: Bool {
             switch self {
-            case .create:           return "create"
-            case .edit(let entry):  return "edit-\(entry.id)"
+            case .createLog, .editLog: return true
+            case .editAlbum:           return false
             }
         }
     }

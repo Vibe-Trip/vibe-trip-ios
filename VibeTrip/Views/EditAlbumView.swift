@@ -402,6 +402,12 @@ struct EditAlbumView: View {
                 dismissKeyboard()
             }
         )
+        .background(
+            SwipeBackEnabler(
+                isEnabled: !viewModel.hasChanges,
+                onBlocked: { isExitAlertPresented = true }
+            )
+        )
         .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillShowNotification)) { notification in
             guard let frame = notification.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? CGRect else {
                 return
