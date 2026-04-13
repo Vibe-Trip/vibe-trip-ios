@@ -38,10 +38,10 @@ VibeTrip/
 | 브랜치 | 용도 | 병합 대상 |
 |--------|------|------|
 | `main` | 앱스토어 출시용 |  |
-| `release` | 개발 완료 | `main`, `develop` |
+| `release` | 출시 준비 | `main`, `develop` |
+| `hotfix` | 배포 버전 버그 수정 | `main`, `develop` |
 | `develop` | 개발 완료 | `release` |
 | `feature` | 기능 개발 | `develop` |
-| `hotfix` | 배포 버전 버그 수정 | `main` |
 
 ## 📌 커밋 컨벤션
 
