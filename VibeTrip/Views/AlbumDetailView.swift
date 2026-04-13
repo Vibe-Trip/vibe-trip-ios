@@ -557,19 +557,21 @@ private extension AlbumDetailView {
     // 전환 구간(0 < opacity < 1)에서 두 네비게이션 바가 동시에 터치를 받는 문제 방지
     private var isOverlayActive: Bool { titleNavOffset > 15 }
 
-    // 오버레이 Y 위치 (ZStack-local 좌표)
-    // actionButtonsY: global 좌표
-    // 스크롤을 따라 올라가다가 nav bar 바로 아래(44pt)에서 클램프
+    // 오버레이 Y 위치
+    // actionButtonsY: global 좌표(y=0 -> 화면 최상단)
+    // 오버레이는 ZStack 내 safe area 아래(y=safeAreaTop)에서 시작 -> localCurrentY는 그대로, 클램프 값에서 safeAreaTop을 빼서 보정
     private var actionButtonsOverlayY: CGFloat {
         guard actionButtonsY != .greatestFiniteMagnitude else { return 0 }
-        let localCurrentY = actionButtonsY - scrollContentOffset - safeAreaTop
-        return max(localCurrentY, 44) // 44 = navBarBottom - safeAreaTop (ZStack-local 기준)
+        let localCurrentY = actionButtonsY - scrollContentOffset
+        let stickyY = Constants.navBarContentHeight + Constants.actionButtonsNavBarGap
+        return max(localCurrentY, stickyY)
     }
 
     // 오버레이가 네비게이션 바에 고정된 상태인지 여부
     private var isActionButtonsSticky: Bool {
         guard actionButtonsY != .greatestFiniteMagnitude else { return false }
-        return (actionButtonsY - scrollContentOffset) <= navBarBottom
+        let stickyY = Constants.navBarContentHeight + Constants.actionButtonsNavBarGap
+        return (actionButtonsY - scrollContentOffset) <= stickyY
     }
     
     // 앨범 삭제 실패 토스트 표시 후 자동 숨김
@@ -763,7 +765,7 @@ private extension AlbumDetailView {
             }
         }
     }
-    
+
     // ViewModel 상태에 따라 빈 상태 / 로딩 / 로그 피드 표시
     @ViewBuilder
     var contentSection: some View {
@@ -897,6 +899,7 @@ private extension AlbumDetailView {
                 }
             )
             .toolbar(.hidden, for: .navigationBar)
+            .background(Color.white)
         }
     }
 
@@ -947,15 +950,17 @@ private extension AlbumDetailView {
         
         // 앨범 정보 텍스트
         static let infoTopPadding: CGFloat = 12
-        static let infoBottomPadding: CGFloat = 16
+        static let infoBottomPadding: CGFloat = 12
         static let infoTextSpacing: CGFloat = 4
         static let titleFontSize: CGFloat = 22
         static let subtitleFontSize: CGFloat = 14
         static let dateFontSize: CGFloat = 12
         
         // 액션 버튼 영역
+        static let navBarContentHeight: CGFloat = 46
         static let actionButtonSpacing: CGFloat = 12
-        static let actionsBottomPadding: CGFloat = 28
+        static let actionsBottomPadding: CGFloat = 16
+        static let actionButtonsNavBarGap: CGFloat = 2
         
         // 빈 상태 영역
         static let emptyStateTopPadding: CGFloat = 40
