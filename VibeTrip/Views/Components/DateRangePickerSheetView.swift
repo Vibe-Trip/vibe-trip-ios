@@ -42,6 +42,20 @@ struct DateRangePickerSheetView: View {
         _anchorDate = State(initialValue: normalizedStartDate == normalizedEndDate ? normalizedStartDate : nil)
     }
 
+    private var calendarRowCount: Int {
+        guard let monthInterval = calendar.dateInterval(of: .month, for: displayedMonth),
+              let firstWeekInterval = calendar.dateInterval(of: .weekOfMonth, for: monthInterval.start),
+              let lastDayOfMonth = calendar.date(byAdding: .day, value: -1, to: monthInterval.end),
+              let lastWeekInterval = calendar.dateInterval(of: .weekOfMonth, for: lastDayOfMonth)
+        else { return 5 }
+        let totalDays = calendar.dateComponents([.day], from: firstWeekInterval.start, to: lastWeekInterval.end).day ?? 35
+        return totalDays / 7
+    }
+
+    private var sheetHeight: CGFloat {
+        calendarRowCount == 6 ? 650 : 590
+    }
+
     var body: some View {
         VStack(alignment: .leading, spacing: 24) {
             Text("여행 기간")
@@ -81,7 +95,7 @@ struct DateRangePickerSheetView: View {
         .padding(.horizontal, 20)
         .padding(.top, 28)
         .padding(.bottom, 24)
-        .presentationDetents([.height(590)])
+        .presentationDetents([.height(sheetHeight)])
     }
 }
 
