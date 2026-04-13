@@ -131,7 +131,10 @@ struct EditAlbumView: View {
                                     .shadow(color: .black.opacity(0.06), radius: 1.5, x: 0, y: 1)
                                     .onChange(of: viewModel.albumTitle) { _, newValue in
                                         let limited = String(newValue.prefix(15))
-                                        if newValue != limited { viewModel.albumTitle = limited }
+                                        if newValue != limited {
+                                            viewModel.albumTitle = limited
+                                            viewModel.toastMessage = "앨범 제목은 15자까지만 쓸 수 있어요."
+                                        }
                                     }
                             }
 
