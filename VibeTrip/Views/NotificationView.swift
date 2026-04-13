@@ -162,6 +162,7 @@ struct NotificationView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Color.white)
         .safeAreaInset(edge: .top) { headerSpacer }
+        .safeAreaInset(edge: .bottom) { Color.clear.frame(height: Layout.tabBarHeight) }
     }
 
     // MARK: - 알림 탭 네비게이션
