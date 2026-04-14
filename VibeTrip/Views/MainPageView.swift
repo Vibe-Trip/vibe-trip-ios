@@ -29,6 +29,7 @@ struct MainPageView: View {
 
     // 타이틀 생성 중 앨범 탭 시 표시하는 차단 토스트
     @State private var showGeneratingToast: Bool = false
+    @State private var generatingToastDismissTask: Task<Void, Never>? = nil
 
     // MARK: - 캐러셀 Layout Constants
 
@@ -147,7 +148,10 @@ struct MainPageView: View {
                 dragOffset = 0
             }
         }
-        .onDisappear { viewModel.cancelAllPolling() }
+        .onDisappear {
+            viewModel.cancelAllPolling()
+            generatingToastDismissTask?.cancel()
+        }
         // 스와이프 후 현재 카드가 바뀌면 주변 이미지 다시 준비
         .onChange(of: currentIndex) { _, _ in
             preloadCoverImages(urls: preloadCoverImageURLs(from: visibleAlbums))
@@ -302,12 +306,7 @@ struct MainPageView: View {
                             .onTapGesture {
                                 guard isActive else { return }
                                 if !viewModel.isReady(for: album.id) {
-                                    guard !showGeneratingToast else { return }
-                                    withAnimation { showGeneratingToast = true }
-                                    Task {
-                                        try? await Task.sleep(nanoseconds: 3_000_000_000)
-                                        withAnimation { showGeneratingToast = false }
-                                    }
+                                    showGeneratingToastWithAutoDismiss()
                                 } else {
                                     selectedAlbum = album
                                 }
@@ -387,6 +386,21 @@ struct MainPageView: View {
         }
 
         Task { await viewModel.loadMoreIfNeeded(currentIndex: currentIndex) }
+    }
+
+    // 생성 중 토스트를 항상 메인 액터에서 표시/해제
+    private func showGeneratingToastWithAutoDismiss() {
+        generatingToastDismissTask?.cancel()
+        withAnimation { showGeneratingToast = true }
+
+        generatingToastDismissTask = Task {
+            try? await Task.sleep(nanoseconds: 3_000_000_000)
+            guard !Task.isCancelled else { return }
+
+            await MainActor.run {
+                withAnimation { showGeneratingToast = false }
+            }
+        }
     }
 
     private func preloadCoverImageURLs(from visibleAlbums: [AlbumCard]) -> [URL] {
