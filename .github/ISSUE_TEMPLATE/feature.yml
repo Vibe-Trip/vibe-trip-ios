@@ -17,6 +17,6 @@ body:
       label: ✅ to-do-list
       description: 작업할 내용들에 대해 작성해주세요.
       value: |
-        - [ ] 
+        - [ ] TODO
     validations:
-      required: false
+      required: true

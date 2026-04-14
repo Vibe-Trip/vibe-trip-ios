@@ -1,0 +1,58 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
+	<key>UIDesignRequiresCompatibility</key>
+	<true/>
+	<key>CFBundleLocalizations</key>
+	<array>
+		<string>en</string>
+		<string>ko</string>
+	</array>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>kakao5ebb48f7c2f5830230937a980a5dcb46</string>
+			</array>
+		</dict>
+	</array>
+	<key>KAKAO_APP_KEY</key>
+	<string>5ebb48f7c2f5830230937a980a5dcb46</string>
+	<key>LSApplicationQueriesSchemes</key>
+	<array>
+		<string>kakaokompassauth</string>
+		<string>kakaolink</string>
+	</array>
+	<key>NSAppTransportSecurity</key>
+	<dict>
+		<key>NSExceptionDomains</key>
+		<dict>
+			<key>k.kakaocdn.net</key>
+			<dict>
+				<key>NSExceptionAllowsInsecureHTTPLoads</key>
+				<true/>
+			</dict>
+		</dict>
+	</dict>
+	<key>UIUserInterfaceStyle</key>
+	<string>Light</string>
+	<key>UIAppFonts</key>
+	<array>
+		<string>Pretendard-Black.otf</string>
+		<string>Pretendard-ExtraBold.otf</string>
+		<string>Pretendard-Bold.otf</string>
+		<string>Pretendard-SemiBold.otf</string>
+		<string>Pretendard-Medium.otf</string>
+		<string>Pretendard-Regular.otf</string>
+		<string>Pretendard-Light.otf</string>
+		<string>Pretendard-ExtraLight.otf</string>
+		<string>Pretendard-Thin.otf</string>
+	</array>
+</dict>
+</plist>

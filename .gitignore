@@ -1,0 +1,37 @@
+# Xcode
+*.xcuserstate
+xcuserdata/
+*.xccheckout
+*.moved-aside
+DerivedData/
+*.hmap
+*.ipa
+*.dSYM.zip
+*.dSYM
+
+# Swift Package Manager
+.build/
+.swiftpm/
+
+# CocoaPods 
+# Pods/
+# Podfile.lock
+
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# Xcode Previews
+PreviewReplaced/
+
+# Test Views
+VibeTrip/testViews/
+
+# Firebase
+GoogleService-Info.plist
+
+# docs
+/docs/
+/.claude

@@ -1,0 +1,662 @@
+//
+//  EditAlbumView.swift
+//  VibeTrip
+//
+//  Created by CHOI on 3/26/26.
+//
+
+import SwiftUI
+import UIKit
+
+
+@MainActor
+struct EditAlbumView: View {
+
+    private enum Layout {
+        static let headerHeight: CGFloat = 44
+    }
+
+    private enum MusicRegenerationOption: String, CaseIterable, Identifiable {
+        case regenerate
+        case doNotRegenerate
+
+        var id: String { rawValue }
+
+        var title: String {
+            switch self {
+            case .regenerate:
+                return "재생성"
+            case .doNotRegenerate:
+                return "재생성 하지않음"
+            }
+        }
+    }
+
+    // MARK: - ViewModel
+
+    @StateObject private var viewModel: EditAlbumViewModel
+
+    // MARK: - UI 상태 (뷰 레이어 전용)
+
+    @State private var isPhotoPickerPresented = false
+    @State private var isDatePickerPresented = false
+    @State private var isGenreDescriptionPresented = false
+    @State private var isExitAlertPresented = false
+    @State private var keyboardHeight: CGFloat = 0
+    // 날짜 피커 시트 내 임시 날짜 (확정 전 스테이징)
+    @State private var stagedStartDate: Date = Date()
+    @State private var stagedEndDate: Date = Date()
+
+    // 뒤로가기 시 호출 (수정 취소)
+    private let onExit: () -> Void
+
+    // MARK: - Computed
+
+    // 가사 포함 여부에 따라 장르 목록 분기
+    private var displayedGenres: [AlbumGenre] {
+        viewModel.lyricsOption == .include ? AlbumGenre.vocalGenres : AlbumGenre.instrumentalGenres
+    }
+
+    // 장르 안내 헬퍼 텍스트
+    private var genreHelperText: String {
+        viewModel.lyricsOption == .include
+            ? "미선택 시 장르는 Pop으로 선택됩니다"
+            : "미선택 시 장르는 Lofi로 선택됩니다"
+    }
+
+    // GenreDescriptionModalView에 전달할 장르 설명 데이터
+    private var genreDescriptions: [GenreDescriptionModel] {
+        displayedGenres.map { GenreDescriptionModel(genre: $0, description: $0.descriptionText(for: viewModel.lyricsOption)) }
+    }
+
+    // 여행기간 표시 텍스트
+    private var formattedDateRange: String {
+        guard viewModel.hasDateSelected else { return "" }
+        return "\(viewModel.startDate.albumDateString) - \(viewModel.endDate.albumDateString)"
+    }
+
+    // MARK: - Init
+
+    init(albumId: Int, onExit: @escaping () -> Void, onSaved: @escaping (EditAlbumSaveOutcome) -> Void) {
+        _viewModel = StateObject(wrappedValue: EditAlbumViewModel(albumId: albumId, onSaved: onSaved))
+        self.onExit = onExit
+    }
+
+    // MARK: - Body
+
+    var body: some View {
+        ZStack(alignment: .bottom) {
+            Color.white
+                .ignoresSafeArea()
+
+            ZStack(alignment: .top) {
+                VStack(spacing: 0) {
+                    ScrollView(showsIndicators: false) {
+                        VStack(alignment: .leading, spacing: 20) {
+                            // MARK: - 음악 재생성 여부
+                            VStack(alignment: .leading, spacing: 8) {
+                                sectionHeader(title: "음악 재생성 여부", subtitle: "필수 선택", isRequired: true)
+
+                                MakeAlbumSegmentedControl(
+                                    options: MusicRegenerationOption.allCases,
+                                    title: { $0.title },
+                                    selection: viewModel.regenerateMusic ? .regenerate : .doNotRegenerate,
+                                    onSelect: { viewModel.regenerateMusic = ($0 == .regenerate) }
+                                )
+                            }
+                            .padding(.bottom, -12)
+
+                            // MARK: - 사진
+                            VStack(alignment: .leading, spacing: 8) {
+                                sectionHeader(title: "사진", subtitle: "필수 선택", isRequired: true)
+
+                                Button(action: { isPhotoPickerPresented = true }) {
+                                    EditAlbumPhotoBox(image: viewModel.selectedImage, coverImageUrl: viewModel.coverImageUrl)
+                                }
+                                .buttonStyle(.plain)
+                            }
+
+                            // MARK: - 앨범 제목 (UI 표시용, 서버 미전송)
+                            VStack(alignment: .leading, spacing: 8) {
+                                sectionHeader(title: "앨범 제목", subtitle: "필수 입력 (최대 15자)", isRequired: true)
+
+                                TextField("앨범 제목을 입력해주세요.", text: $viewModel.albumTitle)
+                                    .font(Font.setPretendard(weight: .regular, size: 16))
+                                    .foregroundColor(Color.textPrimary)
+                                    .padding(.horizontal, 16)
+                                    .frame(maxWidth: .infinity, minHeight: 48, maxHeight: 48, alignment: .leading)
+                                    .background(Color.fieldBackground)
+                                    .clipShape(RoundedRectangle(cornerRadius: 8))
+                                    .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.fieldBorder, lineWidth: 1))
+                                    .shadow(color: .black.opacity(0.06), radius: 1.5, x: 0, y: 1)
+                                    .onChange(of: viewModel.albumTitle) { _, newValue in
+                                        let limited = String(newValue.prefix(15))
+                                        if newValue != limited {
+                                            viewModel.albumTitle = limited
+                                            viewModel.toastMessage = "앨범 제목은 15자까지만 쓸 수 있어요."
+                                        }
+                                    }
+                            }
+
+                        // MARK: - 여행지
+                        VStack(alignment: .leading, spacing: 8) {
+                            sectionHeader(title: "여행지", subtitle: "필수 입력 (최대 25자)", isRequired: true)
+
+                            TextField("여행지의 이름을 입력해주세요.", text: $viewModel.destination)
+                                .font(Font.setPretendard(weight: .regular, size: 16))
+                                .foregroundColor(Color.textPrimary)
+                                .padding(.horizontal, 16)
+                                .frame(maxWidth: .infinity, minHeight: 48, maxHeight: 48, alignment: .leading)
+                                .background(Color.fieldBackground)
+                                .clipShape(RoundedRectangle(cornerRadius: 8))
+                                .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.fieldBorder, lineWidth: 1))
+                                .shadow(color: .black.opacity(0.06), radius: 1.5, x: 0, y: 1)
+                                .onChange(of: viewModel.destination) { _, newValue in
+                                    let limited = String(newValue.prefix(25))
+                                    if newValue != limited {
+                                        viewModel.destination = limited
+                                        viewModel.toastMessage = "여행지 이름은 25자까지만 쓸 수 있어요."
+                                    }
+                                }
+                        }
+
+                        // MARK: - 여행기간
+                        VStack(alignment: .leading, spacing: 8) {
+                            sectionHeader(title: "여행기간", subtitle: "필수 입력", isRequired: true)
+
+                            Button(action: {
+                                stagedStartDate = viewModel.startDate
+                                stagedEndDate = viewModel.endDate
+                                isDatePickerPresented = true
+                            }) {
+                                HStack {
+                                    Text(
+                                        formattedDateRange.isEmpty
+                                        ? "여행 기간을 입력해주세요."
+                                        : formattedDateRange
+                                    )
+                                    .font(Font.setPretendard(weight: .regular, size: 16))
+                                    .foregroundStyle(
+                                        formattedDateRange.isEmpty
+                                        ? Color("GrayScale/300")
+                                        : Color.textPrimary
+                                    )
+
+                                    Spacer()
+                                }
+                                .padding(.horizontal, 16)
+                                .frame(maxWidth: .infinity, minHeight: 48, maxHeight: 48, alignment: .leading)
+                                .background(Color.fieldBackground)
+                                .clipShape(RoundedRectangle(cornerRadius: 8))
+                                .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.fieldBorder, lineWidth: 1))
+                                .shadow(color: .black.opacity(0.06), radius: 1.5, x: 0, y: 1)
+                            }
+                            .buttonStyle(.plain)
+                        }
+
+                        if viewModel.regenerateMusic {
+                            // MARK: - 가사 포함 여부
+                            VStack(alignment: .leading, spacing: 8) {
+                                sectionHeader(title: "가사 포함 여부", subtitle: "필수 선택", isRequired: true)
+
+                                MakeAlbumSegmentedControl(
+                                    options: LyricsOption.allCases,
+                                    title: { $0.title },
+                                    selection: viewModel.lyricsOption,
+                                    onSelect: { option in
+                                        viewModel.lyricsOption = option
+                                        if option == .exclude {
+                                            viewModel.vocalGender = nil
+                                            if let genre = viewModel.selectedGenre, AlbumGenre.vocalGenres.contains(genre) {
+                                                viewModel.selectedGenre = nil
+                                            }
+                                        } else {
+                                            if let genre = viewModel.selectedGenre, AlbumGenre.instrumentalGenres.contains(genre) {
+                                                viewModel.selectedGenre = nil
+                                            }
+                                        }
+                                    }
+                                )
+                            }
+
+                            // MARK: - 보컬 성별
+                            if viewModel.lyricsOption == .include {
+                                VStack(alignment: .leading, spacing: 8) {
+                                    sectionHeader(title: "보컬 성별 선택", subtitle: "필수 선택", isRequired: true)
+
+                                    MakeAlbumSegmentedControl(
+                                        options: VocalGender.allCases,
+                                        title: { $0.title },
+                                        selection: viewModel.vocalGender,
+                                        onSelect: { viewModel.vocalGender = $0 }
+                                    )
+                                }
+                                .transition(.opacity)
+                            }
+
+                            // MARK: - 장르 선택
+                            VStack(alignment: .leading, spacing: 8) {
+                                HStack(alignment: .top) {
+                                    VStack(alignment: .leading, spacing: 4) {
+                                        HStack(alignment: .firstTextBaseline, spacing: 4) {
+                                            Text("장르 선택")
+                                                .font(Font.setPretendard(weight: .semiBold, size: 16))
+                                                .foregroundStyle(Color.textPrimary)
+
+                                            Text("선택 입력")
+                                                .font(Font.setPretendard(weight: .medium, size: 12))
+                                                .foregroundStyle(Color("GrayScale/300"))
+                                        }
+
+                                        Text(genreHelperText)
+                                            .font(Font.setPretendard(weight: .medium, size: 12))
+                                            .foregroundStyle(Color("GrayScale/300"))
+                                    }
+
+                                    Spacer()
+
+                                    // 장르 설명 모달 버튼
+                                    Button(action: { isGenreDescriptionPresented = true }) {
+                                        Image(systemName: "info.circle")
+                                            .font(.system(size: 18))
+                                            .foregroundStyle(Color.appPrimary.opacity(0.6))
+                                    }
+                                    .buttonStyle(.plain)
+                                }
+
+                                LazyVGrid(
+                                    columns: [
+                                        GridItem(.flexible(), spacing: 4),
+                                        GridItem(.flexible(), spacing: 4),
+                                        GridItem(.flexible(), spacing: 4)
+                                    ],
+                                    alignment: .leading,
+                                    spacing: 8
+                                ) {
+                                    ForEach(displayedGenres) { genre in
+                                        Button(action: {
+                                            viewModel.selectedGenre = viewModel.selectedGenre == genre ? nil : genre
+                                        }) {
+                                            Text(genre.rawValue)
+                                                .font(Font.setPretendard(weight: .medium, size: 16))
+                                                .foregroundStyle(Color.textPrimary)
+                                                .frame(maxWidth: .infinity)
+                                                .frame(height: 52)
+                                                .background(
+                                                    RoundedRectangle(cornerRadius: 8)
+                                                        .fill(
+                                                            viewModel.selectedGenre == genre
+                                                            ? Color.chipSelectedBackground
+                                                            : Color.chipUnselectedBackground
+                                                        )
+                                                )
+                                                .overlay(
+                                                    RoundedRectangle(cornerRadius: 8)
+                                                        .stroke(
+                                                            viewModel.selectedGenre == genre
+                                                            ? Color.appPrimary.opacity(0.35)
+                                                            : Color.fieldBorder,
+                                                            lineWidth: 1
+                                                        )
+                                                )
+                                                .shadow(color: .black.opacity(0.06), radius: 1.5, x: 0, y: 1)
+                                        }
+                                        .buttonStyle(.plain)
+                                    }
+                                }
+                            }
+                        }
+
+                        // MARK: - 앨범 코멘터리
+                        CommentarySection(commentary: $viewModel.commentary)
+                        }
+                        .padding(.horizontal, 20)
+                        .padding(.top, 12)
+                        .padding(.bottom, 24)
+                        .animation(.easeInOut(duration: 0.2), value: viewModel.regenerateMusic)
+                        .animation(.easeInOut(duration: 0.2), value: viewModel.lyricsOption)
+                    }
+                }
+                .safeAreaInset(edge: .top) { headerSpacer }
+
+                AppNavigationBar(title: "앨범 수정", style: .blurAlways, onBackTap: {
+                    if viewModel.hasChanges {
+                        isExitAlertPresented = true
+                    } else {
+                        onExit()
+                    }
+                })
+            }
+        }
+        // 하단 고정 버튼
+        .safeAreaInset(edge: .bottom, spacing: 0) {
+            EditAlbumBottomButton(
+                isEnabled: viewModel.isValid && !viewModel.isLoading,
+                action: { Task { await viewModel.submitEdit() } }
+            )
+        }
+        // 장르 설명 모달
+        .overlay {
+            if isGenreDescriptionPresented {
+                GenreDescriptionModalView(
+                    descriptions: genreDescriptions,
+                    onClose: { isGenreDescriptionPresented = false }
+                )
+            }
+        }
+        // 토스트 (viewModel + 입력 검증 공용)
+        .overlay(alignment: .bottom) {
+            if let message = viewModel.toastMessage {
+                AppToastView(message: message)
+                    .padding(.bottom, keyboardAwareToastPadding)
+                    .transition(.move(edge: .bottom).combined(with: .opacity))
+            }
+        }
+        .animation(.easeInOut(duration: 0.2), value: viewModel.toastMessage)
+        .onChange(of: viewModel.toastMessage) { _, newValue in
+            guard newValue != nil else { return }
+            Task {
+                try? await Task.sleep(for: .seconds(2))
+                viewModel.toastMessage = nil
+            }
+        }
+        // 사진 선택 시트
+        .sheet(isPresented: $isPhotoPickerPresented) {
+            MakeAlbumPhotoPickerView { data in
+                guard let data else { return }
+                let maxBytes = 10 * 1024 * 1024
+                guard data.count <= maxBytes else {
+                    viewModel.toastMessage = "10MB보다 작은 사진을 골라주세요."
+                    return
+                }
+                guard let image = UIImage(data: data) else { return }
+                viewModel.selectedImage = image
+            }
+        }
+        // 여행기간 선택 시트
+        .sheet(isPresented: $isDatePickerPresented) {
+            DateRangePickerSheetView(
+                startDate: $stagedStartDate,
+                endDate: $stagedEndDate,
+                onConfirm: {
+                    viewModel.startDate = stagedStartDate
+                    viewModel.endDate = stagedEndDate
+                    viewModel.hasDateSelected = true
+                    isDatePickerPresented = false
+                }
+            )
+        }
+        // 변경사항 경고 팝업
+        .overlay {
+            if isExitAlertPresented {
+                ExitPopupView(
+                    title: "앨범 수정을 멈출까요?",
+                    message: "페이지를 벗어나면 작성 중인 내용이\n저장되지 않고 사라지게 돼요.",
+                    onCancel: { isExitAlertPresented = false },
+                    onConfirm: {
+                        isExitAlertPresented = false
+                        onExit()
+                    }
+                )
+            }
+        }
+        .simultaneousGesture(
+            TapGesture().onEnded {
+                dismissKeyboard()
+            }
+        )
+        .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillShowNotification)) { notification in
+            guard let frame = notification.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? CGRect else {
+                return
+            }
+            keyboardHeight = frame.height
+        }
+        .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillHideNotification)) { _ in
+            keyboardHeight = 0
+        }
+        .task { await viewModel.load() }
+    }
+
+    private var headerSpacer: some View {
+        Color.clear.frame(height: Layout.headerHeight)
+    }
+
+    private var keyboardAwareToastPadding: CGFloat {
+        keyboardHeight > 0 ? keyboardHeight + 32 : 96
+    }
+
+    private func dismissKeyboard() {
+        UIApplication.shared.sendAction(
+            #selector(UIResponder.resignFirstResponder),
+            to: nil,
+            from: nil,
+            for: nil
+        )
+    }
+
+    // 섹션 헤더 빌더
+    @ViewBuilder
+    private func sectionHeader(title: String, subtitle: String, isRequired: Bool) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: 4) {
+            HStack(alignment: .top, spacing: 4) {
+                Text(title)
+                    .font(Font.setPretendard(weight: .semiBold, size: 16))
+                    .foregroundStyle(Color.textPrimary)
+
+                if isRequired {
+                    Circle()
+                        .fill(Color(red: 0.5, green: 0.52, blue: 0.89))
+                        .frame(width: 5, height: 5)
+                        .offset(y: 2)
+                }
+            }
+
+            Text(subtitle)
+                .font(Font.setPretendard(weight: .medium, size: 12))
+                .foregroundStyle(Color("GrayScale/300"))
+        }
+    }
+}
+
+
+// MARK: - EditAlbumPhotoBox
+
+private struct EditAlbumPhotoBox: View {
+
+    let image: UIImage?
+    let coverImageUrl: URL?     // Pre-fill: 기존 커버 이미지 URL
+
+    private enum Layout {
+        static let containerHeight: CGFloat = 272
+        static let imageWidthRatio: CGFloat = 242.0 / 362.0
+    }
+
+    var body: some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: 12)
+                .fill(Color.fieldBackground)
+                .frame(height: Layout.containerHeight)
+                .overlay(
+                    RoundedRectangle(cornerRadius: 12)
+                        .inset(by: 0.5)
+                        .stroke(Color.fieldBorder, lineWidth: 1)
+                )
+                .shadow(color: .black.opacity(0.06), radius: 1.5, x: 0, y: 1)
+
+            if let image {
+                // 새로 선택한 이미지
+                GeometryReader { proxy in
+                    let imageWidth = proxy.size.width * Layout.imageWidthRatio
+                    let imageHeight = proxy.size.height
+
+                    ZStack {
+                        RoundedRectangle(cornerRadius: 12)
+                            .fill(Color("GrayScale/900"))
+
+                        Image(uiImage: image)
+                            .resizable()
+                            .frame(width: imageWidth, height: imageHeight - 0.5)
+                            .clipped()
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
+                }
+                .frame(height: Layout.containerHeight)
+            } else if let coverImageUrl {
+                // Pre-fill: 기존 커버 이미지
+                GeometryReader { proxy in
+                    let imageWidth = proxy.size.width * Layout.imageWidthRatio
+                    let imageHeight = proxy.size.height
+
+                    ZStack {
+                        RoundedRectangle(cornerRadius: 12)
+                            .fill(Color("GrayScale/900"))
+
+                        AsyncImage(url: coverImageUrl) { phase in
+                            switch phase {
+                            case .success(let img):
+                                img.resizable()
+                                    .frame(width: imageWidth, height: imageHeight - 0.5)
+                                    .clipped()
+                            default:
+                                Color.placeholderSymbol
+                                    .frame(width: imageWidth, height: imageHeight - 0.5)
+                            }
+                        }
+                    }
+                    .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .center)
+                }
+                .frame(height: Layout.containerHeight)
+            } else {
+                // 사진 미선택 상태
+                VStack(spacing: 8) {
+                    Image(systemName: "camera")
+                        .font(.system(size: 40, weight: .regular))
+                        .foregroundStyle(Color.placeholderSymbol)
+
+                    Text("앨범 커버 사진을 선택해주세요.")
+                        .font(Font.setPretendard(weight: .medium, size: 14))
+                        .foregroundStyle(Color("GrayScale/300"))
+                        .multilineTextAlignment(.center)
+                }
+                .padding(.horizontal, 24)
+            }
+        }
+    }
+}
+
+
+// MARK: - CommentarySection
+
+private struct CommentarySection: View {
+
+    @Binding var commentary: String
+    @FocusState private var isFocused: Bool
+
+    private let maxCount = 500
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(alignment: .firstTextBaseline, spacing: 4) {
+                Text("앨범 코멘터리")
+                    .font(Font.setPretendard(weight: .semiBold, size: 16))
+                    .foregroundStyle(Color.textPrimary)
+
+                Text("선택 입력")
+                    .font(Font.setPretendard(weight: .medium, size: 12))
+                    .foregroundStyle(Color("GrayScale/300"))
+            }
+
+            ZStack(alignment: .topLeading) {
+                TextEditor(text: $commentary)
+                    .font(Font.setPretendard(weight: .medium, size: 16))
+                    .foregroundColor(Color.textPrimary)
+                    .scrollContentBackground(.hidden)
+                    .padding(.horizontal, 12)
+                    .padding(.top, 8)
+                    .frame(height: 220)
+                    .background(Color.fieldBackground)
+                    .clipShape(RoundedRectangle(cornerRadius: 8))
+                    .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.fieldBorder, lineWidth: 1))
+                    .shadow(color: .black.opacity(0.06), radius: 1.5, x: 0, y: 1)
+                    .focused($isFocused)
+                    .onChange(of: commentary) { _, newValue in
+                        let limited = String(newValue.prefix(maxCount))
+                        if newValue != limited { commentary = limited }
+                    }
+
+                if commentary.isEmpty {
+                    Text("어떤 분위기의 노래를 만들고 싶나요?\n지금 느끼는 감정을 기록해보세요.")
+                        .font(Font.setPretendard(weight: .medium, size: 16))
+                        .foregroundStyle(Color("GrayScale/300"))
+                        .padding(.horizontal, 16)
+                        .padding(.top, 20)
+                        .allowsHitTesting(false)
+                }
+
+                // 글자 수 카운터
+                VStack {
+                    Spacer()
+                    HStack {
+                        Spacer()
+                        Text("\(commentary.count)/\(maxCount)")
+                            .font(Font.setPretendard(weight: .medium, size: 12))
+                            .foregroundStyle(Color("GrayScale/300"))
+                            .padding(.trailing, 14)
+                            .padding(.bottom, 14)
+                    }
+                }
+                .frame(height: 220)
+                .allowsHitTesting(false)
+            }
+        }
+    }
+}
+
+
+// MARK: - EditAlbumBottomButton
+
+private struct EditAlbumBottomButton: View {
+
+    let isEnabled: Bool
+    let action: () -> Void
+
+    var body: some View {
+        Button(action: action) {
+            Text("수정 완료")
+                .font(Font.setPretendard(weight: .semiBold, size: 18))
+                .foregroundStyle(isEnabled ? .white : Color.buttonDisabledForeground)
+                .frame(maxWidth: .infinity)
+                .frame(height: 52)
+                .background(isEnabled ? Color.appPrimary : Color.buttonDisabledBackground)
+                .clipShape(Capsule())
+        }
+        .buttonStyle(.plain)
+        .padding(.horizontal, 20)
+        .padding(.top, 32)
+        .padding(.bottom, 8)
+        .background(
+            LinearGradient(
+                gradient: Gradient(stops: [
+                    .init(color: .white.opacity(0), location: 0),
+                    .init(color: .white, location: 0.45)
+                ]),
+                startPoint: .top,
+                endPoint: .bottom
+            )
+            .ignoresSafeArea(edges: .bottom)
+        )
+    }
+}
+
+
+// MARK: - Preview
+
+#if DEBUG
+#Preview {
+    EditAlbumView(
+        albumId: 1,
+        onExit: {},
+        onSaved: { _ in }
+    )
+}
+#endif
