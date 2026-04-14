@@ -7,6 +7,7 @@
 
 import SwiftUI
 import UIKit
+import UserNotifications
 
 // MARK: - AppTab
 // 탭바 항목 정의 (순서, 아이콘, 레이블)
@@ -99,6 +100,8 @@ struct MainTabBarView: View {
             Task {
                 let result = await notificationViewModel.checkUnread()
                 if result.hasUnread { appState.hasUnreadNotifications = true }
+                // 백그라운드에서 수신해둔 미처리 COMPLETED 알림 소비 (알림 탭 없이 직접 진입한 경우)
+                await consumeDeliveredCompletedNotifications()
                 // 앱 직접 복귀 경로: COMPLETED 감지를 위해 1회 동기화
                 // pendingNotificationAction이 설정된 경우 딥링크 경로에서 이미 갱신 처리 -> 중복 스킵
                 if appState.pendingNotificationAction == nil {
@@ -448,6 +451,25 @@ struct MainTabBarView: View {
     private func handleMakeAlbumTabTap() {
         guard !isPresentingMakeAlbum else { return }
         presentMakeAlbumFlow()
+    }
+
+    // 백그라운드에서 수신했으나 탭되지 않은 COMPLETED 알림을 찾아 handleAlbumCompleted로 소비
+    // 처리된 알림은 알림 센터에서 제거하여 중복 처리 방지
+    private func consumeDeliveredCompletedNotifications() async {
+        let center = UNUserNotificationCenter.current()
+        let delivered = await center.deliveredNotifications()
+        var processedIdentifiers: [String] = []
+        for notification in delivered {
+            let userInfo = notification.request.content.userInfo
+            guard let payload = FCMPayload.decode(from: userInfo),
+                  payload.type == "COMPLETED",
+                  let albumId = payload.data?.albumId else { continue }
+            await mainPageViewModel.handleAlbumCompleted(albumId: albumId)
+            processedIdentifiers.append(notification.request.identifier)
+        }
+        if !processedIdentifiers.isEmpty {
+            center.removeDeliveredNotifications(withIdentifiers: processedIdentifiers)
+        }
     }
 
     // 완료 알림 albumId로 단일 앨범 조회 후 해당 상세페이지 이동

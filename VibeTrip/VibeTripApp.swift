@@ -79,7 +79,7 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
                                 willPresent notification: UNNotification,
                                 withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void) {
         let userInfo = notification.request.content.userInfo
-        let payload = decodeFCMPayload(from: userInfo)
+        let payload = FCMPayload.decode(from: userInfo)
         Task { @MainActor in
             appState?.hasUnreadNotifications = true
             appState?.needsNotificationRefresh = true
@@ -98,37 +98,13 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
                                 didReceive response: UNNotificationResponse,
                                 withCompletionHandler completionHandler: @escaping () -> Void) {
         let userInfo = response.notification.request.content.userInfo
-        let navigationAction = decodeFCMPayload(from: userInfo)?.toNavigationAction()
+        let navigationAction = FCMPayload.decode(from: userInfo)?.toNavigationAction()
         Task { @MainActor in
             appState?.hasUnreadNotifications = true
             appState?.needsNotificationRefresh = true
             appState?.pendingNotificationAction = navigationAction
         }
         completionHandler()
-    }
-
-    // FCM userInfo에서 커스텀 payload 디코딩
-    private func decodeFCMPayload(from userInfo: [AnyHashable: Any]) -> FCMPayload? {
-        let decoder = JSONDecoder()
-
-        if let payloadObject = userInfo["payload"] as? [String: Any],
-           let data = try? JSONSerialization.data(withJSONObject: payloadObject),
-           let payload = try? decoder.decode(FCMPayload.self, from: data) {
-            return payload
-        }
-
-        if let payloadString = userInfo["payload"] as? String,
-           let data = payloadString.data(using: .utf8),
-           let payload = try? decoder.decode(FCMPayload.self, from: data) {
-            return payload
-        }
-
-        // payload 래핑이 없는 형식도 대비
-        if let data = try? JSONSerialization.data(withJSONObject: userInfo),
-           let payload = try? decoder.decode(FCMPayload.self, from: data) {
-            return payload
-        }
-        return nil
     }
 }
 
