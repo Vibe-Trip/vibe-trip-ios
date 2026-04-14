@@ -124,10 +124,8 @@ struct MainTabBarView: View {
             AlbumDetailView(
                 displayModel: presentation.displayModel,
                 onBackTap: {
-                    // 뒤로가기 시 캐러셀을 해당 앨범 카드 위치로 이동
                     appState.pendingCarouselAlbumId = presentation.displayModel.albumId
                     presentedAlbumDetail = nil
-                    selectedTab = .home
                     isTabBarHidden = false
                 },
                 onEditSaved: { outcome in
@@ -153,10 +151,12 @@ struct MainTabBarView: View {
             // albumId 기준으로 view 재생성 강제 -> @State/@StateObject 확실히 초기화
             .id(presentation.displayModel.albumId)
             .onAppear {
-                // 해당 앨범 상세페이지 이동 후 탭 전환
+                // 마스크 뒤에서 홈 탭 전환 + 해당 앨범 캐러셀 위치 세팅
+                // -> 뒤로가기 시 알림 탭 노출 없이 홈의 해당 앨범으로 복귀 보장
                 DispatchQueue.main.async {
                     Task { await mainPageViewModel.refreshAlbumsWithoutClearing() }
-                    // 상세 애니메이션 이후에 마스크를 해제 -> 탭 전환 노출 방지
+                    appState.pendingCarouselAlbumId = presentation.displayModel.albumId
+                    selectedTab = .home
                     isResolvingAlbumDetail = false
                 }
             }
