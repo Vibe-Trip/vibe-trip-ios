@@ -34,7 +34,7 @@ final class NotificationFlowTests: XCTestCase {
             error: nil
         )
 
-        XCTAssertEqual(payload.toNavigationAction(), .openAlbumCreationLoading)
+        XCTAssertEqual(payload.toNavigationAction(), .openAlbumCreationLoading(albumId: "11"))
     }
 
     // COMPLETED 푸시 payload는 해당 albumId 상세 화면 액션으로 매핑
@@ -138,6 +138,74 @@ final class NotificationFlowTests: XCTestCase {
             // expected
         } else {
             XCTFail("기대 타입(.generating)과 다릅니다.")
+        }
+    }
+
+    // 같은 albumId에서 예전 COMPLETED 후 새 CREATING이 오면 최신 CREATING 표시
+    func test_loadNotifications_sameAlbumOldCompletedAndNewCreating_keepsLatestCreatingOne() async {
+        let stub = StubAlarmServiceForNotificationFlow()
+        stub.fetchResult = .success([
+            AlarmResponse(
+                alarmId: 30,
+                title: "생성 완료",
+                description: "completed",
+                alarmType: "COMPLETED",
+                createdAt: "2026-04-09T12:00:00",
+                albumId: 400
+            ),
+            AlarmResponse(
+                alarmId: 31,
+                title: "생성 중",
+                description: "creating",
+                alarmType: "CREATING",
+                createdAt: "2026-04-09T12:05:00",
+                albumId: 400
+            )
+        ])
+        let sut = NotificationViewModel(alarmService: stub)
+
+        await sut.loadNotifications()
+
+        XCTAssertEqual(sut.notifications.count, 1)
+        XCTAssertEqual(sut.notifications.first?.id, "31")
+        if case .generating(let albumId) = sut.notifications.first?.type {
+            XCTAssertEqual(albumId, "400")
+        } else {
+            XCTFail("기대 타입(.generating)과 다릅니다.")
+        }
+    }
+
+    // 같은 albumId에서 CREATING 후 FAILED가 오면 최신 FAILED 표시
+    func test_loadNotifications_sameAlbumCreatingAndFailed_keepsLatestFailedOne() async {
+        let stub = StubAlarmServiceForNotificationFlow()
+        stub.fetchResult = .success([
+            AlarmResponse(
+                alarmId: 40,
+                title: "생성 중",
+                description: "creating",
+                alarmType: "CREATING",
+                createdAt: "2026-04-09T13:00:00",
+                albumId: 500
+            ),
+            AlarmResponse(
+                alarmId: 41,
+                title: "생성 실패",
+                description: "failed",
+                alarmType: "FAILED",
+                createdAt: "2026-04-09T13:02:00",
+                albumId: 500
+            )
+        ])
+        let sut = NotificationViewModel(alarmService: stub)
+
+        await sut.loadNotifications()
+
+        XCTAssertEqual(sut.notifications.count, 1)
+        XCTAssertEqual(sut.notifications.first?.id, "41")
+        if case .failed = sut.notifications.first?.type {
+            // expected
+        } else {
+            XCTFail("기대 타입(.failed)과 다릅니다.")
         }
     }
 

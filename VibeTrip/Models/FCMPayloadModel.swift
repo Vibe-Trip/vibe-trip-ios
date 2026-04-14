@@ -74,7 +74,7 @@ extension FCMPayload {
     func toNavigationAction() -> NotificationNavigationAction? {
         switch type {
         case "CREATING":
-            return .openAlbumCreationLoading
+            return .openAlbumCreationLoading(albumId: data?.albumId.map { String($0) })
         case "COMPLETED":
             // albumId 누락 시 홈 탭으로 이동하는 fallback 처리
             guard let albumId = data?.albumId else { return .openHome }

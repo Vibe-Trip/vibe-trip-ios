@@ -6,6 +6,7 @@
 //
 
 import XCTest
+import UIKit
 @testable import VibeTrip
 
 // MARK: - StubAlbumLogService
@@ -122,9 +123,17 @@ final class AlbumLogViewModelTests: XCTestCase {
 
     // MARK: - addPhotos
 
+    private func makeTestImage(size: CGSize = CGSize(width: 10, height: 10)) -> UIImage {
+        let renderer = UIGraphicsImageRenderer(size: size)
+        return renderer.image { context in
+            UIColor.red.setFill()
+            context.fill(CGRect(origin: .zero, size: size))
+        }
+    }
+
     // 5장 이하 추가 -> selectedPhotos에 정상 반영
     func test_addPhotos_withinLimit_addsPhotos() {
-        let images = (0..<3).map { _ in UIImage() }
+        let images = (0..<3).map { _ in makeTestImage() }
 
         sut.addPhotos(images)
 
@@ -133,7 +142,7 @@ final class AlbumLogViewModelTests: XCTestCase {
 
     // 5장 초과 추가 -> 한도 초과 토스트 메시지 설정
     func test_addPhotos_exceedLimit_showsToast() {
-        let images = (0..<6).map { _ in UIImage() }
+        let images = (0..<6).map { _ in makeTestImage() }
 
         sut.addPhotos(images)
 

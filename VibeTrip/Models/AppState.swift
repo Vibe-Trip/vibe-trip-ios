@@ -18,8 +18,7 @@ enum NotificationNavigationAction: Equatable {
     case openMakeAlbum
 
     // 앨범 생성 중: MakeAlbumLoadingView
-    // TODO: 서버 연동 시, MakeAlbumViewModel 상태 보존 후 기존 로딩 화면 복귀 구현 
-    case openAlbumCreationLoading
+    case openAlbumCreationLoading(albumId: String?)
 
     // 앨범 생성 완료: AlbumDetailView
     case openAlbumDetail(albumId: String)

@@ -42,7 +42,7 @@ extension AlarmResponse {
     private func toNotificationType() -> NotificationType? {
         switch alarmType {
         case "CREATING":
-            return .generating
+            return .generating(albumId: albumId.map { String($0) })
         case "COMPLETED":
             // COMPLETED는 반드시 albumId가 필요
             guard let albumId else { return nil }
