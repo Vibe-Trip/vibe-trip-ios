@@ -7,6 +7,7 @@
 
 import SwiftUI
 import UIKit
+import UserNotifications
 
 // MARK: - AppTab
 // 탭바 항목 정의 (순서, 아이콘, 레이블)
@@ -99,6 +100,8 @@ struct MainTabBarView: View {
             Task {
                 let result = await notificationViewModel.checkUnread()
                 if result.hasUnread { appState.hasUnreadNotifications = true }
+                // 백그라운드에서 수신해둔 미처리 COMPLETED 알림 소비 (알림 탭 없이 직접 진입한 경우)
+                await consumeDeliveredCompletedNotifications()
                 // 앱 직접 복귀 경로: COMPLETED 감지를 위해 1회 동기화
                 // pendingNotificationAction이 설정된 경우 딥링크 경로에서 이미 갱신 처리 -> 중복 스킵
                 if appState.pendingNotificationAction == nil {
@@ -121,10 +124,8 @@ struct MainTabBarView: View {
             AlbumDetailView(
                 displayModel: presentation.displayModel,
                 onBackTap: {
-                    // 뒤로가기 시 캐러셀을 해당 앨범 카드 위치로 이동
                     appState.pendingCarouselAlbumId = presentation.displayModel.albumId
                     presentedAlbumDetail = nil
-                    selectedTab = .home
                     isTabBarHidden = false
                 },
                 onEditSaved: { outcome in
@@ -150,10 +151,12 @@ struct MainTabBarView: View {
             // albumId 기준으로 view 재생성 강제 -> @State/@StateObject 확실히 초기화
             .id(presentation.displayModel.albumId)
             .onAppear {
-                // 해당 앨범 상세페이지 이동 후 탭 전환
+                // 마스크 뒤에서 홈 탭 전환 + 해당 앨범 캐러셀 위치 세팅
+                // -> 뒤로가기 시 알림 탭 노출 없이 홈의 해당 앨범으로 복귀 보장
                 DispatchQueue.main.async {
                     Task { await mainPageViewModel.refreshAlbumsWithoutClearing() }
-                    // 상세 애니메이션 이후에 마스크를 해제 -> 탭 전환 노출 방지
+                    appState.pendingCarouselAlbumId = presentation.displayModel.albumId
+                    selectedTab = .home
                     isResolvingAlbumDetail = false
                 }
             }
@@ -448,6 +451,25 @@ struct MainTabBarView: View {
     private func handleMakeAlbumTabTap() {
         guard !isPresentingMakeAlbum else { return }
         presentMakeAlbumFlow()
+    }
+
+    // 백그라운드에서 수신했으나 탭되지 않은 COMPLETED 알림을 찾아 handleAlbumCompleted로 소비
+    // 처리된 알림은 알림 센터에서 제거하여 중복 처리 방지
+    private func consumeDeliveredCompletedNotifications() async {
+        let center = UNUserNotificationCenter.current()
+        let delivered = await center.deliveredNotifications()
+        var processedIdentifiers: [String] = []
+        for notification in delivered {
+            let userInfo = notification.request.content.userInfo
+            guard let payload = FCMPayload.decode(from: userInfo),
+                  payload.type == "COMPLETED",
+                  let albumId = payload.data?.albumId else { continue }
+            await mainPageViewModel.handleAlbumCompleted(albumId: albumId)
+            processedIdentifiers.append(notification.request.identifier)
+        }
+        if !processedIdentifiers.isEmpty {
+            center.removeDeliveredNotifications(withIdentifiers: processedIdentifiers)
+        }
     }
 
     // 완료 알림 albumId로 단일 앨범 조회 후 해당 상세페이지 이동

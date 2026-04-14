@@ -171,6 +171,11 @@ final class MainPageViewModel: ObservableObject {
         for album in albums where !readyAlbumIds.contains(album.id) {
             guard pollingTasks[album.id] == nil else { continue }
             let albumId = album.id
+            // title이 있고 재생성 대기 중이 아닌 앨범: 서버에서 이미 완료된 것으로 즉시 ready 처리
+            if album.title != nil && !pendingPollingIds.contains(albumId) {
+                readyAlbumIds.insert(albumId)
+                continue
+            }
             if shouldPoll {
                 pollingTasks[albumId] = Task { [weak self] in
                     await self?.pollMusic(for: albumId)
@@ -185,21 +190,39 @@ final class MainPageViewModel: ObservableObject {
     }
 
     // 권한 있는 경우 앱 진입 시 1회만 완료 여부 확인 (이후 완료는 FCM으로 수신)
+    // 1회 확인 실패 시(서버 반영 지연 등) 반복 폴링으로 폴백 -> 영구 스켈레톤 방지
     private func checkMusicOnce(for albumId: Int) async {
-        defer { pollingTasks[albumId] = nil }
-        guard !Task.isCancelled else { return }
-        guard let detail = try? await albumService.fetchAlbum(albumId: albumId),
-              detail.musicUrl != nil else { return }
-        applyAlbumReady(title: detail.title, for: albumId)
+        guard !Task.isCancelled else {
+            pollingTasks[albumId] = nil
+            return
+        }
+        if let detail = try? await albumService.fetchAlbum(albumId: albumId),
+           detail.musicUrl != nil {
+            applyAlbumReady(title: detail.title, for: albumId)
+            return
+        }
+        // 단건 확인 실패: 반복 폴링으로 폴백
+        guard !Task.isCancelled else {
+            pollingTasks[albumId] = nil
+            return
+        }
+        await pollMusic(for: albumId)
     }
 
     // FCM COMPLETED 수신 시 호출: 기존 폴링 취소 후 fetchAlbum 1회로 완료 처리
+    // 1회 확인 실패 시(서버 replication 지연 등) 반복 폴링으로 폴백 -> 영구 스켈레톤 방지
     func handleAlbumCompleted(albumId: Int) async {
         pollingTasks[albumId]?.cancel()
         pollingTasks[albumId] = nil
-        guard let detail = try? await albumService.fetchAlbum(albumId: albumId),
-              detail.musicUrl != nil else { return }
-        applyAlbumReady(title: detail.title, for: albumId)
+        if let detail = try? await albumService.fetchAlbum(albumId: albumId),
+           detail.musicUrl != nil {
+            applyAlbumReady(title: detail.title, for: albumId)
+            return
+        }
+        // 단건 확인 실패: 반복 폴링으로 폴백
+        pollingTasks[albumId] = Task { [weak self] in
+            await self?.pollMusic(for: albumId)
+        }
     }
 
     // musicUrl 조회: 즉시 1회 확인 후 5초 간격, 최대 120회(10분)

@@ -37,6 +37,35 @@ struct FCMPayloadErrorData: Decodable {
     let albumId: Int?
 }
 
+// MARK: - FCMPayload 디코딩
+
+extension FCMPayload {
+
+    // FCM userInfo에서 커스텀 payload 디코딩 (래핑 유무 모두 지원)
+    static func decode(from userInfo: [AnyHashable: Any]) -> FCMPayload? {
+        let decoder = JSONDecoder()
+
+        if let payloadObject = userInfo["payload"] as? [String: Any],
+           let data = try? JSONSerialization.data(withJSONObject: payloadObject),
+           let payload = try? decoder.decode(FCMPayload.self, from: data) {
+            return payload
+        }
+
+        if let payloadString = userInfo["payload"] as? String,
+           let data = payloadString.data(using: .utf8),
+           let payload = try? decoder.decode(FCMPayload.self, from: data) {
+            return payload
+        }
+
+        // payload 래핑이 없는 형식도 대비
+        if let data = try? JSONSerialization.data(withJSONObject: userInfo),
+           let payload = try? decoder.decode(FCMPayload.self, from: data) {
+            return payload
+        }
+        return nil
+    }
+}
+
 // MARK: - FCMPayload → NotificationNavigationAction 변환
 
 extension FCMPayload {
