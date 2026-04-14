@@ -20,6 +20,7 @@ final class MainPageViewModel: ObservableObject {
     @Published private(set) var isLoading: Bool = false     // 네트워크 요청 중 여부
     @Published private(set) var errorMessage: String? = nil // 에러 발생 시 메시지
     @Published private(set) var didFinishInitialLoad: Bool = false // 최초 API 응답 완료 여부
+    @Published private(set) var lastCompletedAlbumId: Int? = nil  // 가장 최근 완료된 앨범 ID (FCM 및 폴링 공통)
 
     // 신고로 숨긴 앨범 ID 목록 (클라이언트 인메모리, API 연동 전 목 처리)
     private var hiddenAlbumIds: Set<Int> = []
@@ -258,6 +259,7 @@ final class MainPageViewModel: ObservableObject {
         readyAlbumIds.insert(albumId)
         pendingPollingIds.remove(albumId)
         pollingTasks[albumId] = nil
+        lastCompletedAlbumId = albumId
     }
 
     // 신고된 앨범을 로컬에서 숨김 처리

@@ -67,10 +67,11 @@ struct MainTabBarView: View {
 
     // 앨범 생성 로딩 관련 상태
     @State private var isAlbumCreating = false                                                  // 요청 진행 중 여부
+    @State private var creatingAlbumId: Int? = nil                                             // 생성 요청한 앨범 ID (완료 감지용)
     @State private var albumLoadingError: MakeAlbumViewModel.AlbumCreationLoadingError? = nil  // 에러 팝업 종류
     @State private var albumRetryAction: (() -> Void)? = nil                                  // 네트워크 오류 재시도 클로저
     @State private var hiddenLoadingToastMessage: String? = nil
-    @State private var hiddenLoadingToastShowsIcon = false
+    @State private var hiddenLoadingToastIconName: String? = nil
     // 완료 알림 상세 진입 전 데이터 조회 중 화면 전환 가리는 상태
     @State private var isResolvingAlbumDetail = false
     @State private var presentedAlbumDetail: PendingAlbumDetailPresentation? = nil
@@ -269,6 +270,14 @@ struct MainTabBarView: View {
             appState.needsSilentAlbumRefresh = false
             Task { await mainPageViewModel.refreshAlbumsWithoutClearing() }
         }
+        // 앨범 생성 완료 감지 (FCM·폴링 공통): 생성 대기화면 자동 이탈
+        .onChange(of: mainPageViewModel.lastCompletedAlbumId) { _, completedId in
+            guard let completedId,
+                  let creatingId = creatingAlbumId,
+                  completedId == creatingId,
+                  isPresentingLoadingView else { return }
+            autoHideLoadingViewOnCompletion()
+        }
     }
 
     // ZStack 콘텐츠를 body에서 분리
@@ -313,9 +322,10 @@ struct MainTabBarView: View {
                         }
                     },
                     onCreationSuccess: { albumId in
-                        // 생성 성공: 화면 숨기기 버튼 활성화
+                        // 생성 성공: 화면 숨기기 버튼 활성화 + 완료 감지용 albumId 저장
                         isAlbumCreating = false
                         albumLoadingError = nil
+                        creatingAlbumId = albumId
                     },
                     onNetworkError: { retryAction in
                         // 네트워크 오류: 재시도 클로저 보관 후 팝업 표시
@@ -343,7 +353,7 @@ struct MainTabBarView: View {
                         withAnimation(.easeInOut(duration: 0.24)) {
                             isPresentingLoadingView = false
                             isPresentingMakeAlbum = false
-                            hiddenLoadingToastShowsIcon = true
+                            hiddenLoadingToastIconName = "exclamationmark.circle"
                             hiddenLoadingToastMessage = "앨범을 제작하고 있어요. 잠시만 기다려 주세요!"
                         }
                         DispatchQueue.main.asyncAfter(deadline: .now() + 0.18) {
@@ -388,7 +398,7 @@ struct MainTabBarView: View {
                 VStack {
                     Spacer()
                     AppToastView(message: hiddenLoadingToastMessage,
-                                 systemImageName: hiddenLoadingToastShowsIcon ? "exclamationmark.circle" : nil)
+                                 systemImageName: hiddenLoadingToastIconName)
                         .padding(.bottom, Constants.hideLoadingToastBottomPadding)
                         .transition(.move(edge: .bottom).combined(with: .opacity))
                         .onAppear {
@@ -426,8 +436,29 @@ struct MainTabBarView: View {
         withAnimation(.easeInOut(duration: 0.24)) {
             isPresentingLoadingView = false
             isPresentingMakeAlbum = false
-            hiddenLoadingToastShowsIcon = true
+            hiddenLoadingToastIconName = "exclamationmark.circle"
             hiddenLoadingToastMessage = "앨범 만들기를 취소했어요."
+        }
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.18) {
+            withAnimation(.easeInOut(duration: 0.22)) {
+                isTabBarHidden = false
+            }
+        }
+    }
+
+    // 생성 완료 감지 시 자동으로 로딩 화면 숨기기
+    private func autoHideLoadingViewOnCompletion() {
+        if let albumId = creatingAlbumId {
+            appState.pendingCarouselAlbumId = albumId
+        }
+        creatingAlbumId = nil
+        selectedTab = .home
+        DispatchQueue.main.async { appState.needsAlbumRefresh = true }
+        withAnimation(.easeInOut(duration: 0.24)) {
+            isPresentingLoadingView = false
+            isPresentingMakeAlbum = false
+            hiddenLoadingToastIconName = "checkmark.circle"
+            hiddenLoadingToastMessage = "앨범 생성이 완료됐어요!"
         }
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.18) {
             withAnimation(.easeInOut(duration: 0.22)) {
@@ -483,7 +514,7 @@ struct MainTabBarView: View {
                 selectedTab = .home
                 isTabBarHidden = false
                 isResolvingAlbumDetail = false
-                hiddenLoadingToastShowsIcon = true
+                hiddenLoadingToastIconName = "exclamationmark.circle"
                 hiddenLoadingToastMessage = Constants.deletedAlbumToastMessage
             }
             return
