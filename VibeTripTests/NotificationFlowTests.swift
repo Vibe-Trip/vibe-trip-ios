@@ -34,7 +34,7 @@ final class NotificationFlowTests: XCTestCase {
             error: nil
         )
 
-        XCTAssertEqual(payload.toNavigationAction(), .openAlbumCreationLoading)
+        XCTAssertEqual(payload.toNavigationAction(), .openAlbumCreationLoading(albumId: "11"))
     }
 
     // COMPLETED 푸시 payload는 해당 albumId 상세 화면 액션으로 매핑

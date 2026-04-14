@@ -135,8 +135,8 @@ final class MainPageViewModelTests: XCTestCase {
         XCTAssertNil(sut.errorMessage)
     }
 
-    // 앨범 생성 완료 조건: musicUrl
-    func test_loadAlbums_titleExists_butMusicNotReady_isNotReady() async {
+    // title이 있고 재생성 대기 중이 아니면 ready 처리
+    func test_loadAlbums_titleExists_marksAlbumReady() async {
         let cards = makeAlbumCards(ids: [1])
         let stub = StubAlbumService(results: [
             .success(AlbumListPayload(content: cards, totalCount: 1, hasNext: false))
@@ -145,7 +145,7 @@ final class MainPageViewModelTests: XCTestCase {
 
         await sut.loadAlbums()
 
-        XCTAssertFalse(sut.isReady(for: 1))
+        XCTAssertTrue(sut.isReady(for: 1))
     }
 
     // 에러 응답 -> errorMessage 설정됨, albums 비어있음
