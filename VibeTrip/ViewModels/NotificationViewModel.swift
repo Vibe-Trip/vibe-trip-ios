@@ -143,8 +143,7 @@ final class NotificationViewModel: ObservableObject {
         return Set(stored)
     }
 
-    // 같은 albumId: 최신 항목 하나만 유지
-    // CREATING -> COMPLETED or FAILED
+    // 같은 albumId: 가장 최신 항목 하나만 유지
     private func deduplicated(_ responses: [AlarmResponse]) -> [AlarmResponse] {
         // albumId 없는 항목은 그대로 유지
         let noAlbumIdItems = responses.filter { $0.albumId == nil }
@@ -152,14 +151,43 @@ final class NotificationViewModel: ObservableObject {
         // albumId 있는 항목들을 그룹핑 후 각 그룹에서 하나만 선택
         let grouped = Dictionary(grouping: responses.filter { $0.albumId != nil }, by: { $0.albumId! })
         let deduped: [AlarmResponse] = grouped.values.compactMap { group in
-            // COMPLETED or FAILED 중 가장 최신(alarmId 높은) 우선
-            let resolved = group.filter { $0.alarmType == "COMPLETED" || $0.alarmType == "FAILED" }
-            if let latest = resolved.max(by: { $0.alarmId < $1.alarmId }) { return latest }
-            // CREATING만 있으면 그 중 최신
-            return group.max(by: { $0.alarmId < $1.alarmId })
+            group.max { lhs, rhs in
+                let lhsDate = parseAlarmDate(lhs.createdAt)
+                let rhsDate = parseAlarmDate(rhs.createdAt)
+                if lhsDate == rhsDate {
+                    return lhs.alarmId < rhs.alarmId
+                }
+                return lhsDate < rhsDate
+            }
         }
 
         return noAlbumIdItems + deduped
     }
+
+    private func parseAlarmDate(_ string: String) -> Date {
+        if let date = Self.isoFormatterWithFraction.date(from: string) { return date }
+        if let date = Self.isoFormatterWithoutFraction.date(from: string) { return date }
+        if let date = Self.plainDateTimeFormatter.date(from: string) { return date }
+        return Date.distantPast
+    }
+
+    private static let isoFormatterWithFraction: ISO8601DateFormatter = {
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        return formatter
+    }()
+
+    private static let isoFormatterWithoutFraction: ISO8601DateFormatter = {
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime]
+        return formatter
+    }()
+
+    private static let plainDateTimeFormatter: DateFormatter = {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "yyyy-MM-dd'T'HH:mm:ss"
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        return formatter
+    }()
 
 }
