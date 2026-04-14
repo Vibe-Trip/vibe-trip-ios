@@ -58,8 +58,6 @@ final class MainPageViewModel: ObservableObject {
     private var pollingTasks: [Int: Task<Void, Never>] = [:]
     // 음악 생성 완료된 앨범 ID 집합 (재조회 시 유지 -> 이미 준비된 앨범 스켈레톤 방지)
     private var readyAlbumIds: Set<Int> = []
-    // 수정 후 강제 폴링 대상 앨범 ID 집합 (title 있어도 폴링 재시작)
-    private var pendingPollingIds: Set<Int> = []
     // 폴링 간격 (기본 5초, 테스트 시 0으로 주입 가능)
     private let pollingInterval: UInt64
 
@@ -123,7 +121,6 @@ final class MainPageViewModel: ObservableObject {
     // 앨범 수정 완료 후 해당 앨범을 미준비 상태로 전환 -> 폴링 재시작 대상
     func markAlbumNotReady(albumId: Int) {
         readyAlbumIds.remove(albumId)
-        pendingPollingIds.insert(albumId)
     }
 
     // 음악 생성 완료 여부
@@ -164,19 +161,15 @@ final class MainPageViewModel: ObservableObject {
     // MARK: - Polling
 
     // 음악 미생성 앨범에 대해 폴링 Task 시작 (이미 준비됐거나 폴링 중이면 스킵)
-    // 알림 권한이 있는 경우: 이미 완료된 앨범 감지를 위해 1회 즉시 확인만 수행, 반복 폴링 스킵
-    // 알림 권한이 없는 경우: 기존 반복 폴링 유지
+    // ready 판정은 fetchAlbum의 musicUrl 존재 여부만 사용
+    // 알림 권한이 있는 경우: 앱 진입 시 1회 확인 후 미완료면 반복 폴링으로 폴백
+    // 알림 권한이 없는 경우: 즉시 반복 폴링 시작
     private func startPollingIfNeeded() async {
         let status = await notificationAuthorizationChecker()
         let shouldPoll = status != .authorized
         for album in albums where !readyAlbumIds.contains(album.id) {
             guard pollingTasks[album.id] == nil else { continue }
             let albumId = album.id
-            // title이 있고 재생성 대기 중이 아닌 앨범: 서버에서 이미 완료된 것으로 즉시 ready 처리
-            if album.title != nil && !pendingPollingIds.contains(albumId) {
-                readyAlbumIds.insert(albumId)
-                continue
-            }
             if shouldPoll {
                 pollingTasks[albumId] = Task { [weak self] in
                     await self?.pollMusic(for: albumId)
@@ -257,7 +250,6 @@ final class MainPageViewModel: ObservableObject {
             )
         }
         readyAlbumIds.insert(albumId)
-        pendingPollingIds.remove(albumId)
         pollingTasks[albumId] = nil
         lastCompletedAlbumId = albumId
     }

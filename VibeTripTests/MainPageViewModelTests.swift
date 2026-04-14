@@ -135,17 +135,17 @@ final class MainPageViewModelTests: XCTestCase {
         XCTAssertNil(sut.errorMessage)
     }
 
-    // title이 있고 재생성 대기 중이 아니면 ready 처리
-    func test_loadAlbums_titleExists_marksAlbumReady() async {
+    // title이 있어도 musicUrl 확인 전에는 ready 처리하지 않음
+    func test_loadAlbums_titleExists_doesNotMarkReadyWithoutMusicUrl() async {
         let cards = makeAlbumCards(ids: [1])
         let stub = StubAlbumService(results: [
             .success(AlbumListPayload(content: cards, totalCount: 1, hasNext: false))
         ])
-        makeSUT(stub: stub)
+        makeSUT(stub: stub, authorizationStatus: .authorized)
 
         await sut.loadAlbums()
 
-        XCTAssertTrue(sut.isReady(for: 1))
+        XCTAssertFalse(sut.isReady(for: 1))
     }
 
     // 에러 응답 -> errorMessage 설정됨, albums 비어있음
@@ -419,8 +419,8 @@ final class MainPageViewModelTests: XCTestCase {
 
     // MARK: - startPollingIfNeeded 권한 분기
 
-    // 알림 권한 .authorized -> 폴링 시작 안 됨 (fetchAlbum 호출 없음)
-    func test_startPolling_authorized_skipsPolling() async {
+    // 알림 권한 .authorized -> 1회 확인(fetchAlbum 1회) 후 완료면 ready 처리
+    func test_startPolling_authorized_checksOnceAndMarksReady() async {
         let album = AlbumCard(id: 1, title: nil, location: "서울", startDate: "2026-01-01", endDate: "2026-01-02", coverImageUrl: nil)
         let stub = PollingStubAlbumService(albums: [album])
         makeSUT(stub: StubAlbumService(results: [
