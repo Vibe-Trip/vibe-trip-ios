@@ -451,12 +451,9 @@ struct MainTabBarView: View {
 
     // 생성 완료 감지 시 자동으로 로딩 화면 숨기기
     private func autoHideLoadingViewOnCompletion() {
-        if let albumId = creatingAlbumId {
-            appState.pendingCarouselAlbumId = albumId
-        }
+        let completedAlbumId = creatingAlbumId
         creatingAlbumId = nil
         selectedTab = .home
-        DispatchQueue.main.async { appState.needsAlbumRefresh = true }
         withAnimation(.easeInOut(duration: 0.24)) {
             isPresentingLoadingView = false
             isPresentingMakeAlbum = false
@@ -466,6 +463,13 @@ struct MainTabBarView: View {
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.18) {
             withAnimation(.easeInOut(duration: 0.22)) {
                 isTabBarHidden = false
+            }
+        }
+        // 앨범 갱신 완료 후 위치 세팅 -> 갱신 전 소비되어 위치 이동이 무시되는 문제 방지
+        Task {
+            await mainPageViewModel.refreshAlbumsWithoutClearing()
+            if let albumId = completedAlbumId {
+                appState.pendingCarouselAlbumId = albumId
             }
         }
     }
