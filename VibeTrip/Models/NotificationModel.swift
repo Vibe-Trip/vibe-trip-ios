@@ -12,7 +12,7 @@ import Foundation
 // 알림 case
 enum NotificationType {
     // 앨범 생성 중
-    case generating
+    case generating(albumId: String?)
     // 앨범 생성 완료
     case completed(albumId: String) /// albumId: 이동할 앨범 식별자
     // 앨범 생성 실패

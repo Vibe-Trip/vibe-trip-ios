@@ -181,11 +181,11 @@ struct NotificationView: View {
         viewModel.markAsRead(id: item.id)
 
         switch item.type {
-        case .generating:
+        case .generating(let albumId):
             // TODO: 서버 연동 시, 해당 앨범의 로딩 페이지 이동
             // 현재는 새 MakeAlbumView를 열며, 이전 로딩 상태는 복원되지 않음
             // MakeAlbumViewModel: AppState or 상위 레벨에서 보존 필요
-            appState.pendingNotificationAction = .openAlbumCreationLoading
+            appState.pendingNotificationAction = .openAlbumCreationLoading(albumId: albumId)
 
         case .completed(let albumId):
             appState.pendingNotificationAction = .openAlbumDetail(albumId: albumId)
@@ -301,7 +301,7 @@ private struct NotificationRow: View {
     let vm = NotificationViewModel(previewNotifications: [
         NotificationItem(
             id: "1",
-            type: .generating,
+            type: .generating(albumId: nil),
             title: "앨범을 생성하는 중입니다.",
             body: "나만의 음악이 곧 탄생합니다. 완료되면 바로 알려드릴게요.",
             createdAt: Date(timeIntervalSinceNow: -120),

@@ -203,9 +203,12 @@ struct MainTabBarView: View {
                         isPresentingMakeAlbum = true
                     }
                 }
-            case .openAlbumCreationLoading:
+            case .openAlbumCreationLoading(let albumId):
                 // 생성 중: MakeAlbumLoadingView
                 // TODO: 서버 연동 시, 기존 생성 중인 ViewModel 상태 복원
+                if let albumId, let id = Int(albumId) {
+                    creatingAlbumId = id
+                }
                 withAnimation(.easeInOut(duration: 0.18)) {
                     isTabBarHidden = true
                 }
