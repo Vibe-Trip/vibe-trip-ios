@@ -17,6 +17,7 @@ final class NotificationViewModel: ObservableObject {
 
     // 화면에 표시할 알림 목록
     @Published private(set) var notifications: [NotificationItem] = [] 
+    @Published private(set) var showsUnreadBadge = false
 
     // MARK: - Dependencies
 
@@ -78,6 +79,47 @@ final class NotificationViewModel: ObservableObject {
         await loadNotifications()
     }
 
+    // 앱 내부에서 새 알림 이벤트를 받았을 때 레드닷/목록 상태를 함께 갱신
+    // 알림탭 밖: 최신 목록을 로드해 실제 미읽음 항목이 있을 때만 배지 ON -> 이미 읽은 알림을 시스템 알림센터에서 탭한 경우 배지가 잘못 켜지는 문제 방지
+    func handleIncomingNotification(isViewingNotificationTab: Bool) async {
+        if isViewingNotificationTab {
+            showsUnreadBadge = false
+            await loadNotifications()
+        } else {
+            await loadNotifications()
+            showsUnreadBadge = notifications.contains { !$0.isRead }
+        }
+    }
+
+    // 앱 복귀 시 현재 위치에 맞춰 레드닷/목록 상태를 한 곳에서 처리
+    func handleAppBecameActive(
+        isViewingNotificationTab: Bool,
+        hasDeliveredNotifications: Bool
+    ) async {
+        if isViewingNotificationTab {
+            showsUnreadBadge = false
+            await loadNotifications()
+            if hasDeliveredNotifications {
+                try? await Task.sleep(nanoseconds: 1_500_000_000)
+                await loadNotifications()
+            }
+            return
+        }
+
+        // API 응답 지연 대비 표시 -> API 결과로 최종 덮어씀
+        if hasDeliveredNotifications {
+            showsUnreadBadge = true
+        }
+
+        // readAlarmIds 기반 실제 미읽음 여부만 최종 반영 -> 알림센터에 남은 이미 읽은 알림 때문에 배지가 고착되는 문제 방지
+        let result = await checkUnread()
+        showsUnreadBadge = result.hasUnread
+    }
+
+    func clearUnreadBadge() {
+        showsUnreadBadge = false
+    }
+
     // 앱 포그라운드 진입 시 미읽음/FAILED 알림 여부만 확인 (notifications 배열 미변경)
     func checkUnread() async -> (hasUnread: Bool, hasFailed: Bool) {
         guard let responses = try? await alarmService.fetchAlarms() else { return (false, false) }
@@ -96,6 +138,9 @@ final class NotificationViewModel: ObservableObject {
         var stored = loadReadIds()
         stored.insert(id)
         saveReadIds(stored)
+        if notifications.allSatisfy({ $0.isRead }) {
+            showsUnreadBadge = false
+        }
     }
 
     // 알림 삭제 + UserDefaults에서 읽음 ID 제거
@@ -122,6 +167,7 @@ final class NotificationViewModel: ObservableObject {
         var stored = loadReadIds()
         stored.formUnion(notifications.map { $0.id })
         saveReadIds(stored)
+        showsUnreadBadge = false
     }
 
     // MARK: - Private Methods
