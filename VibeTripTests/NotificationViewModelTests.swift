@@ -124,6 +124,50 @@ final class NotificationViewModelTests: XCTestCase {
         XCTAssertEqual(sut.notifications.map(\.id), beforeIds)
     }
 
+    func test_handleIncomingNotification_outsideNotificationTab_turnsBadgeOnWithoutReload() async {
+        XCTAssertFalse(sut.showsUnreadBadge)
+
+        await sut.handleIncomingNotification(isViewingNotificationTab: false)
+
+        XCTAssertTrue(sut.showsUnreadBadge)
+        XCTAssertTrue(sut.notifications.isEmpty)
+    }
+
+    func test_handleIncomingNotification_insideNotificationTab_reloadsListAndKeepsBadgeOff() async {
+        stub.fetchResult = .success([
+            makeAlarmResponse(alarmId: 7, alarmType: "FAILED", albumId: nil)
+        ])
+
+        await sut.handleIncomingNotification(isViewingNotificationTab: true)
+
+        XCTAssertFalse(sut.showsUnreadBadge)
+        XCTAssertEqual(sut.notifications.map(\.id), ["7"])
+        XCTAssertFalse(sut.notifications.first?.isRead ?? true)
+    }
+
+    func test_handleAppBecameActive_withDeliveredNotification_keepsBadgeOnEvenBeforeAPISync() async {
+        stub.fetchResult = .success([])
+
+        await sut.handleAppBecameActive(
+            isViewingNotificationTab: false,
+            hasDeliveredNotifications: true
+        )
+
+        XCTAssertTrue(sut.showsUnreadBadge)
+    }
+
+    func test_handleAppBecameActive_withoutDeliveredOrUnread_clearsBadge() async {
+        await sut.handleIncomingNotification(isViewingNotificationTab: false)
+
+        stub.fetchResult = .success([])
+        await sut.handleAppBecameActive(
+            isViewingNotificationTab: false,
+            hasDeliveredNotifications: false
+        )
+
+        XCTAssertFalse(sut.showsUnreadBadge)
+    }
+
     // MARK: - UserDefaults 읽음 상태 영구 저장
 
     // markAsRead 후 앱 재시작(새 ViewModel) 시 해당 알림 읽음 상태 복원
