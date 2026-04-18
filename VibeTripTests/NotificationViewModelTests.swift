@@ -124,13 +124,28 @@ final class NotificationViewModelTests: XCTestCase {
         XCTAssertEqual(sut.notifications.map(\.id), beforeIds)
     }
 
-    func test_handleIncomingNotification_outsideNotificationTab_turnsBadgeOnWithoutReload() async {
-        XCTAssertFalse(sut.showsUnreadBadge)
+    func test_handleIncomingNotification_outsideNotificationTab_turnsBadgeOnWhenUnreadExists() async {
+        stub.fetchResult = .success([
+            makeAlarmResponse(alarmId: 7, alarmType: "FAILED", albumId: nil)
+        ])
 
         await sut.handleIncomingNotification(isViewingNotificationTab: false)
 
         XCTAssertTrue(sut.showsUnreadBadge)
-        XCTAssertTrue(sut.notifications.isEmpty)
+        XCTAssertEqual(sut.notifications.map(\.id), ["7"])
+    }
+
+    // 알림탭 밖에서 이미 읽은 알림만 있는 경우(시스템 알림센터 잔존 후 재탭 등) 배지 OFF 유지
+    func test_handleIncomingNotification_outsideNotificationTab_keepsBadgeOffWhenAllRead() async {
+        stub.fetchResult = .success([
+            makeAlarmResponse(alarmId: 7, alarmType: "FAILED", albumId: nil)
+        ])
+        await sut.loadNotifications()
+        sut.markAllAsRead()
+
+        await sut.handleIncomingNotification(isViewingNotificationTab: false)
+
+        XCTAssertFalse(sut.showsUnreadBadge)
     }
 
     func test_handleIncomingNotification_insideNotificationTab_reloadsListAndKeepsBadgeOff() async {
@@ -157,12 +172,33 @@ final class NotificationViewModelTests: XCTestCase {
     }
 
     func test_handleAppBecameActive_withoutDeliveredOrUnread_clearsBadge() async {
+        stub.fetchResult = .success([
+            makeAlarmResponse(alarmId: 7, alarmType: "FAILED", albumId: nil)
+        ])
         await sut.handleIncomingNotification(isViewingNotificationTab: false)
+        XCTAssertTrue(sut.showsUnreadBadge)
 
         stub.fetchResult = .success([])
         await sut.handleAppBecameActive(
             isViewingNotificationTab: false,
             hasDeliveredNotifications: false
+        )
+
+        XCTAssertFalse(sut.showsUnreadBadge)
+    }
+
+    // 알림센터에 푸시가 남아있어도 서버 기준 모두 읽음이면 최종 배지 OFF
+    // -> 알림센터 잔존 알림으로 배지 고착되는 문제 방지
+    func test_handleAppBecameActive_withDeliveredButAllRead_clearsBadge() async {
+        stub.fetchResult = .success([
+            makeAlarmResponse(alarmId: 7, alarmType: "FAILED", albumId: nil)
+        ])
+        await sut.loadNotifications()
+        sut.markAllAsRead()
+
+        await sut.handleAppBecameActive(
+            isViewingNotificationTab: false,
+            hasDeliveredNotifications: true
         )
 
         XCTAssertFalse(sut.showsUnreadBadge)
