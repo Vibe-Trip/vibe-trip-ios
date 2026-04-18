@@ -80,12 +80,14 @@ final class NotificationViewModel: ObservableObject {
     }
 
     // 앱 내부에서 새 알림 이벤트를 받았을 때 레드닷/목록 상태를 함께 갱신
+    // 알림탭 밖: 최신 목록을 로드해 실제 미읽음 항목이 있을 때만 배지 ON -> 이미 읽은 알림을 시스템 알림센터에서 탭한 경우 배지가 잘못 켜지는 문제 방지
     func handleIncomingNotification(isViewingNotificationTab: Bool) async {
         if isViewingNotificationTab {
             showsUnreadBadge = false
             await loadNotifications()
         } else {
-            showsUnreadBadge = true
+            await loadNotifications()
+            showsUnreadBadge = notifications.contains { !$0.isRead }
         }
     }
 
@@ -104,12 +106,14 @@ final class NotificationViewModel: ObservableObject {
             return
         }
 
+        // API 응답 지연 대비 표시 -> API 결과로 최종 덮어씀
         if hasDeliveredNotifications {
             showsUnreadBadge = true
         }
 
+        // readAlarmIds 기반 실제 미읽음 여부만 최종 반영 -> 알림센터에 남은 이미 읽은 알림 때문에 배지가 고착되는 문제 방지
         let result = await checkUnread()
-        showsUnreadBadge = hasDeliveredNotifications || result.hasUnread
+        showsUnreadBadge = result.hasUnread
     }
 
     func clearUnreadBadge() {
