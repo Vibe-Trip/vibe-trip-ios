@@ -413,18 +413,11 @@ struct MainTabBarView: View {
         }
 
         // 상세 진입 전 목록 동기화로 카드/캐러셀 상태를 맞추고, 뒤로가기 시 해당 앨범 위치를 복원
+        guard let albumId = completedAlbumId else { return }
         Task {
             await mainPageViewModel.refreshAlbumsWithoutClearing()
-            if let albumId = completedAlbumId {
-                appState.pendingCarouselAlbumId = albumId
-                await presentAlbumDetailOverlay(albumId: String(albumId))
-            } else {
-                withAnimation(.easeInOut(duration: 0.22)) {
-                    isTabBarHidden = false
-                    hiddenLoadingToastIconName = "checkmark.circle"
-                    hiddenLoadingToastMessage = "앨범 생성이 완료됐어요!"
-                }
-            }
+            appState.pendingCarouselAlbumId = albumId
+            await presentAlbumDetailOverlay(albumId: String(albumId))
         }
     }
 
@@ -603,7 +596,7 @@ struct LiquidGlassTabBar: View {
     let onMakeAlbumTap: () -> Void
 
     private enum Layout {
-        static let iconSize: CGFloat      = 25   // 탭 아이콘 크기
+        static let iconSize: CGFloat      = 26   // 탭 아이콘 크기
         static let barHeight: CGFloat     = 60   // 탭바 높이
 //        static let bottomPadding: CGFloat = 28   // 홈 인디케이터 여백
         static let sidePadding: CGFloat   = 20   // 탭바 캡슐 좌우 여백
