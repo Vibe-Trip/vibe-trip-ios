@@ -114,7 +114,7 @@ final class AlbumService: AlbumServiceProtocol {
             region: request.location,
             travelStartDate: Self.dateFormatter.string(from: request.startDate),
             travelEndDate: Self.dateFormatter.string(from: request.endDate),
-            genre: request.genre.serverValue,
+            genre: request.genre.serverValue(for: request.lyricsOption),
             withLyrics: request.lyricsOption == .include,
             // 가사 없음(nil): vocalGender: "N", 가사 있음: "M"/"F"
             vocalGender: request.vocalGender?.serverValue ?? "N",
