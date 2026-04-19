@@ -227,28 +227,29 @@ struct MainPageView: View {
     }
 
     private var emptyStateView: some View {
-        VStack(alignment: .center, spacing: 8) {
+        VStack(alignment: .center, spacing: 12) {
             // 빈 상태 아이콘
             Image("Main_Placeholder")
                 .resizable()
                 .scaledToFit()
-                .frame(width: 200, height: 150)
-                .offset(x: -8)
+                .frame(width: 120, height: 120)
                 .foregroundStyle(Color.placeholderSymbol)
 
-            Text("첫 번째 여행 앨범을 만들어보세요.")
-                .font(Font.setPretendard(weight: .semiBold, size: 22))
-                .multilineTextAlignment(.center)
-                .foregroundStyle(Color("GrayScale/500"))
-                .padding(.horizontal, 39)
-                .frame(maxWidth: .infinity, alignment: .center)
+            VStack(alignment: .center, spacing: 8) {
+                Text("첫 번째 여행 앨범을 만들어보세요.")
+                    .font(Font.setPretendard(weight: .semiBold, size: 22))
+                    .multilineTextAlignment(.center)
+                    .foregroundStyle(Color("GrayScale/500"))
+                    .padding(.horizontal, 39)
+                    .frame(maxWidth: .infinity, alignment: .center)
 
-            Text("지금 바로 아래 '앨범 만들기'를 눌러 시작 해보세요!")
-                .font(Font.setPretendard(weight: .medium, size: 16))
-                .multilineTextAlignment(.center)
-                .foregroundStyle(Color.placeholderText)
-                .padding(.horizontal, 39)
-                .frame(maxWidth: .infinity, alignment: .center)
+                Text("아래 '앨범 만들기'를 눌러 시작 해보세요!")
+                    .font(Font.setPretendard(weight: .medium, size: 16))
+                    .multilineTextAlignment(.center)
+                    .foregroundStyle(Color.placeholderText)
+                    .padding(.horizontal, 39)
+                    .frame(maxWidth: .infinity, alignment: .center)
+            }
         }
         .frame(maxWidth: .infinity)
     }
