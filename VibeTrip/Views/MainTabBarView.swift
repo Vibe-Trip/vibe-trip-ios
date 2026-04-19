@@ -483,16 +483,17 @@ struct MainTabBarView: View {
         case .openAlbumCreationLoading(let albumId):
             if let albumId, let id = Int(albumId) {
                 creatingAlbumId = id
-                // 백그라운드/복귀 경로에서도 완료 감시를 바로 시작해 자동 전환 누락을 줄임
-                Task { await mainPageViewModel.handleAlbumCompleted(albumId: id) }
             }
+            // isPresentingLoadingView: Task 시작 전에 동기로 확정 -> 레이스 방지
             withAnimation(.easeInOut(duration: 0.18)) {
                 isTabBarHidden = true
             }
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.08) {
-                withAnimation(.easeInOut(duration: 0.24)) {
-                    isPresentingLoadingView = true
-                }
+            withAnimation(.easeInOut(duration: 0.24)) {
+                isPresentingLoadingView = true
+            }
+            // 상태 확정 후 완료 감시 시작
+            if let albumId, let id = Int(albumId) {
+                Task { await mainPageViewModel.handleAlbumCompleted(albumId: id) }
             }
         case .openAlbumDetail(let albumId):
             if let numericAlbumId = Int(albumId) {
