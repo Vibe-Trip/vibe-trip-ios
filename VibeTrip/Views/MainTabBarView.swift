@@ -599,6 +599,8 @@ struct LiquidGlassTabBar: View {
 
     private enum Layout {
         static let iconSize: CGFloat      = 26   // 탭 아이콘 크기
+        static let makeAlbumIconSize: CGFloat = 30 // 앨범 만들기 탭 아이콘 크기
+        static let iconSlotSize: CGFloat = 30 // 탭별 아이콘 영역 높이 고정(레이블 정렬)
         static let barHeight: CGFloat     = 60   // 탭바 높이
 //        static let bottomPadding: CGFloat = 28   // 홈 인디케이터 여백
         static let sidePadding: CGFloat   = 20   // 탭바 캡슐 좌우 여백
@@ -659,13 +661,15 @@ struct LiquidGlassTabBar: View {
     @ViewBuilder
     private func tabItem(tab: AppTab, tabW: CGFloat) -> some View {
         let isSelected = selectedTab == tab
+        let iconSize = tab == .makeAlbum ? Layout.makeAlbumIconSize : Layout.iconSize
 
         VStack(spacing: 3) {
             // 선택: filled 아이콘 / 미선택: outline 아이콘
             Image(systemName: isSelected ? tab.selectedIcon : tab.icon)
                 .resizable()
                 .scaledToFit()
-                .frame(width: Layout.iconSize, height: Layout.iconSize)
+                .frame(width: iconSize, height: iconSize)
+                .frame(width: Layout.iconSlotSize, height: Layout.iconSlotSize)
                 .overlay(alignment: .topTrailing) {
                     if tab == .notification && showsNotificationBadge {
                         Circle()
