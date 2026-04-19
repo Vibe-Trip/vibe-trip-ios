@@ -278,6 +278,8 @@ struct MainTabBarView: View {
                         isAlbumCreating = false
                         albumLoadingError = nil
                         creatingAlbumId = albumId
+                        // 푸시 미수신/지연 대비: 생성 요청한 앨범 완료 감시 바로 시작
+                        Task { await mainPageViewModel.handleAlbumCompleted(albumId: albumId) }
                     },
                     onNetworkError: { retryAction in
                         // 네트워크 오류: 재시도 클로저 보관 후 팝업 표시
@@ -407,19 +409,21 @@ struct MainTabBarView: View {
         withAnimation(.easeInOut(duration: 0.24)) {
             isPresentingLoadingView = false
             isPresentingMakeAlbum = false
-            hiddenLoadingToastIconName = "checkmark.circle"
-            hiddenLoadingToastMessage = "앨범 생성이 완료됐어요!"
+            isTabBarHidden = true
         }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.18) {
-            withAnimation(.easeInOut(duration: 0.22)) {
-                isTabBarHidden = false
-            }
-        }
-        // 앨범 갱신 완료 후 위치 세팅 -> 갱신 전 소비되어 위치 이동이 무시되는 문제 방지
+
+        // 상세 진입 전 목록 동기화로 카드/캐러셀 상태를 맞추고, 뒤로가기 시 해당 앨범 위치를 복원
         Task {
             await mainPageViewModel.refreshAlbumsWithoutClearing()
             if let albumId = completedAlbumId {
                 appState.pendingCarouselAlbumId = albumId
+                await presentAlbumDetailOverlay(albumId: String(albumId))
+            } else {
+                withAnimation(.easeInOut(duration: 0.22)) {
+                    isTabBarHidden = false
+                    hiddenLoadingToastIconName = "checkmark.circle"
+                    hiddenLoadingToastMessage = "앨범 생성이 완료됐어요!"
+                }
             }
         }
     }
@@ -479,6 +483,8 @@ struct MainTabBarView: View {
         case .openAlbumCreationLoading(let albumId):
             if let albumId, let id = Int(albumId) {
                 creatingAlbumId = id
+                // 백그라운드/복귀 경로에서도 완료 감시를 바로 시작해 자동 전환 누락을 줄임
+                Task { await mainPageViewModel.handleAlbumCompleted(albumId: id) }
             }
             withAnimation(.easeInOut(duration: 0.18)) {
                 isTabBarHidden = true
