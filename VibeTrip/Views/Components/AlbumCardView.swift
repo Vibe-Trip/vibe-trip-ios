@@ -143,7 +143,7 @@ struct AlbumCardView: View, Equatable {
                         .foregroundStyle(Color("GrayScale/300"))
                         .lineLimit(1)
 
-                    Text("\(album.startDate) ~ \(album.endDate)")
+                    Text(formattedTravelPeriodText)
                         .font(Font.setPretendard(weight: .medium, size: 12))
                         .kerning(0.2)
                         .foregroundStyle(Color("GrayScale/300"))
@@ -154,6 +154,14 @@ struct AlbumCardView: View, Equatable {
             }
             .frame(width: Layout.cardWidth, height: Layout.infoAreaHeight, alignment: .top)
         }
+    }
+
+    private var formattedTravelPeriodText: String {
+        "\(formattedCardDate(album.startDate)) - \(formattedCardDate(album.endDate))"
+    }
+
+    private func formattedCardDate(_ raw: String) -> String {
+        raw.replacingOccurrences(of: "-", with: ".")
     }
 
     // MARK: - Thumbnail Row
