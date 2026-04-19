@@ -25,10 +25,12 @@ struct NotificationView: View {
 
     private enum Layout {
         static let headerHeight: CGFloat        = 44
-        static let emptyTitleSize: CGFloat      = 22
-        static let emptyBodySize: CGFloat       = 16
-        static let emptyContentSpacing: CGFloat = 8
-        static let emptySymbolSize: CGFloat     = 120
+        static let emptyTitleSize: CGFloat      = 20
+        static let emptyBodySize: CGFloat       = 14
+        static let emptySymbolTitleSpacing: CGFloat = 12
+        static let emptyTitleBodySpacing: CGFloat   = 8
+        static let emptySymbolWidth: CGFloat    = 120
+        static let emptySymbolHeight: CGFloat   = 134
         static let emptyTextPadding: CGFloat    = 39
         static let tabBarHeight: CGFloat        = 64
     }
@@ -101,35 +103,35 @@ struct NotificationView: View {
             emptyContent
             Spacer()
         }
-        .padding(.bottom, Layout.tabBarHeight)
         .frame(maxWidth: .infinity, maxHeight: .infinity)
-        .safeAreaInset(edge: .top) { headerSpacer }
     }
 
     private var emptyContent: some View {
-        VStack(alignment: .center, spacing: Layout.emptyContentSpacing) {
+        VStack(alignment: .center, spacing: Layout.emptySymbolTitleSpacing) {
 
             // 빈 상태 심볼
             Image("Alarm_Placeholder")
                 .resizable()
                 .scaledToFit()
-                .frame(width: Layout.emptySymbolSize, height: Layout.emptySymbolSize)
+                .frame(width: Layout.emptySymbolWidth, height: Layout.emptySymbolHeight)
 
-            // 메인 텍스트
-            Text("새로운 소식이 없어요.")
-                .font(Font.setPretendard(weight: .semiBold, size: Layout.emptyTitleSize))
-                .multilineTextAlignment(.center)
-                .foregroundStyle(Color("GrayScale/500"))
-                .padding(.horizontal, Layout.emptyTextPadding)
-                .frame(maxWidth: .infinity, alignment: .center)
+            VStack(alignment: .center, spacing: Layout.emptyTitleBodySpacing) {
+                // 메인 텍스트
+                Text("새로운 소식이 없어요.")
+                    .font(Font.setPretendard(weight: .semiBold, size: Layout.emptyTitleSize))
+                    .multilineTextAlignment(.center)
+                    .foregroundStyle(Color("GrayScale/500"))
+                    .padding(.horizontal, Layout.emptyTextPadding)
+                    .frame(maxWidth: .infinity, alignment: .center)
 
-            // 서브 텍스트
-            Text("소식이 생기면 알려드릴게요!")
-                .font(Font.setPretendard(weight: .medium, size: Layout.emptyBodySize))
-                .multilineTextAlignment(.center)
-                .foregroundStyle(Color.placeholderText)
-                .padding(.horizontal, Layout.emptyTextPadding)
-                .frame(maxWidth: .infinity, alignment: .center)
+                // 서브 텍스트
+                Text("소식이 생기면 알려드릴게요!")
+                    .font(Font.setPretendard(weight: .medium, size: Layout.emptyBodySize))
+                    .multilineTextAlignment(.center)
+                    .foregroundStyle(Color.placeholderText)
+                    .padding(.horizontal, Layout.emptyTextPadding)
+                    .frame(maxWidth: .infinity, alignment: .center)
+            }
         }
         .frame(maxWidth: .infinity)
     }
