@@ -278,6 +278,8 @@ struct MainTabBarView: View {
                         isAlbumCreating = false
                         albumLoadingError = nil
                         creatingAlbumId = albumId
+                        // 푸시 미수신/지연 대비: 생성 요청한 앨범 완료 감시 바로 시작
+                        Task { await mainPageViewModel.handleAlbumCompleted(albumId: albumId) }
                     },
                     onNetworkError: { retryAction in
                         // 네트워크 오류: 재시도 클로저 보관 후 팝업 표시
@@ -407,20 +409,15 @@ struct MainTabBarView: View {
         withAnimation(.easeInOut(duration: 0.24)) {
             isPresentingLoadingView = false
             isPresentingMakeAlbum = false
-            hiddenLoadingToastIconName = "checkmark.circle"
-            hiddenLoadingToastMessage = "앨범 생성이 완료됐어요!"
+            isTabBarHidden = true
         }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.18) {
-            withAnimation(.easeInOut(duration: 0.22)) {
-                isTabBarHidden = false
-            }
-        }
-        // 앨범 갱신 완료 후 위치 세팅 -> 갱신 전 소비되어 위치 이동이 무시되는 문제 방지
+
+        // 상세 진입 전 목록 동기화로 카드/캐러셀 상태를 맞추고, 뒤로가기 시 해당 앨범 위치를 복원
+        guard let albumId = completedAlbumId else { return }
         Task {
             await mainPageViewModel.refreshAlbumsWithoutClearing()
-            if let albumId = completedAlbumId {
-                appState.pendingCarouselAlbumId = albumId
-            }
+            appState.pendingCarouselAlbumId = albumId
+            await presentAlbumDetailOverlay(albumId: String(albumId))
         }
     }
 
@@ -480,15 +477,20 @@ struct MainTabBarView: View {
             if let albumId, let id = Int(albumId) {
                 creatingAlbumId = id
             }
+            // isPresentingLoadingView: Task 시작 전에 동기로 확정 -> 레이스 방지
             withAnimation(.easeInOut(duration: 0.18)) {
                 isTabBarHidden = true
             }
-            DispatchQueue.main.asyncAfter(deadline: .now() + 0.08) {
-                withAnimation(.easeInOut(duration: 0.24)) {
-                    isPresentingLoadingView = true
-                }
+            withAnimation(.easeInOut(duration: 0.24)) {
+                isPresentingLoadingView = true
+            }
+            // 상태 확정 후 완료 감시 시작
+            if let albumId, let id = Int(albumId) {
+                Task { await mainPageViewModel.handleAlbumCompleted(albumId: id) }
             }
         case .openAlbumDetail(let albumId):
+            // 로딩뷰 체류 중 완료 알림 탭 시 onChange 리스너 가드를 선제 차단
+            creatingAlbumId = nil
             if let numericAlbumId = Int(albumId) {
                 Task { await mainPageViewModel.handleAlbumCompleted(albumId: numericAlbumId) }
             }
@@ -596,7 +598,7 @@ struct LiquidGlassTabBar: View {
     let onMakeAlbumTap: () -> Void
 
     private enum Layout {
-        static let iconSize: CGFloat      = 25   // 탭 아이콘 크기
+        static let iconSize: CGFloat      = 26   // 탭 아이콘 크기
         static let barHeight: CGFloat     = 60   // 탭바 높이
 //        static let bottomPadding: CGFloat = 28   // 홈 인디케이터 여백
         static let sidePadding: CGFloat   = 20   // 탭바 캡슐 좌우 여백
