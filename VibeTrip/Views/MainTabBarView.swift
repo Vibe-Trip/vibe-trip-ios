@@ -489,6 +489,8 @@ struct MainTabBarView: View {
                 Task { await mainPageViewModel.handleAlbumCompleted(albumId: id) }
             }
         case .openAlbumDetail(let albumId):
+            // 로딩뷰 체류 중 완료 알림 탭 시 onChange 리스너 가드를 선제 차단
+            creatingAlbumId = nil
             if let numericAlbumId = Int(albumId) {
                 Task { await mainPageViewModel.handleAlbumCompleted(albumId: numericAlbumId) }
             }
