@@ -15,6 +15,10 @@ extension AlbumGenre: Decodable {
     init(from decoder: Decoder) throws {
         let container = try decoder.singleValueContainer()
         let raw = try container.decode(String.self)
+        if raw == "JAZZ_NO_VOCAL" {
+            self = .jazz
+            return
+        }
         guard let matched = AlbumGenre.allCases.first(where: { $0.serverValue == raw }) else {
             throw DecodingError.dataCorruptedError(in: container, debugDescription: "Unknown genre: \(raw)")
         }
@@ -48,6 +52,14 @@ extension AlbumGenre: Decodable {
         case .acousticFolk: return "ACOUSTIC_FOLK"
         case .deepHouse:    return "DEEP_HOUSE"
         }
+    }
+
+    // 가사 미포함 Jazz: 서버 enum이 분리되어 별도 값 사용
+    func serverValue(for lyricsOption: LyricsOption) -> String {
+        if self == .jazz && lyricsOption == .exclude {
+            return "JAZZ_NO_VOCAL"
+        }
+        return serverValue
     }
 }
 
