@@ -234,6 +234,10 @@ struct MainPageView: View {
                 .scaledToFit()
                 .frame(width: 120, height: 120)
                 .foregroundStyle(Color.placeholderSymbol)
+                .contentShape(Rectangle())
+                .onTapGesture {
+                    handleEmptyStatePlaceholderTap()
+                }
 
             VStack(alignment: .center, spacing: 8) {
                 Text("첫 번째 여행 앨범을 만들어보세요.")
@@ -252,6 +256,10 @@ struct MainPageView: View {
             }
         }
         .frame(maxWidth: .infinity)
+    }
+
+    private func handleEmptyStatePlaceholderTap() {
+        appState.pendingNotificationAction = .openMakeAlbum
     }
 
     // MARK: - 캐러셀
