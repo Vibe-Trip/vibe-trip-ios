@@ -125,7 +125,44 @@ final class AlbumService: AlbumServiceProtocol {
         formData.append(name: "coverImage", imageData: request.photoData)
 
         let endpoint = APIEndpoint(path: "/api/v1/albums", method: .post)
-        return try await apiClient.upload(endpoint, formData: formData)
+        #if DEBUG
+        print(
+            """
+            [AlbumCreate][Request]
+            - region: \(body.region)
+            - travelStartDate: \(body.travelStartDate)
+            - travelEndDate: \(body.travelEndDate)
+            - genre: \(body.genre)
+            - withLyrics: \(body.withLyrics)
+            - vocalGender: \(body.vocalGender)
+            - comment: \(body.comment)
+            - coverImageBytes: \(request.photoData.count)
+            """
+        )
+        #endif
+
+        do {
+            let response: AlbumCreateResponse = try await apiClient.upload(endpoint, formData: formData)
+            #if DEBUG
+            print("[AlbumCreate][Response] SUCCESS albumId=\(response.albumId)")
+            #endif
+            return response
+        } catch APIClientError.serverError(let code) {
+            #if DEBUG
+            print("[AlbumCreate][Response] ERROR serverError=\(code.rawValue)")
+            #endif
+            throw APIClientError.serverError(code)
+        } catch APIClientError.networkError(let urlError) {
+            #if DEBUG
+            print("[AlbumCreate][Response] ERROR networkError=\(urlError.code.rawValue)")
+            #endif
+            throw APIClientError.networkError(urlError)
+        } catch {
+            #if DEBUG
+            print("[AlbumCreate][Response] ERROR unknown=\(error)")
+            #endif
+            throw error
+        }
     }
     
     func fetchAlbumLog(albumId: String) async throws -> AlbumLog {
