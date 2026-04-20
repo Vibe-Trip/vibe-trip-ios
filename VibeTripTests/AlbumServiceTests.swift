@@ -26,6 +26,7 @@ final class MockAPIClient: APIClientProtocol {
     private(set) var requestCallCount = 0
     private(set) var uploadCallCount = 0
     private(set) var capturedEndpoints: [APIEndpoint] = []
+    private(set) var capturedUploadFormData: MultipartFormData?
 
     var sessionExpiredPublisher: AnyPublisher<Void, Never> {
         PassthroughSubject<Void, Never>().eraseToAnyPublisher()
@@ -47,6 +48,7 @@ final class MockAPIClient: APIClientProtocol {
 
     func upload<T: Decodable>(_ endpoint: APIEndpoint, formData: MultipartFormData) async throws -> T {
         uploadCallCount += 1
+        capturedUploadFormData = formData
         switch uploadResult {
         case .success(let response):
             guard let typed = response as? T else {
@@ -112,6 +114,18 @@ final class AlbumServiceTests: XCTestCase {
             genre: .kPop,
             comment: "테스트 코멘트"
         )
+    }
+
+    private struct CapturedGenreBody: Decodable {
+        let genre: String
+    }
+
+    private func decodeRequestPart<T: Decodable>(_ type: T.Type, from formData: MultipartFormData?) throws -> T {
+        guard let part = formData?.parts.first(where: { $0.name == "request" }) else {
+            XCTFail("request 파트를 찾을 수 없습니다")
+            throw APIClientError.decodingFailed
+        }
+        return try JSONDecoder().decode(T.self, from: part.data)
     }
 
     // MARK: - 성공
@@ -184,6 +198,25 @@ final class AlbumServiceTests: XCTestCase {
 
         let response = try await sut.createAlbum(request: request)
         XCTAssertEqual(response.albumId, 1)
+    }
+
+    // Jazz + 가사 미포함 요청 시 genre는 JAZZ_NO_VOCAL로 전송
+    func test_createAlbum_excludeLyricsJazz_sendsJazzNoVocalGenre() async throws {
+        mockAPIClient.uploadResult = .success(AlbumCreateResponse(albumId: 1))
+        let request = AlbumCreateRequest(
+            photoData: Data([0x00]),
+            location: "제주",
+            startDate: Date(timeIntervalSince1970: 0),
+            endDate: Date(timeIntervalSince1970: 86400),
+            lyricsOption: .exclude,
+            vocalGender: nil,
+            genre: .jazz,
+            comment: ""
+        )
+
+        _ = try await sut.createAlbum(request: request)
+        let body = try decodeRequestPart(CapturedGenreBody.self, from: mockAPIClient.capturedUploadFormData)
+        XCTAssertEqual(body.genre, "JAZZ_NO_VOCAL")
     }
 
     // MARK: - fetchAlbums 성공
@@ -664,6 +697,27 @@ final class AlbumServiceTests: XCTestCase {
         try await sut.updateAlbum(albumId: "1", request: request)
 
         XCTAssertEqual(mockAPIClient.performUploadCallCount, 1)
+    }
+
+    // Jazz + 가사 미포함 요청 시 genre는 JAZZ_NO_VOCAL로 전송
+    func test_updateAlbum_excludeLyricsJazz_sendsJazzNoVocalGenre() async throws {
+        mockAPIClient.performUploadResult = .success(())
+        let request = AlbumUpdateRequest(
+            photoData: Data([0x00]),
+            title: "테스트 앨범",
+            location: "서울",
+            startDate: Date(timeIntervalSince1970: 0),
+            endDate: Date(timeIntervalSince1970: 86400),
+            lyricsOption: .exclude,
+            vocalGender: nil,
+            genre: .jazz,
+            regenerateMusic: false,
+            comment: ""
+        )
+
+        try await sut.updateAlbum(albumId: "1", request: request)
+        let body = try decodeRequestPart(CapturedGenreBody.self, from: mockAPIClient.capturedFormData)
+        XCTAssertEqual(body.genre, "JAZZ_NO_VOCAL")
     }
 
     // MARK: - updateAlbum: 서버 에러
