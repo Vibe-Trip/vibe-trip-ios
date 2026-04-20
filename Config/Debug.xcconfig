@@ -1,0 +1,19 @@
+//
+//  Debug.xcconfig
+//  VibeTrip
+//
+//  Created by CHOI on 4/20/26.
+//
+
+// 개발(dev) 환경용 빌드 설정
+// Xcode Run 및 develop 브랜치 Xcode Cloud 워크플로 전용
+
+// 앱 식별자
+PRODUCT_BUNDLE_IDENTIFIER = com.swyp.VibeTrip.dev
+
+// 서버 URL — xcconfig는 `//`를 주석으로 해석하므로  삽입
+SERVER_URL = https:/$()/dev.retrip.shop // `$()` 구분자 -> xcconfig // 주석 해석 방지
+
+// 카카오 네이티브 앱 키 및 URL 스킴
+KAKAO_APP_KEY = d548b26dc60788de25258a6b7354ace3
+KAKAO_URL_SCHEME = kakaod548b26dc60788de25258a6b7354ace3
