@@ -160,8 +160,11 @@ final class NotificationViewModelTests: XCTestCase {
         XCTAssertFalse(sut.notifications.first?.isRead ?? true)
     }
 
-    func test_handleAppBecameActive_withDeliveredNotification_keepsBadgeOnEvenBeforeAPISync() async {
-        stub.fetchResult = .success([])
+    // 앱 복귀 시 알림센터 잔존 알림 + 서버 미읽음 존재 -> 최종 배지 ON 유지
+    func test_handleAppBecameActive_withDeliveredNotification_keepsBadgeOnWhenUnreadExists() async {
+        stub.fetchResult = .success([
+            makeAlarmResponse(alarmId: 7, alarmType: "FAILED", albumId: nil)
+        ])
 
         await sut.handleAppBecameActive(
             isViewingNotificationTab: false,
