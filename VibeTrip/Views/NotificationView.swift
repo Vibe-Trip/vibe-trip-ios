@@ -14,7 +14,7 @@ struct NotificationView: View {
     // MARK: - ViewModel
 
     @StateObject private var viewModel: NotificationViewModel
-    // 탭바 레드 닷 제거 및 알림 탭 네비게이션
+    // 알림 탭 네비게이션
     @EnvironmentObject private var appState: AppState
 
     init(viewModel: NotificationViewModel = NotificationViewModel()) {
@@ -58,19 +58,7 @@ struct NotificationView: View {
             await viewModel.loadNotifications()
         }
         .onAppear {
-            // 탭 진입 시 레드 닷 제거
-            appState.hasUnreadNotifications = false
-            // 탭 진입 시 고착된 갱신 신호 초기화: 이후 추가 푸시 수신 시 onChange 정상 발동 보장
-            appState.needsNotificationRefresh = false
-        }
-        .onChange(of: appState.needsNotificationRefresh) { _, needsRefresh in
-            guard needsRefresh else { return }
-            appState.needsNotificationRefresh = false
-            Task {
-                await viewModel.loadNotifications()
-                // 알림 탭에 있는 상태에서는 레드닷이 다시 켜지지 않도록 유지
-                appState.hasUnreadNotifications = false
-            }
+            viewModel.clearUnreadBadge()
         }
     }
 

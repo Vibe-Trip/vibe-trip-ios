@@ -94,21 +94,24 @@ struct MainTabBarView: View {
 
     var body: some View {
         mainStackWithHandlers
+        .onAppear {
+            if appState.needsNotificationRefresh {
+                appState.needsNotificationRefresh = false
+                Task { await processNotificationRefresh() }
+            }
+            if let action = appState.pendingNotificationAction {
+                appState.pendingNotificationAction = nil
+                handlePendingNotificationAction(action)
+            }
+            guard appState.needsActiveCheck else { return }
+            appState.needsActiveCheck = false
+            Task { await processActiveCheck() }
+        }
         // 앱 포그라운드 전환 시: 미읽음/FAILED 알림 여부 확인 후 red dot 및 앨범 목록 갱신
         .onChange(of: appState.needsActiveCheck) { _, needsCheck in
             guard needsCheck else { return }
             appState.needsActiveCheck = false
-            Task {
-                let result = await notificationViewModel.checkUnread()
-                if result.hasUnread { appState.hasUnreadNotifications = true }
-                // 백그라운드에서 수신해둔 미처리 COMPLETED 알림 소비 (알림 탭 없이 직접 진입한 경우)
-                await consumeDeliveredCompletedNotifications()
-                // 앱 직접 복귀 경로: COMPLETED 감지를 위해 1회 동기화
-                // pendingNotificationAction이 설정된 경우 딥링크 경로에서 이미 갱신 처리 -> 중복 스킵
-                if appState.pendingNotificationAction == nil {
-                    await mainPageViewModel.refreshAlbumsWithoutClearing()
-                }
-            }
+            Task { await processActiveCheck() }
         }
         // 포그라운드 FCM COMPLETED 수신 시: 해당 앨범 폴링 취소 후 1회 조회로 완료 처리
         .onChange(of: appState.fcmCompletedAlbumId) { _, albumId in
@@ -172,84 +175,30 @@ struct MainTabBarView: View {
         .animation(.easeInOut(duration: 0.24), value: isPresentingMakeAlbum)
         .animation(.easeInOut(duration: 0.22), value: isTabBarHidden)
         .animation(.easeInOut(duration: 0.2), value: hiddenLoadingToastMessage)
-        // 알림 탭 탈출 시 전체 읽음 처리
         .onChange(of: selectedTab) { oldTab, newTab in
+            if newTab == .notification {
+                notificationViewModel.clearUnreadBadge()
+            }
             guard oldTab == .notification, newTab != .notification else { return }
             notificationViewModel.markAllAsRead()
-            appState.hasUnreadNotifications = false
         }
         .onChange(of: isPresentingMakeAlbum) { _, isPresenting in
             guard isPresenting, selectedTab == .notification else { return }
             notificationViewModel.markAllAsRead()
-            appState.hasUnreadNotifications = false
         }
         .onChange(of: isPresentingLoadingView) { _, isPresenting in
             guard isPresenting, selectedTab == .notification else { return }
-            notificationViewModel.markAllAsRead()
-            appState.hasUnreadNotifications = false
+            notificationViewModel.clearUnreadBadge()
         }
-        // 알림 탭 시, 화면 이동
+        .onChange(of: appState.needsNotificationRefresh) { _, needsRefresh in
+            guard needsRefresh else { return }
+            appState.needsNotificationRefresh = false
+            Task { await processNotificationRefresh() }
+        }
         .onChange(of: appState.pendingNotificationAction) { _, action in
             guard let action else { return }
-            switch action {
-            case .openMakeAlbum:
-                // 생성 실패: MakeAlbumView 진입 전 탭 상태 무관하게 앨범 목록 즉시 갱신
-                Task { await mainPageViewModel.refreshAlbumsWithoutClearing() }
-                withAnimation(.easeInOut(duration: 0.18)) {
-                    isTabBarHidden = true
-                }
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.08) {
-                    withAnimation(.easeInOut(duration: 0.24)) {
-                        isPresentingMakeAlbum = true
-                    }
-                }
-            case .openAlbumCreationLoading(let albumId):
-                // 생성 중: MakeAlbumLoadingView
-                // TODO: 서버 연동 시, 기존 생성 중인 ViewModel 상태 복원
-                if let albumId, let id = Int(albumId) {
-                    creatingAlbumId = id
-                }
-                withAnimation(.easeInOut(duration: 0.18)) {
-                    isTabBarHidden = true
-                }
-                DispatchQueue.main.asyncAfter(deadline: .now() + 0.08) {
-                    withAnimation(.easeInOut(duration: 0.24)) {
-                        isPresentingLoadingView = true
-                    }
-                }
-            case .openAlbumDetail(let albumId):
-                // 백그라운드 푸시 탭 진입 경로에서도 완료 처리 동기화
-                if let numericAlbumId = Int(albumId) {
-                    Task { await mainPageViewModel.handleAlbumCompleted(albumId: numericAlbumId) }
-                }
-
-                // 어느 경로로 커버가 열려 있는지 각각 확인
-                let hadPresentedDetail = presentedAlbumDetail != nil         // MainTabBarView 경유
-                let hadSelectedAlbum = !hadPresentedDetail && appState.isAlbumDetailPresented  // MainPageView 경유
-
-                withAnimation(.easeInOut(duration: 0.24)) {
-                    isPresentingLoadingView = false
-                    isPresentingMakeAlbum = false
-                    isTabBarHidden = true
-                }
-
-                if hadPresentedDetail {
-                    // MainTabBarView 자체 커버가 열려 있음 -> fullScreenCover onDismiss에서 dismiss 완료 시점에 새 커버 진입
-                    ownCoverPendingAlbumId = albumId
-                    presentedAlbumDetail = nil
-                } else if hadSelectedAlbum {
-                    // MainPageView 커버가 열려 있음 -> needsDismissAlbumDetail로 dismiss 트리거, onDismiss에서 AppState 시그널 발송
-                    appState.pendingDeeplinkAlbumId = albumId
-                    appState.needsDismissAlbumDetail = true
-                } else {
-                    // 열린 커버 없음 -> 즉시 진입
-                    Task { await presentAlbumDetailOverlay(albumId: albumId) }
-                }
-            case .openHome:
-                // albumId 누락 등 상세 진입 불가 시: 홈 탭으로 이동
-                selectedTab = .home
-            }
             appState.pendingNotificationAction = nil
+            handlePendingNotificationAction(action)
         }
         // presentedAlbumDetail 변화 시 AppState 동기화: 딥링크 수신 시 기존 커버 유무 판단에 사용
         .onChange(of: presentedAlbumDetail?.id) { _, detailId in
@@ -329,6 +278,8 @@ struct MainTabBarView: View {
                         isAlbumCreating = false
                         albumLoadingError = nil
                         creatingAlbumId = albumId
+                        // 푸시 미수신/지연 대비: 생성 요청한 앨범 완료 감시 바로 시작
+                        Task { await mainPageViewModel.handleAlbumCompleted(albumId: albumId) }
                     },
                     onNetworkError: { retryAction in
                         // 네트워크 오류: 재시도 클로저 보관 후 팝업 표시
@@ -390,6 +341,7 @@ struct MainTabBarView: View {
                         selectedTab: $selectedTab,
                         isTabBarHidden: $isTabBarHidden,
                         isPresentingMakeAlbum: $isPresentingMakeAlbum,
+                        showsNotificationBadge: notificationViewModel.showsUnreadBadge,
                         // 탭바 내부에서 직접 진입하지 않고, 상위에서 팝업/진입 가드를 판단
                         onMakeAlbumTap: handleMakeAlbumTabTap
                     )
@@ -457,20 +409,15 @@ struct MainTabBarView: View {
         withAnimation(.easeInOut(duration: 0.24)) {
             isPresentingLoadingView = false
             isPresentingMakeAlbum = false
-            hiddenLoadingToastIconName = "checkmark.circle"
-            hiddenLoadingToastMessage = "앨범 생성이 완료됐어요!"
+            isTabBarHidden = true
         }
-        DispatchQueue.main.asyncAfter(deadline: .now() + 0.18) {
-            withAnimation(.easeInOut(duration: 0.22)) {
-                isTabBarHidden = false
-            }
-        }
-        // 앨범 갱신 완료 후 위치 세팅 -> 갱신 전 소비되어 위치 이동이 무시되는 문제 방지
+
+        // 상세 진입 전 목록 동기화로 카드/캐러셀 상태를 맞추고, 뒤로가기 시 해당 앨범 위치를 복원
+        guard let albumId = completedAlbumId else { return }
         Task {
             await mainPageViewModel.refreshAlbumsWithoutClearing()
-            if let albumId = completedAlbumId {
-                appState.pendingCarouselAlbumId = albumId
-            }
+            appState.pendingCarouselAlbumId = albumId
+            await presentAlbumDetailOverlay(albumId: String(albumId))
         }
     }
 
@@ -489,6 +436,86 @@ struct MainTabBarView: View {
     private func handleMakeAlbumTabTap() {
         guard !isPresentingMakeAlbum else { return }
         presentMakeAlbumFlow()
+    }
+
+    private func processNotificationRefresh() async {
+        await notificationViewModel.handleIncomingNotification(
+            isViewingNotificationTab: selectedTab == .notification
+        )
+    }
+
+    // 앱 포그라운드 복귀 시 알림 동기화 처리
+    private func processActiveCheck() async {
+        let delivered = await UNUserNotificationCenter.current().deliveredNotifications()
+        await notificationViewModel.handleAppBecameActive(
+            isViewingNotificationTab: selectedTab == .notification,
+            hasDeliveredNotifications: !delivered.isEmpty
+        )
+
+        // 백그라운드에서 수신해둔 미처리 COMPLETED 알림 소비 (알림 탭 없이 직접 진입한 경우)
+        await consumeDeliveredCompletedNotifications()
+        // 앱 직접 복귀 경로: COMPLETED 감지를 위해 1회 동기화
+        // pendingNotificationAction이 설정된 경우 딥링크 경로에서 이미 갱신 처리 -> 중복 스킵
+        if appState.pendingNotificationAction == nil {
+            await mainPageViewModel.refreshAlbumsWithoutClearing()
+        }
+    }
+
+    private func handlePendingNotificationAction(_ action: NotificationNavigationAction) {
+        switch action {
+        case .openMakeAlbum:
+            Task { await mainPageViewModel.refreshAlbumsWithoutClearing() }
+            withAnimation(.easeInOut(duration: 0.18)) {
+                isTabBarHidden = true
+            }
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.08) {
+                withAnimation(.easeInOut(duration: 0.24)) {
+                    isPresentingMakeAlbum = true
+                }
+            }
+        case .openAlbumCreationLoading(let albumId):
+            if let albumId, let id = Int(albumId) {
+                creatingAlbumId = id
+            }
+            // isPresentingLoadingView: Task 시작 전에 동기로 확정 -> 레이스 방지
+            withAnimation(.easeInOut(duration: 0.18)) {
+                isTabBarHidden = true
+            }
+            withAnimation(.easeInOut(duration: 0.24)) {
+                isPresentingLoadingView = true
+            }
+            // 상태 확정 후 완료 감시 시작
+            if let albumId, let id = Int(albumId) {
+                Task { await mainPageViewModel.handleAlbumCompleted(albumId: id) }
+            }
+        case .openAlbumDetail(let albumId):
+            // 로딩뷰 체류 중 완료 알림 탭 시 onChange 리스너 가드를 선제 차단
+            creatingAlbumId = nil
+            if let numericAlbumId = Int(albumId) {
+                Task { await mainPageViewModel.handleAlbumCompleted(albumId: numericAlbumId) }
+            }
+
+            let hadPresentedDetail = presentedAlbumDetail != nil
+            let hadSelectedAlbum = !hadPresentedDetail && appState.isAlbumDetailPresented
+
+            withAnimation(.easeInOut(duration: 0.24)) {
+                isPresentingLoadingView = false
+                isPresentingMakeAlbum = false
+                isTabBarHidden = true
+            }
+
+            if hadPresentedDetail {
+                ownCoverPendingAlbumId = albumId
+                presentedAlbumDetail = nil
+            } else if hadSelectedAlbum {
+                appState.pendingDeeplinkAlbumId = albumId
+                appState.needsDismissAlbumDetail = true
+            } else {
+                Task { await presentAlbumDetailOverlay(albumId: albumId) }
+            }
+        case .openHome:
+            selectedTab = .home
+        }
     }
 
     // 백그라운드에서 수신했으나 탭되지 않은 COMPLETED 알림을 찾아 handleAlbumCompleted로 소비
@@ -566,13 +593,12 @@ struct LiquidGlassTabBar: View {
     @Binding var selectedTab: AppTab
     @Binding var isTabBarHidden: Bool
     @Binding var isPresentingMakeAlbum: Bool
+    let showsNotificationBadge: Bool
     // 앨범 만들기 진입 전 팝업/분기 처리
     let onMakeAlbumTap: () -> Void
 
-    @EnvironmentObject private var appState: AppState
-
     private enum Layout {
-        static let iconSize: CGFloat      = 25   // 탭 아이콘 크기
+        static let iconSize: CGFloat      = 26   // 탭 아이콘 크기
         static let barHeight: CGFloat     = 60   // 탭바 높이
 //        static let bottomPadding: CGFloat = 28   // 홈 인디케이터 여백
         static let sidePadding: CGFloat   = 20   // 탭바 캡슐 좌우 여백
@@ -641,7 +667,7 @@ struct LiquidGlassTabBar: View {
                 .scaledToFit()
                 .frame(width: Layout.iconSize, height: Layout.iconSize)
                 .overlay(alignment: .topTrailing) {
-                    if tab == .notification && appState.hasUnreadNotifications {
+                    if tab == .notification && showsNotificationBadge {
                         Circle()
                             .fill(Color.red)
                             .frame(width: 8, height: 8)

@@ -17,7 +17,30 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
     private enum Constants {
         static let notificationKey = "isNotificationEnabled"
     }
-    weak var appState: AppState?
+
+    // appState 설정 전에 수신된 콜백 신호를 버퍼링하기 위한 프로퍼티
+    private struct PendingReceivePayload {
+        let navigationAction: NotificationNavigationAction?
+    }
+    private var pendingNeedsActiveCheck = false
+    private var pendingReceivePayload: PendingReceivePayload? = nil
+
+    weak var appState: AppState? {
+        didSet {
+            guard let appState else { return }
+            if pendingNeedsActiveCheck {
+                pendingNeedsActiveCheck = false
+                Task { @MainActor in appState.needsActiveCheck = true }
+            }
+            if let pending = pendingReceivePayload {
+                pendingReceivePayload = nil
+                Task { @MainActor in
+                    appState.needsNotificationRefresh = true
+                    appState.pendingNotificationAction = pending.navigationAction
+                }
+            }
+        }
+    }
 
     func application(_ application: UIApplication,
                      didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey : Any]? = nil) -> Bool {
@@ -67,8 +90,10 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
 
     // 앱 포그라운드 전환 시: 미읽음/FAILED 알림 여부 확인 요청
     func applicationDidBecomeActive(_ application: UIApplication) {
-        Task { @MainActor in
-            appState?.needsActiveCheck = true
+        if let appState {
+            Task { @MainActor in appState.needsActiveCheck = true }
+        } else {
+            pendingNeedsActiveCheck = true
         }
     }
 
@@ -81,7 +106,6 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
         let userInfo = notification.request.content.userInfo
         let payload = FCMPayload.decode(from: userInfo)
         Task { @MainActor in
-            appState?.hasUnreadNotifications = true
             appState?.needsNotificationRefresh = true
             if payload?.type == "FAILED" {
                 appState?.needsSilentAlbumRefresh = true
@@ -99,10 +123,13 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
                                 withCompletionHandler completionHandler: @escaping () -> Void) {
         let userInfo = response.notification.request.content.userInfo
         let navigationAction = FCMPayload.decode(from: userInfo)?.toNavigationAction()
-        Task { @MainActor in
-            appState?.hasUnreadNotifications = true
-            appState?.needsNotificationRefresh = true
-            appState?.pendingNotificationAction = navigationAction
+        if let appState {
+            Task { @MainActor in
+                appState.needsNotificationRefresh = true
+                appState.pendingNotificationAction = navigationAction
+            }
+        } else {
+            pendingReceivePayload = PendingReceivePayload(navigationAction: navigationAction)
         }
         completionHandler()
     }

@@ -154,6 +154,22 @@ final class AlbumModelDecoderTests: XCTestCase {
         }
     }
 
+    // 가사 미포함 Jazz 서버값 -> .jazz로 디코딩
+    func test_albumGenre_jazzNoVocal_decodesAsJazz() throws {
+        let json = "\"JAZZ_NO_VOCAL\"".data(using: .utf8)!
+
+        let genre = try decoder.decode(AlbumGenre.self, from: json)
+
+        XCTAssertEqual(genre, .jazz)
+    }
+
+    // 가사 포함/미포함에 따라 서버 전송값이 올바르게 분기되는지 검증
+    func test_albumGenre_serverValue_forLyricsOption_switchesForJazz() {
+        XCTAssertEqual(AlbumGenre.jazz.serverValue(for: .include), "JAZZ")
+        XCTAssertEqual(AlbumGenre.jazz.serverValue(for: .exclude), "JAZZ_NO_VOCAL")
+        XCTAssertEqual(AlbumGenre.pop.serverValue(for: .exclude), "POP")
+    }
+
     // 알 수 없는 서버값 -> DecodingError throw
     func test_albumGenre_unknownServerValue_throwsDecodingError() {
         let json = "\"UNKNOWN_GENRE\"".data(using: .utf8)!
