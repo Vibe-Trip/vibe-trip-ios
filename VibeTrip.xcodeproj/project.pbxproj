@@ -51,6 +51,11 @@
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
+		F5C527B92F96612E00E5B649 /* Firebase */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = Firebase;
+			sourceTree = "<group>";
+		};
 		F5D010512F52015D0007B939 /* VibeTrip */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
@@ -104,6 +109,7 @@
 		F5CFG00102F52015D0007B939 /* Config */ = {
 			isa = PBXGroup;
 			children = (
+				F5C527B92F96612E00E5B649 /* Firebase */,
 				F5CFG00012F52015D0007B939 /* Debug.xcconfig */,
 				F5CFG00022F52015D0007B939 /* Release.xcconfig */,
 			);
@@ -139,6 +145,7 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = F5D010702F52015D0007B939 /* Build configuration list for PBXNativeTarget "VibeTrip" */;
 			buildPhases = (
+				F5CFG01002F52015D0007B939 /* Select Firebase plist by configuration */,
 				F5D0104B2F52015C0007B939 /* Sources */,
 				F5D0104C2F52015C0007B939 /* Frameworks */,
 				F5D0104D2F52015C0007B939 /* Resources */,
@@ -279,6 +286,28 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXResourcesBuildPhase section */
+
+/* Begin PBXShellScriptBuildPhase section */
+		F5CFG01002F52015D0007B939 /* Select Firebase plist by configuration */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+			);
+			name = "Select Firebase plist by configuration";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/bash;
+			shellScript = "# 빌드 구성(Debug/Release)에 맞는 Firebase plist를 VibeTrip/ 위치로 복사한다.\n# 로컬 개발 환경에서만 동작하며, Xcode Cloud는 ci_post_clone.sh가 동일 경로에 직접 생성하므로\n# 이 스크립트의 복사 대상 파일이 없으면 조용히 스킵한다.\n\nSRC=\"$SRCROOT/Config/Firebase/$CONFIGURATION/GoogleService-Info.plist\"\nDEST=\"$SRCROOT/VibeTrip/GoogleService-Info.plist\"\n\nif [ -f \"$SRC\" ]; then\n    cp \"$SRC\" \"$DEST\"\n    echo \"Copied Firebase plist for $CONFIGURATION\"\nelse\n    echo \"No Firebase plist at $SRC (skipping local copy)\"\nfi\n";
+		};
+/* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		F5D0104B2F52015C0007B939 /* Sources */ = {
