@@ -60,9 +60,7 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
         // TODO: FCM 토큰 만료/회전으로 알림 수신 불가 이슈가 발생 시, MessagingDelegate + didReceiveRegistrationToken 재연동
         
         // 카카오 SDK 초기화
-        if let appKey = Bundle.main.infoDictionary?["KAKAO_APP_KEY"] as? String {
-            KakaoSDK.initSDK(appKey: appKey)
-        }
+        KakaoSDK.initSDK(appKey: AppConfig.kakaoAppKey)
 
         let isNotificationEnabled = UserDefaults.standard.object(forKey: Constants.notificationKey) as? Bool ?? true
 
