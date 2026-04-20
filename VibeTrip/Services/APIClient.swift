@@ -197,7 +197,7 @@ final class APIClient: APIClientProtocol {
     // 기본 공유 인스턴스: 별도 DI 없이 서비스에서 직접 참조 가능
     static let shared = APIClient()
 
-    private let baseURL = "https://dev.retrip.shop"
+    private let baseURL = "https://prod.retrip.shop"
     private let keychain: KeychainServiceProtocol
     private let session: URLSessionProtocol
     private let refreshActor = RefreshActor()
