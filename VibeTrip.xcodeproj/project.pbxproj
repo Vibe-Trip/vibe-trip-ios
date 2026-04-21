@@ -297,15 +297,17 @@
 			inputFileListPaths = (
 			);
 			inputPaths = (
+				"$(SRCROOT)/Config/Firebase/$(CONFIGURATION)/GoogleService-Info.plist",
 			);
 			name = "Select Firebase plist by configuration";
 			outputFileListPaths = (
 			);
 			outputPaths = (
+				"$(TARGET_BUILD_DIR)/$(UNLOCALIZED_RESOURCES_FOLDER_PATH)/GoogleService-Info.plist",
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/bash;
-			shellScript = "# 빌드 구성(Debug/Release)에 맞는 Firebase plist를 VibeTrip/ 위치로 복사한다.\n# 로컬 개발 환경에서만 동작하며, Xcode Cloud는 ci_post_clone.sh가 동일 경로에 직접 생성하므로\n# 이 스크립트의 복사 대상 파일이 없으면 조용히 스킵한다.\n\nSRC=\"$SRCROOT/Config/Firebase/$CONFIGURATION/GoogleService-Info.plist\"\nDEST=\"$SRCROOT/VibeTrip/GoogleService-Info.plist\"\n\nif [ -f \"$SRC\" ]; then\n    cp \"$SRC\" \"$DEST\"\n    echo \"Copied Firebase plist for $CONFIGURATION\"\nelse\n    echo \"No Firebase plist at $SRC (skipping local copy)\"\nfi\n";
+			shellScript = "# Firebase plist를 앱 번들 리소스 경로로 직접 복사한다.\n# 우선순위\n# 1) 로컬 구성별 파일: Config/Firebase/$CONFIGURATION/GoogleService-Info.plist\n# 2) CI fallback 파일: VibeTrip/GoogleService-Info.plist (ci_post_clone.sh 생성)\n\nCONFIG_SRC=\"$SRCROOT/Config/Firebase/$CONFIGURATION/GoogleService-Info.plist\"\nCI_FALLBACK_SRC=\"$SRCROOT/VibeTrip/GoogleService-Info.plist\"\nDEST_DIR=\"$TARGET_BUILD_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH\"\nDEST=\"$DEST_DIR/GoogleService-Info.plist\"\n\nif [ -f \"$CONFIG_SRC\" ]; then\n    SRC=\"$CONFIG_SRC\"\nelif [ -f \"$CI_FALLBACK_SRC\" ]; then\n    SRC=\"$CI_FALLBACK_SRC\"\nelse\n    echo \"error: Missing GoogleService-Info.plist for configuration=$CONFIGURATION\"\n    echo \"error: Checked $CONFIG_SRC and $CI_FALLBACK_SRC\"\n    exit 1\nfi\n\nmkdir -p \"$DEST_DIR\"\ncp \"$SRC\" \"$DEST\"\necho \"Copied Firebase plist to app bundle: $SRC -> $DEST\"\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 
