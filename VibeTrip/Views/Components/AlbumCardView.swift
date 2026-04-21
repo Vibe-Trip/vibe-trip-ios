@@ -219,6 +219,7 @@ private struct SkeletonTitleView: View {
             .frame(width: 220, height: 26)
             .background(.black.opacity(0.08))
             .cornerRadius(999)
+            .shimmering(shape: Capsule())
     }
 }
 
