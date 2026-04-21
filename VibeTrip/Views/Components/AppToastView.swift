@@ -29,7 +29,7 @@ struct AppToastView: View {
                 }
                 .padding(.horizontal, 16)
                 .padding(.vertical, 12)
-                .frame(width: 362, alignment: .leading)
+                .frame(maxWidth: .infinity, alignment: .leading)
             } else {
                 VStack(alignment: .leading, spacing: 10) {
                     Text(message)
@@ -39,7 +39,7 @@ struct AppToastView: View {
                         .foregroundColor(.white)
                 }
                 .padding(16)
-                .frame(width: 362, alignment: .topLeading)
+                .frame(maxWidth: .infinity, alignment: .topLeading)
             }
         }
         .background(Color("GrayScale/500"))
