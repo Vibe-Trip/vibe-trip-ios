@@ -24,7 +24,7 @@ struct InfoBannerView: View {
         .frame(maxWidth: .infinity, alignment: .center)
         .background(Color(red: 0.92, green: 0.92, blue: 0.98))
         .cornerRadius(8)
-        .shadow(color: .black.opacity(0.06), radius: 1.5, x: 0, y: 1)
+        .appShadow(.buttonTextField)
         .overlay(
             RoundedRectangle(cornerRadius: 8)
                 .inset(by: 0.5)

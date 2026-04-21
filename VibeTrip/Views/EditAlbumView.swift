@@ -128,7 +128,7 @@ struct EditAlbumView: View {
                                     .background(Color.fieldBackground)
                                     .clipShape(RoundedRectangle(cornerRadius: 8))
                                     .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.fieldBorder, lineWidth: 1))
-                                    .shadow(color: .black.opacity(0.06), radius: 1.5, x: 0, y: 1)
+                                    .appShadow(.buttonTextField)
                                     .onChange(of: viewModel.albumTitle) { _, newValue in
                                         let limited = String(newValue.prefix(15))
                                         if newValue != limited {
@@ -150,7 +150,7 @@ struct EditAlbumView: View {
                                 .background(Color.fieldBackground)
                                 .clipShape(RoundedRectangle(cornerRadius: 8))
                                 .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.fieldBorder, lineWidth: 1))
-                                .shadow(color: .black.opacity(0.06), radius: 1.5, x: 0, y: 1)
+                                .appShadow(.buttonTextField)
                                 .onChange(of: viewModel.destination) { _, newValue in
                                     let limited = String(newValue.prefix(25))
                                     if newValue != limited {
@@ -189,7 +189,7 @@ struct EditAlbumView: View {
                                 .background(Color.fieldBackground)
                                 .clipShape(RoundedRectangle(cornerRadius: 8))
                                 .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.fieldBorder, lineWidth: 1))
-                                .shadow(color: .black.opacity(0.06), radius: 1.5, x: 0, y: 1)
+                                .appShadow(.buttonTextField)
                             }
                             .buttonStyle(.plain)
                         }
@@ -283,12 +283,14 @@ struct EditAlbumView: View {
                                                 .frame(maxWidth: .infinity)
                                                 .frame(height: 52)
                                                 .background(
+                                                    // 장르버튼배경 -> buttonTextField shadow
                                                     RoundedRectangle(cornerRadius: 8)
                                                         .fill(
                                                             viewModel.selectedGenre == genre
                                                             ? Color.chipSelectedBackground
                                                             : Color.chipUnselectedBackground
                                                         )
+                                                        .appShadow(.buttonTextField)
                                                 )
                                                 .overlay(
                                                     RoundedRectangle(cornerRadius: 8)
@@ -299,7 +301,6 @@ struct EditAlbumView: View {
                                                             lineWidth: 1
                                                         )
                                                 )
-                                                .shadow(color: .black.opacity(0.06), radius: 1.5, x: 0, y: 1)
                                         }
                                         .buttonStyle(.plain)
                                     }
@@ -481,7 +482,7 @@ private struct EditAlbumPhotoBox: View {
                         .inset(by: 0.5)
                         .stroke(Color.fieldBorder, lineWidth: 1)
                 )
-                .shadow(color: .black.opacity(0.06), radius: 1.5, x: 0, y: 1)
+                .appShadow(.buttonTextField)
 
             if let image {
                 // 새로 선택한 이미지
@@ -577,7 +578,7 @@ private struct CommentarySection: View {
                     .background(Color.fieldBackground)
                     .clipShape(RoundedRectangle(cornerRadius: 8))
                     .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.fieldBorder, lineWidth: 1))
-                    .shadow(color: .black.opacity(0.06), radius: 1.5, x: 0, y: 1)
+                    .appShadow(.buttonTextField)
                     .focused($isFocused)
                     .onChange(of: commentary) { _, newValue in
                         let limited = String(newValue.prefix(maxCount))

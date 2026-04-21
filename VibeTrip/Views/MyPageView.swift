@@ -37,9 +37,6 @@ struct MyPageView: View {
         static let toastAnimationDuration: Double = 3.0
         static let statCardCornerRadius: CGFloat = 12
         static let statCardSpacing: CGFloat = 10
-        static let statCardShadowOpacity: Double = 0.06
-        static let statCardShadowRadius: CGFloat = 3
-        static let statCardShadowY: CGFloat = 1
         static let settingsGroupSpacing: CGFloat = 16
         static let settingsTopPadding: CGFloat = 40
         static let sectionHeaderBottomPadding: CGFloat = 10
@@ -112,7 +109,7 @@ struct MyPageView: View {
                         viewModel.isWithdrawalAlertPresented = false
                         viewModel.withdraw(appState: appState)
                     },
-                    confirmTitle: "탈퇴"
+                    confirmTitle: "탈퇴하기"
                 )
                 .transition(.opacity)
             }
@@ -154,7 +151,7 @@ struct MyPageView: View {
                 if let email = viewModel.userProfile?.email {
                     Text(email)
                         .font(Font.setPretendard(weight: .regular, size: 14))
-                        .foregroundStyle(Color("GrayScale/300"))
+                        .foregroundStyle(Color("GrayScale/400"))
                 }
             }
         }
@@ -217,17 +214,15 @@ struct MyPageView: View {
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 20)
-        .background(Color.white)
-        .clipShape(RoundedRectangle(cornerRadius: Constants.statCardCornerRadius))
+        .background(
+            // 통계카드배경 -> buttonTextField shadow
+            RoundedRectangle(cornerRadius: Constants.statCardCornerRadius)
+                .fill(Color.white)
+                .appShadow(.buttonTextField)
+        )
         .overlay(
             RoundedRectangle(cornerRadius: Constants.statCardCornerRadius)
-                .stroke(Color.fieldBorder, lineWidth: 1)
-        )
-        .shadow(
-            color: Color.black.opacity(Constants.statCardShadowOpacity),
-            radius: Constants.statCardShadowRadius,
-            x: 0,
-            y: Constants.statCardShadowY
+                .stroke(Color("appPrimary50"), lineWidth: 1)
         )
     }
     

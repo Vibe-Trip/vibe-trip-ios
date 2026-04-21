@@ -828,7 +828,8 @@ private extension AlbumDetailView {
             )
             .background(Color.appPrimary400)
             .cornerRadius(Constants.scrollToTopButtonSize / 2)
-            .shadow(color: .black.opacity(0.3), radius: 3, x: 0, y: 0)
+            // 최상단이동버튼 -> buttonTextField shadow
+            .appShadow(.buttonTextField)
         }
         .padding(.trailing, Constants.scrollToTopTrailingPadding)
         .padding(.bottom, Constants.scrollToTopBottomPadding)
@@ -1168,8 +1169,6 @@ private struct AlbumDetailAlbumMenuPopup: View {
         static let popupWidth: CGFloat = 160
         static let padding: CGFloat = 8
         static let cornerRadius: CGFloat = 12
-        static let shadowRadius: CGFloat = 3
-        static let shadowOpacity: CGFloat = 0.3
         static let itemFontSize: CGFloat = 14
     }
     
@@ -1203,12 +1202,8 @@ private struct AlbumDetailAlbumMenuPopup: View {
         .frame(width: Constants.popupWidth, alignment: .center)
         .background(.white)
         .cornerRadius(Constants.cornerRadius)
-        .shadow(
-            color: .black.opacity(Constants.shadowOpacity),
-            radius: Constants.shadowRadius,
-            x: 0,
-            y: 0
-        )
+        // 앨범메뉴팝업 -> detailMenu shadow
+        .appShadow(.detailMenu)
     }
     
     @ViewBuilder
@@ -1241,8 +1236,6 @@ private struct AlbumDetailLogMenuPopup: View {
         static let popupWidth: CGFloat = 140
         static let padding: CGFloat = 8
         static let cornerRadius: CGFloat = 12
-        static let shadowRadius: CGFloat = 3
-        static let shadowOpacity: CGFloat = 0.3
         static let itemFontSize: CGFloat = 14
     }
     
@@ -1269,12 +1262,8 @@ private struct AlbumDetailLogMenuPopup: View {
         .frame(width: Constants.popupWidth, alignment: .center)
         .background(.white)
         .cornerRadius(Constants.cornerRadius)
-        .shadow(
-            color: .black.opacity(Constants.shadowOpacity),
-            radius: Constants.shadowRadius,
-            x: 0,
-            y: 0
-        )
+        // 로그메뉴팝업 -> detailMenu shadow
+        .appShadow(.detailMenu)
     }
 }
 
@@ -1514,6 +1503,8 @@ private struct AlbumDetailLogImageSlider: View {
                             .foregroundStyle(
                                 index == currentIndex ? Color.appPrimary400 : Color.white
                             )
+                            // 페이지컨트롤dot -> pageControl shadow
+                            .appShadow(.pageControl)
                     }
                 }
                 .padding(.horizontal, Constants.indicatorHPadding)
