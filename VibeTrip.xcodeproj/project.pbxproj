@@ -44,7 +44,6 @@
 		F59BA9BA2F668A3000F9AAB0 /* Exceptions for "VibeTrip" folder in "VibeTrip" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
-				"GoogleService-Info.plist",
 				Info.plist,
 			);
 			target = F5D0104E2F52015C0007B939 /* VibeTrip */;
@@ -148,8 +147,8 @@
 			buildPhases = (
 				F5D0104B2F52015C0007B939 /* Sources */,
 				F5D0104C2F52015C0007B939 /* Frameworks */,
-				F5D0104D2F52015C0007B939 /* Resources */,
 				F5CFG01002F52015D0007B939 /* Select Firebase plist by configuration */,
+				F5D0104D2F52015C0007B939 /* Resources */,
 			);
 			buildRules = (
 			);
@@ -304,11 +303,11 @@
 			outputFileListPaths = (
 			);
 			outputPaths = (
-				"$(TARGET_BUILD_DIR)/$(UNLOCALIZED_RESOURCES_FOLDER_PATH)/GoogleService-Info.plist",
+				"$(SRCROOT)/VibeTrip/GoogleService-Info.plist",
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 			shellPath = /bin/bash;
-			shellScript = "# Firebase plist를 앱 번들 리소스 경로로 직접 복사한다.\n# 우선순위\n# 1) 로컬 구성별 파일: Config/Firebase/$CONFIGURATION/GoogleService-Info.plist\n# 2) CI fallback 파일: VibeTrip/GoogleService-Info.plist (ci_post_clone.sh 생성)\n\nCONFIG_SRC=\"$SRCROOT/Config/Firebase/$CONFIGURATION/GoogleService-Info.plist\"\nCI_FALLBACK_SRC=\"$SRCROOT/VibeTrip/GoogleService-Info.plist\"\nDEST_DIR=\"$TARGET_BUILD_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH\"\nDEST=\"$DEST_DIR/GoogleService-Info.plist\"\n\nif [ -f \"$CONFIG_SRC\" ]; then\n    SRC=\"$CONFIG_SRC\"\nelif [ -f \"$CI_FALLBACK_SRC\" ]; then\n    SRC=\"$CI_FALLBACK_SRC\"\nelse\n    echo \"error: Missing GoogleService-Info.plist for configuration=$CONFIGURATION\"\n    echo \"error: Checked $CONFIG_SRC and $CI_FALLBACK_SRC\"\n    exit 1\nfi\n\nmkdir -p \"$DEST_DIR\"\ncp \"$SRC\" \"$DEST\"\necho \"Copied Firebase plist to app bundle: $SRC -> $DEST\"\n";
+			shellScript = "# 빌드 구성(Debug/Release)에 맞는 Firebase plist를 앱 소스 경로로 준비한다.\nSRC=\"$SRCROOT/Config/Firebase/$CONFIGURATION/GoogleService-Info.plist\"\nDEST=\"$SRCROOT/VibeTrip/GoogleService-Info.plist\"\n\nif [ ! -f \"$SRC\" ]; then\n    echo \"error: Missing GoogleService-Info.plist at $SRC\"\n    exit 1\nfi\n\nxattr -d com.apple.quarantine \"$SRC\" 2>/dev/null || true\ncp \"$SRC\" \"$DEST\"\nplutil -lint \"$DEST\" >/dev/null\n\necho \"Prepared Firebase plist for $CONFIGURATION: $SRC -> $DEST\"\n";
 		};
 /* End PBXShellScriptBuildPhase section */
 
