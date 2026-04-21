@@ -33,6 +33,8 @@
 
 /* Begin PBXFileReference section */
 		F50ECEBD2F6BB83B000626FF /* VibeTrip.xctestplan */ = {isa = PBXFileReference; lastKnownFileType = text; path = VibeTrip.xctestplan; sourceTree = "<group>"; };
+		F5CFG00012F52015D0007B939 /* Debug.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Debug.xcconfig; sourceTree = "<group>"; };
+		F5CFG00022F52015D0007B939 /* Release.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Release.xcconfig; sourceTree = "<group>"; };
 		F5D0104F2F52015D0007B939 /* VibeTrip.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = VibeTrip.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		F5D0105C2F52015D0007B939 /* VibeTripTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = VibeTripTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		F5D010662F52015D0007B939 /* VibeTripUITests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = VibeTripUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -49,6 +51,11 @@
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
+		F5C527B92F96612E00E5B649 /* Firebase */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = Firebase;
+			sourceTree = "<group>";
+		};
 		F5D010512F52015D0007B939 /* VibeTrip */ = {
 			isa = PBXFileSystemSynchronizedRootGroup;
 			exceptions = (
@@ -99,10 +106,21 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		F5CFG00102F52015D0007B939 /* Config */ = {
+			isa = PBXGroup;
+			children = (
+				F5C527B92F96612E00E5B649 /* Firebase */,
+				F5CFG00012F52015D0007B939 /* Debug.xcconfig */,
+				F5CFG00022F52015D0007B939 /* Release.xcconfig */,
+			);
+			path = Config;
+			sourceTree = "<group>";
+		};
 		F5D010462F52015C0007B939 = {
 			isa = PBXGroup;
 			children = (
 				F50ECEBD2F6BB83B000626FF /* VibeTrip.xctestplan */,
+				F5CFG00102F52015D0007B939 /* Config */,
 				F5D010512F52015D0007B939 /* VibeTrip */,
 				F5D0105F2F52015D0007B939 /* VibeTripTests */,
 				F5D010692F52015D0007B939 /* VibeTripUITests */,
@@ -127,6 +145,7 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = F5D010702F52015D0007B939 /* Build configuration list for PBXNativeTarget "VibeTrip" */;
 			buildPhases = (
+				F5CFG01002F52015D0007B939 /* Select Firebase plist by configuration */,
 				F5D0104B2F52015C0007B939 /* Sources */,
 				F5D0104C2F52015C0007B939 /* Frameworks */,
 				F5D0104D2F52015C0007B939 /* Resources */,
@@ -267,6 +286,30 @@
 			runOnlyForDeploymentPostprocessing = 0;
 		};
 /* End PBXResourcesBuildPhase section */
+
+/* Begin PBXShellScriptBuildPhase section */
+		F5CFG01002F52015D0007B939 /* Select Firebase plist by configuration */ = {
+			isa = PBXShellScriptBuildPhase;
+			alwaysOutOfDate = 1;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			inputFileListPaths = (
+			);
+			inputPaths = (
+				"$(SRCROOT)/Config/Firebase/$(CONFIGURATION)/GoogleService-Info.plist",
+			);
+			name = "Select Firebase plist by configuration";
+			outputFileListPaths = (
+			);
+			outputPaths = (
+				"$(TARGET_BUILD_DIR)/$(UNLOCALIZED_RESOURCES_FOLDER_PATH)/GoogleService-Info.plist",
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+			shellPath = /bin/bash;
+			shellScript = "# Firebase plist를 앱 번들 리소스 경로로 직접 복사한다.\n# 우선순위\n# 1) 로컬 구성별 파일: Config/Firebase/$CONFIGURATION/GoogleService-Info.plist\n# 2) CI fallback 파일: VibeTrip/GoogleService-Info.plist (ci_post_clone.sh 생성)\n\nCONFIG_SRC=\"$SRCROOT/Config/Firebase/$CONFIGURATION/GoogleService-Info.plist\"\nCI_FALLBACK_SRC=\"$SRCROOT/VibeTrip/GoogleService-Info.plist\"\nDEST_DIR=\"$TARGET_BUILD_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH\"\nDEST=\"$DEST_DIR/GoogleService-Info.plist\"\n\nif [ -f \"$CONFIG_SRC\" ]; then\n    SRC=\"$CONFIG_SRC\"\nelif [ -f \"$CI_FALLBACK_SRC\" ]; then\n    SRC=\"$CI_FALLBACK_SRC\"\nelse\n    echo \"error: Missing GoogleService-Info.plist for configuration=$CONFIGURATION\"\n    echo \"error: Checked $CONFIG_SRC and $CI_FALLBACK_SRC\"\n    exit 1\nfi\n\nmkdir -p \"$DEST_DIR\"\ncp \"$SRC\" \"$DEST\"\necho \"Copied Firebase plist to app bundle: $SRC -> $DEST\"\n";
+		};
+/* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
 		F5D0104B2F52015C0007B939 /* Sources */ = {
@@ -431,6 +474,7 @@
 		};
 		F5D010712F52015D0007B939 /* Debug */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = F5CFG00012F52015D0007B939 /* Debug.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
@@ -453,7 +497,6 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0.1;
-				PRODUCT_BUNDLE_IDENTIFIER = com.swyp.VibeTrip;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
@@ -471,6 +514,7 @@
 		};
 		F5D010722F52015D0007B939 /* Release */ = {
 			isa = XCBuildConfiguration;
+			baseConfigurationReference = F5CFG00022F52015D0007B939 /* Release.xcconfig */;
 			buildSettings = {
 				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
 				ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME = AccentColor;
@@ -493,7 +537,6 @@
 					"@executable_path/Frameworks",
 				);
 				MARKETING_VERSION = 1.0.1;
-				PRODUCT_BUNDLE_IDENTIFIER = com.swyp.VibeTrip;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
