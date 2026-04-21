@@ -146,10 +146,10 @@
 			isa = PBXNativeTarget;
 			buildConfigurationList = F5D010702F52015D0007B939 /* Build configuration list for PBXNativeTarget "VibeTrip" */;
 			buildPhases = (
-				F5CFG01002F52015D0007B939 /* Select Firebase plist by configuration */,
 				F5D0104B2F52015C0007B939 /* Sources */,
 				F5D0104C2F52015C0007B939 /* Frameworks */,
 				F5D0104D2F52015C0007B939 /* Resources */,
+				F5CFG01002F52015D0007B939 /* Select Firebase plist by configuration */,
 			);
 			buildRules = (
 			);
