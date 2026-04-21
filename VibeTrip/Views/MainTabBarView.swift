@@ -222,8 +222,8 @@ struct MainTabBarView: View {
             appState.needsSilentAlbumRefresh = false
             Task { await mainPageViewModel.refreshAlbumsWithoutClearing() }
         }
-        // 앨범 생성 완료 감지 (FCM·폴링 공통): 생성 대기화면 자동 이탈
-        .onChange(of: mainPageViewModel.lastCompletedAlbumId) { _, completedId in
+        // 앨범 생성 완료 감지 (FCM·폴링 공통): 같은 albumId 재완료도 이벤트로 처리
+        .onReceive(mainPageViewModel.$lastCompletedAlbumId) { completedId in
             guard let completedId,
                   let creatingId = creatingAlbumId,
                   completedId == creatingId,
