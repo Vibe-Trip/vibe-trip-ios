@@ -356,7 +356,7 @@ private struct MakeAlbumRequiredInputContent: View {
                                 RoundedRectangle(cornerRadius: 8)
                                     .stroke(Color.fieldBorder, lineWidth: 1)
                             )
-                            .shadow(color: .black.opacity(0.06), radius: 1.5, x: 0, y: 1)
+                            .appShadow(.buttonTextField)
                             .onAppear {
                                 destinationInput = viewModel.album.travelDestination
                             }
@@ -404,7 +404,7 @@ private struct MakeAlbumRequiredInputContent: View {
                                 RoundedRectangle(cornerRadius: 8)
                                     .stroke(Color.fieldBorder, lineWidth: 1)
                             )
-                            .shadow(color: .black.opacity(0.06), radius: 1.5, x: 0, y: 1)
+                            .appShadow(.buttonTextField)
                         }
                         .buttonStyle(.plain)
                     }
@@ -578,12 +578,14 @@ private struct MakeAlbumOptionalInputContent: View {
                                             .frame(maxWidth: .infinity)
                                             .frame(height: 52)
                                             .background(
+                                                // 장르버튼배경 -> buttonTextField shadow
                                                 RoundedRectangle(cornerRadius: 8)
                                                     .fill(
                                                         viewModel.album.selectedGenre == genre
                                                         ? Color.chipSelectedBackground
                                                         : Color.chipUnselectedBackground
                                                     )
+                                                    .appShadow(.buttonTextField)
                                             )
                                             .overlay(
                                                 RoundedRectangle(cornerRadius: 8)
@@ -594,7 +596,6 @@ private struct MakeAlbumOptionalInputContent: View {
                                                         lineWidth: 1
                                                     )
                                             )
-                                            .shadow(color: .black.opacity(0.06), radius: 1.5, x: 0, y: 1)
                                     }
                                     .buttonStyle(.plain)
                                 }
@@ -634,7 +635,7 @@ private struct MakeAlbumOptionalInputContent: View {
                                     RoundedRectangle(cornerRadius: 8)
                                         .stroke(Color.fieldBorder, lineWidth: 1)
                                 )
-                                .shadow(color: .black.opacity(0.06), radius: 1.5, x: 0, y: 1)
+                                .appShadow(.buttonTextField)
                                 // 키보드 비활성화
                                 .focused($isCommentaryFocused)
                                 // 키보드 비활성화 버튼
@@ -728,7 +729,7 @@ private struct MakeAlbumPhotoBox: View {
                         .inset(by: 0.5)
                         .stroke(Color(red: 0.93, green: 0.93, blue: 0.93), lineWidth: 1)
                 )
-                .shadow(color: .black.opacity(0.06), radius: 1.5, x: 0, y: 1)
+                .appShadow(.buttonTextField)
             
             if let image {
                 // 선택된 사진

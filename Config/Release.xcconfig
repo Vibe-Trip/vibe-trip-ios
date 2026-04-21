@@ -1,0 +1,19 @@
+//
+//  Release.xcconfig
+//  VibeTrip
+//
+//  Created by CHOI on 4/20/26.
+//
+
+
+//  배포 환경용 빌드 설정
+// Xcode Archive 및 main 브랜치 Xcode Cloud 워크플로 전용
+
+// 앱 식별자
+PRODUCT_BUNDLE_IDENTIFIER = com.swyp.VibeTrip
+
+SERVER_URL = https:/$()/prod.retrip.shop // `$()` 구분자 -> xcconfig // 주석 해석 방지
+
+// 카카오 네이티브 앱 키 및 URL 스킴
+KAKAO_APP_KEY = 5ebb48f7c2f5830230937a980a5dcb46
+KAKAO_URL_SCHEME = kakao5ebb48f7c2f5830230937a980a5dcb46

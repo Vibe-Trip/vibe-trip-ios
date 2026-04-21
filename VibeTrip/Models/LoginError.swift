@@ -49,7 +49,7 @@ extension LoginError {
         case .providerError:
             return .toast(message: "로그인 중 오류가 발생했어요.")
         case .networkError:
-            return .toast(message: "넽웤 연결ㅇㄹ 다시 확인해 주세요.")
+            return .toast(message: "네트워크 연결을 다시 확인해 주세요.")
         case .timeout:
             return .retryPopup(message: "로그인 서버 응답이 지연되고 있어요. \n잠시 후 다시 해볼까요?")
         case .backendError(let code):

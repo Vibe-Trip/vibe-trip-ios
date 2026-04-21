@@ -13,7 +13,7 @@ import Foundation
 
 final class BackendAuthService: BackendAuthServiceProtocol {
 
-    private let baseURL = "https://prod.retrip.shop"
+    private let baseURL = AppConfig.serverURL
     private let timeoutInterval: TimeInterval = 5
 
     private lazy var session: URLSession = {

@@ -32,19 +32,15 @@ struct MyPageView: View {
         static let avatarSymbolColor = Color(red: 0.67, green: 0.68, blue: 0.93)
         static let headerHeight: CGFloat = 44
         static let tabBarHeight: CGFloat = 60
-        static let rowHeight: CGFloat = 52
+        static let rowHeight: CGFloat = 48
         static let toastBottomPadding: CGFloat = tabBarHeight + 16
         static let toastAnimationDuration: Double = 3.0
         static let statCardCornerRadius: CGFloat = 12
         static let statCardSpacing: CGFloat = 10
-        static let statCardShadowOpacity: Double = 0.06
-        static let statCardShadowRadius: CGFloat = 3
-        static let statCardShadowY: CGFloat = 1
         static let settingsGroupSpacing: CGFloat = 16
         static let settingsTopPadding: CGFloat = 40
-        static let sectionHeaderBottomPadding: CGFloat = 4
+        static let sectionHeaderBottomPadding: CGFloat = 10
         static let contentBottomPadding: CGFloat = tabBarHeight + 52
-        static let secondaryLabelColor = Color(red: 0.6, green: 0.62, blue: 0.64)
         static let termsURL = URL(string: "https://www.notion.so/RETRIP-3366aa129c8e8046a8f0e90d7b1d78cb?source=copy_link")!
         static let privacyURL = URL(string: "https://www.notion.so/RETRIP-3366aa129c8e8014bf10c55c890f67ad?source=copy_link")!
         static let openSourceURL = URL(string: "https://www.notion.so/RETRIP-3376aa129c8e8088bf16dccfaa73ef4d?source=copy_link")!
@@ -104,8 +100,8 @@ struct MyPageView: View {
             // 회원탈퇴 확인 팝업
             if viewModel.isWithdrawalAlertPresented {
                 ExitPopupView(
-                    title: "정말 탈퇴하시겠습니까?",
-                    message: "탈퇴 후 7일 이내 재로그인 시 데이터가 복구됩니다.\n7일 이후에는 모든 정보가 영구 삭제됩니다.",
+                    title: "리트립을 떠나시겠어요?",
+                    message: "7일 이내 다시 로그인하지 않으면.\n모든 여행 기록이 영구 삭제됩니다.",
                     onCancel: {
                         viewModel.isWithdrawalAlertPresented = false
                     },
@@ -113,7 +109,7 @@ struct MyPageView: View {
                         viewModel.isWithdrawalAlertPresented = false
                         viewModel.withdraw(appState: appState)
                     },
-                    confirmTitle: "탈퇴"
+                    confirmTitle: "탈퇴하기"
                 )
                 .transition(.opacity)
             }
@@ -146,16 +142,16 @@ struct MyPageView: View {
     // MARK: - 프로필 섹션
     
     private var profileSection: some View {
-        VStack(spacing: 12) {
+        VStack(spacing: 16) {
             avatarView
-            VStack(spacing: 4) {
+            VStack(spacing: 8) {
                 Text(viewModel.userProfile?.nickname ?? "-")
                     .font(Font.setPretendard(weight: .semiBold, size: 18))
                     .foregroundStyle(Color.textPrimary)
                 if let email = viewModel.userProfile?.email {
                     Text(email)
                         .font(Font.setPretendard(weight: .regular, size: 14))
-                        .foregroundStyle(Color("GrayScale/300"))
+                        .foregroundStyle(Color("GrayScale/400"))
                 }
             }
         }
@@ -210,25 +206,23 @@ struct MyPageView: View {
     private func statCard(count: Int, label: String) -> some View {
         VStack(spacing: 6) {
             Text("\(count)")
-                .font(Font.setPretendard(weight: .bold, size: 20))
+                .font(Font.setPretendard(weight: .semiBold, size: 22))
                 .foregroundStyle(Color.appPrimary)
             Text(label)
-                .font(Font.setPretendard(weight: .regular, size: 11))
-                .foregroundStyle(Constants.secondaryLabelColor)
+                .font(Font.setPretendard(weight: .medium, size: 12))
+                .foregroundStyle(Color("GrayScale/400"))
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 20)
-        .background(Color.white)
-        .clipShape(RoundedRectangle(cornerRadius: Constants.statCardCornerRadius))
+        .background(
+            // 통계카드배경 -> buttonTextField shadow
+            RoundedRectangle(cornerRadius: Constants.statCardCornerRadius)
+                .fill(Color.white)
+                .appShadow(.buttonTextField)
+        )
         .overlay(
             RoundedRectangle(cornerRadius: Constants.statCardCornerRadius)
-                .stroke(Color.fieldBorder, lineWidth: 1)
-        )
-        .shadow(
-            color: Color.black.opacity(Constants.statCardShadowOpacity),
-            radius: Constants.statCardShadowRadius,
-            x: 0,
-            y: Constants.statCardShadowY
+                .stroke(Color("appPrimary50"), lineWidth: 1)
         )
     }
     
@@ -240,7 +234,7 @@ struct MyPageView: View {
             // 알림 설정 Toggle
             HStack {
                 Text("알림 설정")
-                    .font(Font.setPretendard(weight: .medium, size: 16))
+                    .font(Font.setPretendard(weight: .semiBold, size: 16))
                     .foregroundStyle(Color.black)
                 Spacer()
                 Toggle(
@@ -333,8 +327,8 @@ struct MyPageView: View {
     private func sectionHeader(_ title: String) -> some View {
         HStack {
             Text(title)
-                .font(Font.setPretendard(weight: .semiBold, size: 13))
-                .foregroundStyle(Constants.secondaryLabelColor)
+                .font(Font.setPretendard(weight: .semiBold, size: 14))
+                .foregroundStyle(Color("GrayScale/400"))
             Spacer()
         }
         .padding(.horizontal, 20)
@@ -351,7 +345,7 @@ struct MyPageView: View {
                 Spacer()
                 Image(systemName: "chevron.right")
                     .font(.system(size: 14, weight: .medium))
-                    .foregroundStyle(Color.placeholderSymbol)
+                    .foregroundStyle(Color.textPrimary)
             }
             .frame(height: Constants.rowHeight)
             .padding(.horizontal, 20)

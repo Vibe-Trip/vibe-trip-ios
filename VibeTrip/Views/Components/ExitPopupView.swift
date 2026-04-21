@@ -129,7 +129,7 @@ struct ExitPopupView: View {
                             lineWidth: 1
                         )
                 )
-                .shadow(color: .black.opacity(0.06), radius: 1.5, x: 0, y: 1)
+                .appShadow(.buttonTextField)
         }
         .buttonStyle(.plain)
     }

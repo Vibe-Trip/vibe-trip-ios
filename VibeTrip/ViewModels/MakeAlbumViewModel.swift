@@ -289,7 +289,10 @@ final class MakeAlbumViewModel: ObservableObject {
         do {
             let response = try await albumService.createAlbum(request: request)
             onSuccess(response.albumId)
-        } catch APIClientError.networkError where !isRetry {
+        } catch APIClientError.networkError(let urlError) where !isRetry {
+            #if DEBUG
+            print("[AlbumCreate][Flow] networkError firstAttempt=\(urlError.code.rawValue)")
+            #endif
             // 최초 1회 네트워크 오류만 재시도 허용
             let retryAction: () -> Void = { [weak self] in
                 guard let self, let req = self.pendingRequest else { return }
@@ -305,6 +308,9 @@ final class MakeAlbumViewModel: ObservableObject {
             }
             onNetworkError(retryAction)
         } catch {
+            #if DEBUG
+            print("[AlbumCreate][Flow] fatalError isRetry=\(isRetry) error=\(error)")
+            #endif
             // networkError 재시도 실패 or serverError or decodingFailed or unknown
             onFatalError()
         }
