@@ -20,7 +20,7 @@ struct ShimmerModifier<ClipShape: Shape>: ViewModifier {
     private let duration: Double = 2.5
 
     // 흐르는 빛의 색과 강도
-    private let bandColor = Color.white.opacity(1.0)
+    private let bandColor = Color.white.opacity(0.7)
 
     func body(content: Content) -> some View {
         content
