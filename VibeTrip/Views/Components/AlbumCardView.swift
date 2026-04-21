@@ -42,22 +42,6 @@ struct AlbumCardView: View, Equatable {
         static let thumbnailTopPadding: CGFloat      = 16
         static let thumbnailTrailingPadding: CGFloat = 16
 
-        // 현재 카드 강조는 유지 및 비활성 카드는 그림자를 줄임 -> 렌더링 부담 완화
-        static let activeCardShadowOpacity: CGFloat   = 0.06
-        static let inactiveCardShadowOpacity: CGFloat = 0.02
-        static let activeCardShadowRadius: CGFloat    = 1.5
-        static let inactiveCardShadowRadius: CGFloat  = 0.8
-
-        static let activeCoverShadowOpacity: CGFloat   = 0.1
-        static let inactiveCoverShadowOpacity: CGFloat = 0.04
-        static let activeCoverShadowRadius: CGFloat    = 7.5
-        static let inactiveCoverShadowRadius: CGFloat  = 3.0
-
-        static let activeThumbnailShadowOpacity: CGFloat   = 0.13
-        static let inactiveThumbnailShadowOpacity: CGFloat = 0
-        static let activeThumbnailShadowRadius: CGFloat    = 2.5
-        static let inactiveThumbnailShadowRadius: CGFloat  = 0
-
         static let textTopPadding: CGFloat      = 58
         static let textLeadingPadding: CGFloat  = 16
         static let textSpacing: CGFloat         = 4
@@ -70,16 +54,11 @@ struct AlbumCardView: View, Equatable {
             coverImage
             infoOverlay
         }
+        // 카드프레임 -> mainPageCardFrame shadow
+        .appShadow(isActive ? .mainPageCardFrame : .none)
         .frame(width: Layout.cardWidth, height: Layout.cardHeight)
         .background(Color.white)
         .cornerRadius(Layout.cardCornerRadius)
-        // 카드 외곽 shadow 비용: 비활성 카드에서 더 낮춤
-        .shadow(
-            color: .black.opacity(isActive ? Layout.activeCardShadowOpacity : Layout.inactiveCardShadowOpacity),
-            radius: isActive ? Layout.activeCardShadowRadius : Layout.inactiveCardShadowRadius,
-            x: 0,
-            y: 1
-        )
     }
 
     // MARK: - 대표 이미지
@@ -97,16 +76,11 @@ struct AlbumCardView: View, Equatable {
                     .scaledToFill()
             }
         }
+        // 커버이미지 -> mainCardImage shadow
+        .appShadow(isActive ? .mainCardImage : .none)
         .frame(width: Layout.cardWidth, height: Layout.coverImageHeight)
         .clipped()
         .cornerRadius(Layout.cardCornerRadius)
-        // 커버 이미지 shadow도 비활성 카드에서 함께 축소
-        .shadow(
-            color: .black.opacity(isActive ? Layout.activeCoverShadowOpacity : Layout.inactiveCoverShadowOpacity),
-            radius: isActive ? Layout.activeCoverShadowRadius : Layout.inactiveCoverShadowRadius,
-            x: 0,
-            y: 5
-        )
     }
 
     // MARK: - Info Overlay
@@ -186,13 +160,8 @@ struct AlbumCardView: View, Equatable {
                 .frame(width: Layout.thumbnailSize, height: Layout.thumbnailSize)
                 .clipShape(Circle())
                 .overlay(Circle().stroke(Color.white, lineWidth: 1))
-                // 비활성 카드 썸네일: shadow X -> 활성 될 때 렌더링
-                .shadow(
-                    color: .black.opacity(isActive ? Layout.activeThumbnailShadowOpacity : Layout.inactiveThumbnailShadowOpacity),
-                    radius: isActive ? Layout.activeThumbnailShadowRadius : Layout.inactiveThumbnailShadowRadius,
-                    x: 0,
-                    y: 3
-                )
+                // 원형썸네일 -> mainCardImage shadow
+                .appShadow(isActive ? .mainCardImage : .none)
             }
 
             // +N 배지: 전체 이미지 수가 4개 이상일 때 항상 표시 (이미지 3개 제외한 나머지)
