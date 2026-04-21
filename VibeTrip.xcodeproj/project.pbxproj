@@ -41,13 +41,14 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
-		F59BA9BA2F668A3000F9AAB0 /* Exceptions for "VibeTrip" folder in "VibeTrip" target */ = {
-			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
-			membershipExceptions = (
-				Info.plist,
-			);
-			target = F5D0104E2F52015C0007B939 /* VibeTrip */;
-		};
+			F59BA9BA2F668A3000F9AAB0 /* Exceptions for "VibeTrip" folder in "VibeTrip" target */ = {
+				isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+				membershipExceptions = (
+					"GoogleService-Info.plist",
+					Info.plist,
+				);
+				target = F5D0104E2F52015C0007B939 /* VibeTrip */;
+			};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -141,15 +142,15 @@
 /* End PBXGroup section */
 
 /* Begin PBXNativeTarget section */
-		F5D0104E2F52015C0007B939 /* VibeTrip */ = {
-			isa = PBXNativeTarget;
-			buildConfigurationList = F5D010702F52015D0007B939 /* Build configuration list for PBXNativeTarget "VibeTrip" */;
-			buildPhases = (
-				F5D0104B2F52015C0007B939 /* Sources */,
-				F5D0104C2F52015C0007B939 /* Frameworks */,
-				F5CFG01002F52015D0007B939 /* Select Firebase plist by configuration */,
-				F5D0104D2F52015C0007B939 /* Resources */,
-			);
+			F5D0104E2F52015C0007B939 /* VibeTrip */ = {
+				isa = PBXNativeTarget;
+				buildConfigurationList = F5D010702F52015D0007B939 /* Build configuration list for PBXNativeTarget "VibeTrip" */;
+				buildPhases = (
+					F5D0104B2F52015C0007B939 /* Sources */,
+					F5D0104C2F52015C0007B939 /* Frameworks */,
+					F5D0104D2F52015C0007B939 /* Resources */,
+					F5CFG01002F52015D0007B939 /* Select Firebase plist by configuration */,
+				);
 			buildRules = (
 			);
 			dependencies = (
@@ -294,21 +295,22 @@
 			buildActionMask = 2147483647;
 			files = (
 			);
-			inputFileListPaths = (
-			);
-			inputPaths = (
-				"$(SRCROOT)/Config/Firebase/$(CONFIGURATION)/GoogleService-Info.plist",
-			);
-			name = "Select Firebase plist by configuration";
-			outputFileListPaths = (
-			);
-			outputPaths = (
-				"$(SRCROOT)/VibeTrip/GoogleService-Info.plist",
-			);
-			runOnlyForDeploymentPostprocessing = 0;
-			shellPath = /bin/bash;
-			shellScript = "# 빌드 구성(Debug/Release)에 맞는 Firebase plist를 앱 소스 경로로 준비한다.\nSRC=\"$SRCROOT/Config/Firebase/$CONFIGURATION/GoogleService-Info.plist\"\nDEST=\"$SRCROOT/VibeTrip/GoogleService-Info.plist\"\n\nif [ ! -f \"$SRC\" ]; then\n    echo \"error: Missing GoogleService-Info.plist at $SRC\"\n    exit 1\nfi\n\nxattr -d com.apple.quarantine \"$SRC\" 2>/dev/null || true\ncp \"$SRC\" \"$DEST\"\nplutil -lint \"$DEST\" >/dev/null\n\necho \"Prepared Firebase plist for $CONFIGURATION: $SRC -> $DEST\"\n";
-		};
+				inputFileListPaths = (
+				);
+				inputPaths = (
+					"$(SRCROOT)/Config/Firebase/$(CONFIGURATION)/GoogleService-Info.plist",
+					"$(SRCROOT)/VibeTrip/GoogleService-Info.plist",
+				);
+				name = "Select Firebase plist by configuration";
+				outputFileListPaths = (
+				);
+				outputPaths = (
+					"$(TARGET_BUILD_DIR)/$(UNLOCALIZED_RESOURCES_FOLDER_PATH)/GoogleService-Info.plist",
+				);
+				runOnlyForDeploymentPostprocessing = 0;
+				shellPath = /bin/bash;
+				shellScript = "# 빌드 구성(Debug/Release)에 맞는 Firebase plist를 최종 앱 번들 리소스 경로로 복사한다.\n# 우선순위\n# 1) 로컬 파일: Config/Firebase/$CONFIGURATION/GoogleService-Info.plist\n# 2) CI 생성 파일: VibeTrip/GoogleService-Info.plist (ci_post_clone.sh)\n\nCONFIG_SRC=\"$SRCROOT/Config/Firebase/$CONFIGURATION/GoogleService-Info.plist\"\nCI_SRC=\"$SRCROOT/VibeTrip/GoogleService-Info.plist\"\nDEST_DIR=\"$TARGET_BUILD_DIR/$UNLOCALIZED_RESOURCES_FOLDER_PATH\"\nDEST=\"$DEST_DIR/GoogleService-Info.plist\"\n\nif [ -f \"$CONFIG_SRC\" ]; then\n    SRC=\"$CONFIG_SRC\"\nelif [ -f \"$CI_SRC\" ]; then\n    SRC=\"$CI_SRC\"\nelse\n    echo \"error: Missing Firebase plist for configuration=$CONFIGURATION\"\n    echo \"error: Checked $CONFIG_SRC and $CI_SRC\"\n    exit 1\nfi\n\nxattr -d com.apple.quarantine \"$SRC\" 2>/dev/null || true\nmkdir -p \"$DEST_DIR\"\ncp \"$SRC\" \"$DEST\"\nplutil -lint \"$DEST\" >/dev/null\n\necho \"Copied Firebase plist to app bundle: $SRC -> $DEST\"\n";
+			};
 /* End PBXShellScriptBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
