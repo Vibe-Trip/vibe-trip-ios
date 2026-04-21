@@ -29,14 +29,15 @@ struct MakeAlbumSegmentedControl<Option: Identifiable & Hashable>: View {
                         .frame(maxWidth: .infinity)
                         .frame(height: 48)
                         .background(
+                            // 세그먼트배경 -> buttonTextField shadow
                             RoundedRectangle(cornerRadius: 8)
                                 .fill(isSelected ? Color.chipSelectedBackground : Color.chipUnselectedBackground)
+                                .appShadow(.buttonTextField)
                         )
                         .overlay(
                             RoundedRectangle(cornerRadius: 8)
                                 .stroke(isSelected ? Color.chipSelectedBorder : Color.fieldBorder, lineWidth: 1)
                         )
-                        .shadow(color: .black.opacity(0.06), radius: 1.5, x: 0, y: 1)
                 }
                 .buttonStyle(.plain)
             }

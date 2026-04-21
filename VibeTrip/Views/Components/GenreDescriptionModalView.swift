@@ -80,7 +80,7 @@ struct GenreDescriptionModalView: View {
                 RoundedRectangle(cornerRadius: Layout.modalCornerRadius)
                     .stroke(Color.fieldBorder, lineWidth: 1)
             )
-            .shadow(color: .black.opacity(0.06), radius: 1.5, x: 0, y: 1)
+            .appShadow(.buttonTextField)
             .padding(.horizontal, 20)
         }
     }
