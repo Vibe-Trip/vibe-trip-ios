@@ -76,7 +76,7 @@ struct LoginView: View {
         .overlay {
             if case .retryPopup(let message) = viewModel.errorState {
                 ExitPopupView(
-                    title: "인증서버 타임아웃",
+                    title: "로그인 지연",
                     message: message,
                     onCancel: { viewModel.errorState = nil },
                     onConfirm: {
@@ -84,23 +84,12 @@ struct LoginView: View {
                         viewModel.retryLogin()
                     },
                     confirmTitle: "다시 시도",
-                    cancelTitle: "닫기"
+                    cancelTitle: "나중에 하기"
                 )
                 .transition(.opacity)
             }
         }
         .animation(.easeInOut(duration: 0.2), value: viewModel.errorState)
-        // 확인 팝업
-        .alert("이용 제한", isPresented: Binding(
-            get: { if case .alertPopup = viewModel.errorState { return true }; return false },
-            set: { if !$0 { viewModel.errorState = nil } }
-        )) {
-            Button("확인") { viewModel.errorState = nil }
-        } message: {
-            if case .alertPopup(let message) = viewModel.errorState {
-                Text(message)
-            }
-        }
         // 로그인 성공 -> 메인화면(fullScreenCover)
         .fullScreenCover(isPresented: $viewModel.isLoggedIn) {
             MainTabBarView()

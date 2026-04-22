@@ -35,9 +35,6 @@ enum LoginErrorState: Equatable {
 
     /// 재시도 팝업
     case retryPopup(message: String)
-
-    /// 확인 팝업
-    case alertPopup(message: String)
 }
 
 // MARK: - LoginError -> LoginErrorState 변환
