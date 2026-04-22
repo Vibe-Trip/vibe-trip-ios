@@ -25,7 +25,7 @@ struct MakeAlbumSegmentedControl<Option: Identifiable & Hashable>: View {
                 }) {
                     Text(title(option))
                         .font(Font.setPretendard(weight: .medium, size: 14))
-                        .foregroundStyle(Color.textPrimary)
+                        .foregroundStyle(Color.text)
                         .frame(maxWidth: .infinity)
                         .frame(height: 48)
                         .background(

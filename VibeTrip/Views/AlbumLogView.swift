@@ -119,7 +119,7 @@ struct AlbumLogView: View {
                                     .foregroundStyle(
                                         viewModel.isSaveEnabled
                                         ? Color.appPrimary
-                                        : Color.buttonDisabledForeground
+                                        : Color("GrayScale/50")
                                     )
                             }
                         }

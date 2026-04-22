@@ -790,7 +790,7 @@ private struct MakeAlbumBottomButton: View {
         Button(action: action) {
             Text(title)
                 .font(Font.setPretendard(weight: .semiBold, size: 16))
-                .foregroundStyle(isEnabled ? .white : Color.buttonDisabledForeground)
+                .foregroundStyle(Color("GrayScale/50"))
                 .frame(maxWidth: .infinity)
                 .frame(height: 52)
             /// 배경색 조정

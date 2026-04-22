@@ -1220,7 +1220,7 @@ private struct AlbumDetailAlbumMenuPopup: View {
             HStack(alignment: .center, spacing: 0) {
                 Text(item.title)
                     .font(.setPretendard(weight: .medium, size: Constants.itemFontSize))
-                    .foregroundStyle(isDisabled ? Color.buttonDisabledForeground : Color.textPrimary)
+                    .foregroundStyle(isDisabled ? Color("GrayScale/50") : Color.textPrimary)
             }
         }
         .disabled(isDisabled)

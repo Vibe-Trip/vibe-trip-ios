@@ -625,7 +625,7 @@ private struct EditAlbumBottomButton: View {
         Button(action: action) {
             Text("수정 완료")
                 .font(Font.setPretendard(weight: .semiBold, size: 18))
-                .foregroundStyle(isEnabled ? .white : Color.buttonDisabledForeground)
+                .foregroundStyle(isEnabled ? .white : Color("GrayScale/50"))
                 .frame(maxWidth: .infinity)
                 .frame(height: 52)
                 .background(isEnabled ? Color.appPrimary : Color.buttonDisabledBackground)
