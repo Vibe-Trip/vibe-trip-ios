@@ -353,6 +353,7 @@ private struct MakeAlbumRequiredInputContent: View {
                             .frame(maxWidth: .infinity, minHeight: 48, maxHeight: 48, alignment: .leading)
                             .background(Color.fieldBackground)
                             .clipShape(RoundedRectangle(cornerRadius: 8))
+                            .submitLabel(.done)
                             .overlay(
                                 RoundedRectangle(cornerRadius: 8)
                                     .stroke(Color.fieldBorder, lineWidth: 1)
