@@ -539,7 +539,7 @@ private struct EditAlbumPhotoBox: View {
                 // 사진 미선택 상태
                 VStack(spacing: 8) {
                     Image(systemName: "camera")
-                        .font(.system(size: 40, weight: .regular))
+                        .font(.system(size: 30, weight: .regular))
                         .foregroundStyle(Color("GrayScale/300"))
 
                     Text("앨범 커버 사진을 선택해주세요.")

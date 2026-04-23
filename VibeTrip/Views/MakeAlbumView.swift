@@ -785,7 +785,7 @@ private struct MakeAlbumPhotoBox: View {
                 // 카메라 아이콘 + 안내 문구 (PlaceHolder)
                 VStack(spacing: 8) {
                     Image(systemName: "camera")
-                        .font(.system(size: 40, weight: .regular))
+                        .font(.system(size: 30, weight: .regular))
                         .foregroundStyle(Color("GrayScale/300"))
                     
                     Text("음악으로 만들고 싶은 순간을 올려주세요. \nAI가 사진의 온도와 색감을 곡으로 빚어냅니다.")
