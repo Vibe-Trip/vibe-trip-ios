@@ -173,6 +173,7 @@ struct MakeAlbumView: View {
                         doNotShowEntryPopupAgain = false
                     },
                     onConfirm: {
+                        dismissKeyboard()
                         if doNotShowEntryPopupAgain {
                             shouldShowEntryPopup = false
                         }
@@ -257,6 +258,7 @@ struct MakeAlbumView: View {
     
     // 필수 입력 검증 통과 시 선택 입력 화면으로 push
     private func handleProceedToOptionalStep() {
+        dismissKeyboard()
         viewModel.proceedToOptionalStep()
         guard viewModel.currentStep == .optionalInput else { return }
         if navigationPath.last != .optionalInput {
@@ -274,6 +276,7 @@ struct MakeAlbumView: View {
     
     // 앨범 생성 버튼 탭 처리
     private func handleCreateTap() {
+        dismissKeyboard()
         if shouldShowEntryPopup {
             doNotShowEntryPopupAgain = false
             withAnimation(.easeInOut(duration: 0.2)) {
@@ -287,6 +290,15 @@ struct MakeAlbumView: View {
                 onFatalError: onFatalError
             )
         }
+    }
+
+    private func dismissKeyboard() {
+        UIApplication.shared.sendAction(
+            #selector(UIResponder.resignFirstResponder),
+            to: nil,
+            from: nil,
+            for: nil
+        )
     }
 }
 
