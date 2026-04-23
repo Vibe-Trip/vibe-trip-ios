@@ -31,14 +31,14 @@ struct MakeAlbumLoadingView: View {
         static let imageWidth: CGFloat            = 260
         static let imageHeight: CGFloat           = 195
         static let imageToTitleSpacing: CGFloat   = 12
-        static let titleToBodySpacing: CGFloat    = 12
-        static let bodyToButtonMinSpacing: CGFloat = 53
+        static let titleToBodySpacing: CGFloat    = 8
+        static let bodyToButtonMinSpacing: CGFloat = 36
         static let buttonHorizontalPadding: CGFloat = 101
         static let buttonVerticalPadding: CGFloat = 12
-        static let buttonCornerRadius: CGFloat    = 12
+        static let buttonCornerRadius: CGFloat    = 8
         static let titleFontSize: CGFloat         = 22
         static let bodyFontSize: CGFloat          = 16
-        static let buttonFontSize: CGFloat        = 16
+        static let buttonFontSize: CGFloat        = 14
         static let horizontalPadding: CGFloat     = 20
         static let bottomPadding: CGFloat         = 267
     }
@@ -60,7 +60,7 @@ struct MakeAlbumLoadingView: View {
                 Text("여행의 여운을 음악으로 담아내고 있어요.")
                     .font(Font.setPretendard(weight: .semiBold, size: Layout.titleFontSize))
                     .multilineTextAlignment(.center)
-                    .foregroundStyle(Color.textPrimary)
+                    .foregroundStyle(Color("GrayScale/500"))
                     .frame(maxWidth: .infinity)
                     .padding(.horizontal, Layout.horizontalPadding)
 
@@ -76,7 +76,7 @@ struct MakeAlbumLoadingView: View {
                     .frame(maxWidth: .infinity)
                     .padding(.horizontal, Layout.horizontalPadding)
 
-                Spacer(minLength: Layout.bodyToButtonMinSpacing)
+                Spacer().frame(height: Layout.bodyToButtonMinSpacing)
 
                 // 화면 숨기기 버튼
                 Button {
