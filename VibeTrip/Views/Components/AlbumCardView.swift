@@ -54,11 +54,11 @@ struct AlbumCardView: View, Equatable {
             coverImage
             infoOverlay
         }
-        // 카드프레임 -> mainPageCardFrame shadow
-        .appShadow(isActive ? .mainPageCardFrame : .none)
         .frame(width: Layout.cardWidth, height: Layout.cardHeight)
         .background(Color.white)
-        .cornerRadius(Layout.cardCornerRadius)
+        .clipShape(RoundedRectangle(cornerRadius: Layout.cardCornerRadius, style: .continuous))
+        // 카드프레임 -> mainPageCardFrame shadow
+        .appShadow(.mainPageCardFrame)
     }
 
     // MARK: - 대표 이미지
@@ -76,11 +76,10 @@ struct AlbumCardView: View, Equatable {
                     .scaledToFill()
             }
         }
+        .frame(width: Layout.cardWidth, height: Layout.coverImageHeight)
+        .clipShape(RoundedRectangle(cornerRadius: Layout.cardCornerRadius, style: .continuous))
         // 커버이미지 -> mainCardImage shadow
         .appShadow(isActive ? .mainCardImage : .none)
-        .frame(width: Layout.cardWidth, height: Layout.coverImageHeight)
-        .clipped()
-        .cornerRadius(Layout.cardCornerRadius)
     }
 
     // MARK: - Info Overlay
