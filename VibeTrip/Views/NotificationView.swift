@@ -244,7 +244,7 @@ private struct NotificationRow: View {
         .padding(.vertical, Layout.verticalPadding)
         .frame(maxWidth: .infinity)
         // 읽음: 흰 배경, 안읽음: appPrimary100
-        .background(item.isRead ? Color.white : Color("appPrimary100"))
+        .background(item.isRead ? Color.white : Color("appPrimary50"))
         // 알림 항목 구분선
         .overlay(alignment: .bottom) {
             Rectangle()
