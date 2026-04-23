@@ -185,6 +185,7 @@ struct MakeAlbumView: View {
                             onFatalError: onFatalError
                         )
                     },
+                    confirmTitle: "시작하기",
                     doNotShowAgain: $doNotShowEntryPopupAgain
                 )
             }
@@ -556,7 +557,7 @@ private struct MakeAlbumOptionalInputContent: View {
                                 }) {
                                     Image(systemName: "info.circle")
                                         .font(.system(size: 18))
-                                        .foregroundStyle(Color.appPrimary.opacity(0.6))
+                                        .foregroundStyle(Color("appPrimary500"))
                                 }
                                 .buttonStyle(.plain)
                             }
@@ -585,8 +586,8 @@ private struct MakeAlbumOptionalInputContent: View {
                                                 RoundedRectangle(cornerRadius: 8)
                                                     .fill(
                                                         viewModel.album.selectedGenre == genre
-                                                        ? Color.chipSelectedBackground
-                                                        : Color.chipUnselectedBackground
+                                                        ? Color("appPrimary50")
+                                                        : Color("GrayScale/50")
                                                     )
                                                     .appShadow(.buttonTextField)
                                             )
@@ -594,8 +595,8 @@ private struct MakeAlbumOptionalInputContent: View {
                                                 RoundedRectangle(cornerRadius: 8)
                                                     .stroke(
                                                         viewModel.album.selectedGenre == genre
-                                                        ? Color.appPrimary.opacity(0.35)
-                                                        : Color.fieldBorder,
+                                                        ? Color("appPrimary100")
+                                                        : Color("GrayScale/100"),
                                                         lineWidth: 1
                                                     )
                                             )
@@ -645,15 +646,20 @@ private struct MakeAlbumOptionalInputContent: View {
                                 .toolbar {
                                     ToolbarItemGroup(placement: .keyboard) {
                                         Spacer()
-                                        Button("완료") {
+                                        Button(action: {
                                             isCommentaryFocused = false
+                                        }) {
+                                            Image(systemName: "keyboard.chevron.compact.down")  // 키보드 비활성화 심볼
+                                                .font(.system(size: 18, weight: .light))
                                         }
+                                        .tint(Color("appPrimary400"))
                                     }
                                 }
                                 
                                 if viewModel.album.albumCommentary.isEmpty {
                                     Text("어떤 분위기의 노래를 만들고 싶나요?\n지금 느끼는 감정을 기록해보세요.")
-                                        .font(Font.setPretendard(weight: .medium, size: 16))
+                                        .font(Font.setPretendard(weight: .regular, size: 14))
+                                        .tracking(-0.28)
                                         .foregroundStyle(Color("GrayScale/300"))
                                         .padding(.horizontal, 16)
                                         .padding(.top, 20)
