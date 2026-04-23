@@ -75,6 +75,7 @@ import UIKit
         static let maximumPhotoBytes = 10 * 1024 * 1024
         static let photoLimitMessage = "사진은 최대 5장까지 고를 수 있어요."
         static let photoSizeLimitMessage = "10MB보다 작은 사진을 골라주세요."
+        static let saveValidationMessage = "이야기를 작성해야 저장할 수 있어요."
         static let saveErrorMessage = "저장 중 오류가 발생했어요."
         static let timeFormat = "a h:mm"
     }
@@ -158,6 +159,12 @@ import UIKit
 
     // 로그 저장 (작성: POST, 수정: PUT)
     func saveLog() async {
+        let trimmedLogText = logText.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedLogText.isEmpty else {
+            showToast(Constants.saveValidationMessage)
+            return
+        }
+        
         isSaving = true
         defer { isSaving = false }
         do {
@@ -168,7 +175,7 @@ import UIKit
                 }
                 let request = AlbumLogRequest(
                     albumId: albumId,
-                    logText: logText,
+                    logText: trimmedLogText,
                     photoDataList: photoDataList
                 )
                 try await service.saveLog(request: request)
@@ -183,7 +190,7 @@ import UIKit
                 let request = AlbumLogUpdateRequest(
                     albumId: albumId,
                     albumLogId: albumLogId,
-                    logText: logText,
+                    logText: trimmedLogText,
                     newPhotoDataList: newPhotoDataList,
                     removeImageIds: removedImageIds
                 )
