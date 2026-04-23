@@ -105,7 +105,7 @@ struct AlbumCardView: View, Equatable {
                     if isReady {
                         Text(album.title ?? "")
                             .font(Font.setPretendard(weight: .semiBold, size: 20))
-                            .foregroundStyle(Color.textPrimary)
+                            .foregroundStyle(Color.text)
                             .lineLimit(1)
                     } else {
                         SkeletonTitleView()
@@ -151,9 +151,9 @@ struct AlbumCardView: View, Equatable {
                             .resizable()
                             .scaledToFill()
                     case .failure, .empty:
-                        Circle().fill(Color.placeholderSymbol)
+                        Circle().fill(Color("GrayScale/200"))
                     @unknown default:
-                        Circle().fill(Color.placeholderSymbol)
+                        Circle().fill(Color("GrayScale/200"))
                     }
                 }
                 .frame(width: Layout.thumbnailSize, height: Layout.thumbnailSize)

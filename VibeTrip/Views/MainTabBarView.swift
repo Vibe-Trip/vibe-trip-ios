@@ -689,7 +689,7 @@ struct LiquidGlassTabBar: View {
         .foregroundStyle(
             isSelected
                 ? AnyShapeStyle(Color.appPrimary)
-                : AnyShapeStyle(Color.tabLabelUnselected)
+                : AnyShapeStyle(Color("GrayScale/500"))
         )
         .frame(width: tabW, height: Layout.barHeight)
         .animation(.easeInOut(duration: 0.2), value: isSelected)

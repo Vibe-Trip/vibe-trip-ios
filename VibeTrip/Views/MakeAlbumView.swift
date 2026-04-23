@@ -367,7 +367,7 @@ private struct MakeAlbumRequiredInputContent: View {
                         
                         TextField("여행지의 이름을 입력해주세요.", text: $destinationInput)
                             .font(Font.setPretendard(weight: .regular, size: 14))
-                            .foregroundColor(Color.textPrimary)
+                            .foregroundColor(Color.text)
                             .autocorrectionDisabled(true)
                             .textInputAutocapitalization(.never)
                             .padding(.horizontal, 16)
@@ -414,7 +414,7 @@ private struct MakeAlbumRequiredInputContent: View {
                                 .foregroundStyle(
                                     viewModel.album.formattedTravelDateRange.isEmpty
                                     ? Color("GrayScale/300")
-                                    : Color.textPrimary
+                                    : Color.text
                                 )
                                 
                                 Spacer()
@@ -511,7 +511,7 @@ private struct MakeAlbumRequiredInputContent: View {
             HStack(alignment: .top, spacing: 4) {
                 Text(title)
                     .font(Font.setPretendard(weight: .semiBold, size: 16))
-                    .foregroundStyle(Color.textPrimary)
+                    .foregroundStyle(Color.text)
                 
                 if showsIndicator {
                     // 필수 항목 dot
@@ -557,7 +557,7 @@ private struct MakeAlbumOptionalInputContent: View {
                                     HStack(alignment: .firstTextBaseline, spacing: 4) {
                                         Text("장르 선택")
                                             .font(Font.setPretendard(weight: .semiBold, size: 16))
-                                            .foregroundStyle(Color.textPrimary)
+                                            .foregroundStyle(Color.text)
                                         
                                         Text("선택 입력")
                                             .font(Font.setPretendard(weight: .medium, size: 12))
@@ -598,7 +598,7 @@ private struct MakeAlbumOptionalInputContent: View {
                                     }) {
                                         Text(genre.rawValue)
                                             .font(Font.setPretendard(weight: .medium, size: 16))
-                                            .foregroundStyle(Color.textPrimary)
+                                            .foregroundStyle(Color.text)
                                             .frame(maxWidth: .infinity)
                                             .frame(height: 52)
                                             .background(
@@ -632,7 +632,7 @@ private struct MakeAlbumOptionalInputContent: View {
                             HStack(alignment: .firstTextBaseline, spacing: 4) {
                                 Text("앨범 코멘터리")
                                     .font(Font.setPretendard(weight: .semiBold, size: 16))
-                                    .foregroundStyle(Color.textPrimary)
+                                    .foregroundStyle(Color.text)
                                 
                                 Text("선택 입력")
                                     .font(Font.setPretendard(weight: .medium, size: 12))
@@ -648,7 +648,7 @@ private struct MakeAlbumOptionalInputContent: View {
                                     )
                                 )
                                 .font(Font.setPretendard(weight: .medium, size: 16))
-                                .foregroundColor(Color.textPrimary)
+                                .foregroundColor(Color.text)
                                 .autocorrectionDisabled(true)
                                 .textInputAutocapitalization(.never)
                                 .scrollContentBackground(.hidden)
@@ -786,7 +786,7 @@ private struct MakeAlbumPhotoBox: View {
                 VStack(spacing: 8) {
                     Image(systemName: "camera")
                         .font(.system(size: 40, weight: .regular))
-                        .foregroundStyle(Color.placeholderSymbol)
+                        .foregroundStyle(Color("GrayScale/300"))
                     
                     Text("음악으로 만들고 싶은 순간을 올려주세요. \nAI가 사진의 온도와 색감을 곡으로 빚어냅니다.")
                         .font(Font.setPretendard(weight: .medium, size: 14))
@@ -821,8 +821,8 @@ private struct MakeAlbumBottomButton: View {
                 .foregroundStyle(Color("GrayScale/50"))
                 .frame(maxWidth: .infinity)
                 .frame(height: 52)
-            /// 배경색 조정
-                .background(isEnabled ? Color.appPrimary : Color.buttonDisabledBackground)
+                /// 배경색 조정
+                .background(isEnabled ? Color.appPrimary : Color("GrayScale/300"))
                 .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
         }
         .buttonStyle(.plain)

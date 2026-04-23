@@ -361,7 +361,7 @@ struct AlbumDetailView: View {
                 Button(action: showAlbumMenu) {
                     Image(systemName: "ellipsis")
                         .font(.system(size: Constants.navIconSize, weight: .semibold))
-                        .foregroundStyle(Color.textPrimary)
+                        .foregroundStyle(Color.text)
                         .frame(width: Constants.navTouchTargetSize, height: Constants.navTouchTargetSize)
                 }
             }
@@ -675,7 +675,7 @@ private extension AlbumDetailView {
                 /// 앨범 제목
                 Text(albumTitle)
                     .font(.setPretendard(weight: .semiBold, size: Constants.titleFontSize))
-                    .foregroundStyle(Color.textPrimary)
+                    .foregroundStyle(Color.text)
                     .lineLimit(1)
                     .onGeometryChange(for: CGFloat.self) {
                         $0.frame(in: .global).minY
@@ -974,7 +974,7 @@ private extension AlbumDetailView {
         static let actionsBottomPadding: CGFloat = 16
         
         // 빈 상태 영역
-        static let emptyStateTopPadding: CGFloat = 40
+        static let emptyStateTopPadding: CGFloat = 56
         static let emptyStateMinHeight: CGFloat = 240
         
         // 앨범 옵션 팝업 위치
@@ -1144,12 +1144,12 @@ private struct AlbumDetailEmptyStateSection: View {
         VStack(spacing: Constants.spacing) {
             Text("아직 기록된 로그가 없어요.")
                 .font(.setPretendard(weight: .semiBold, size: Constants.titleFontSize))
-                .foregroundStyle(Color.placeholderText)
+                .foregroundStyle(Color("GrayScale/500"))
                 .multilineTextAlignment(.center)
             
             Text("로그를 작성하고 여행의 추억을 완성해 보세요.")
                 .font(.setPretendard(weight: .medium, size: Constants.descriptionFontSize))
-                .foregroundStyle(Color.placeholderText)
+                .foregroundStyle(Color("GrayScale/400"))
                 .multilineTextAlignment(.center)
         }
         .frame(maxWidth: .infinity)
@@ -1261,7 +1261,7 @@ private struct AlbumDetailAlbumMenuPopup: View {
             HStack(alignment: .center, spacing: 0) {
                 Text(item.title)
                     .font(.setPretendard(weight: .medium, size: Constants.itemFontSize))
-                    .foregroundStyle(isDisabled ? Color("GrayScale/50") : Color.textPrimary)
+                    .foregroundStyle(isDisabled ? Color("GrayScale/50") : Color.text)
             }
         }
         .disabled(isDisabled)
@@ -1289,14 +1289,14 @@ private struct AlbumDetailLogMenuPopup: View {
             Button(action: onEditLog) {
                 Text("로그 수정")
                     .font(.setPretendard(weight: .medium, size: Constants.itemFontSize))
-                    .foregroundStyle(Color.textPrimary)
+                    .foregroundStyle(Color.text)
             }
             .buttonStyle(LogMenuItemButtonStyle())
             
             Button(action: onDeleteLog) {
                 Text("로그 삭제")
                     .font(.setPretendard(weight: .medium, size: Constants.itemFontSize))
-                    .foregroundStyle(Color.textPrimary)
+                    .foregroundStyle(Color.text)
             }
             .buttonStyle(LogMenuItemButtonStyle())
         }
@@ -1523,7 +1523,7 @@ private struct AlbumDetailLogImageSlider: View {
                                 Color.secondary.opacity(0.12)
                                 Image(systemName: "photo")
                                     .font(.system(size: Constants.placeholderIconSize))
-                                    .foregroundStyle(Color.placeholderSymbol)
+                                    .foregroundStyle(Color("GrayScale/200"))
                             }
                         }
                     }
@@ -1580,7 +1580,7 @@ private struct AlbumDetailLogTextSection: View {
     }
     
     private var textFont: Font { .setPretendard(weight: .regular, size: Constants.fontSize) }
-    private let actionColor = Color(red: 0.74, green: 0.75, blue: 0.76)
+    private let actionColor = Color("GrayScale/400")
     
     private var uiFont: UIFont {
         UIFont(name: "Pretendard-Regular", size: Constants.fontSize)
@@ -1663,7 +1663,7 @@ private struct AlbumDetailLogTextSection: View {
                     VStack(alignment: .leading, spacing: 0) {
                         Text(text)
                             .font(textFont)
-                            .foregroundStyle(Color.textPrimary)
+                            .foregroundStyle(Color.text)
                             .lineLimit(nil)
                             .fixedSize(horizontal: false, vertical: true)
                             .frame(maxWidth: .infinity, alignment: .leading)
@@ -1684,7 +1684,7 @@ private struct AlbumDetailLogTextSection: View {
                     HStack(alignment: .lastTextBaseline, spacing: Constants.foldButtonSpacing) {
                         Text(text)
                             .font(textFont)
-                            .foregroundStyle(Color.textPrimary)
+                            .foregroundStyle(Color.text)
                             .lineLimit(nil)
                             .fixedSize(horizontal: false, vertical: true)
                             .frame(maxWidth: .infinity, alignment: .leading)
@@ -1704,9 +1704,9 @@ private struct AlbumDetailLogTextSection: View {
                 // 접힌 상태 + truncation
                 (
                     Text(cut)
-                        .foregroundStyle(Color.textPrimary)
+                        .foregroundStyle(Color.text)
                     + Text("...  ")
-                        .foregroundStyle(Color.textPrimary)
+                        .foregroundStyle(Color.text)
                     + Text("더 보기")
                         .foregroundStyle(actionColor)
                 )
@@ -1718,7 +1718,7 @@ private struct AlbumDetailLogTextSection: View {
             } else {
                 Text(text)
                     .font(textFont)
-                    .foregroundStyle(Color.textPrimary)
+                    .foregroundStyle(Color.text)
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
         }

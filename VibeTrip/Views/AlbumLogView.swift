@@ -280,7 +280,7 @@ private extension AlbumLogView {
                 Text(placeholderText)
                     .font(.setPretendard(weight: .regular, size: 16))
                     .lineSpacing(8)
-                    .foregroundStyle(Color.placeholderText)
+                    .foregroundStyle(Color("GrayScale/300"))
                     .padding(.horizontal, Constants.contentHorizontalPadding)
                     .padding(.top, Constants.textEditorTopPadding)
             }
@@ -327,7 +327,7 @@ private extension AlbumLogView {
                         .resizable()
                         .aspectRatio(contentMode: .fit)
                         .frame(width: Constants.cameraIconWidth, height: Constants.cameraIconHeight)
-                        .foregroundStyle(Color.placeholderText)
+                        .foregroundStyle(Color("GrayScale/300"))
                         .frame(width: Constants.toolbarIconSize, height: Constants.toolbarIconSize)
                 }
                 .disabled(viewModel.isSaving)
@@ -340,7 +340,7 @@ private extension AlbumLogView {
                         .resizable()
                         .aspectRatio(contentMode: .fit)
                         .frame(width: Constants.clockIconSize, height: Constants.clockIconSize)
-                        .foregroundStyle(Color.placeholderText)
+                        .foregroundStyle(Color("GrayScale/300"))
                         .frame(width: Constants.toolbarIconSize, height: Constants.toolbarIconSize)
                 }
                 .disabled(viewModel.isSaving)

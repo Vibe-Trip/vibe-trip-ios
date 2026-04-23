@@ -70,7 +70,7 @@ struct MakeAlbumLoadingView: View {
                 Text("사진 속 소중한 기억들이 멜로디로 변하고 있어요.\n잠시만 기다려 주세요!")
                     .font(Font.setPretendard(weight: .medium, size: Layout.bodyFontSize))
                     .multilineTextAlignment(.center)
-                    .foregroundStyle(Color.placeholderText)
+                    .foregroundStyle(Color("GrayScale/300"))
                     .lineLimit(nil)
                     .fixedSize(horizontal: false, vertical: true)
                     .frame(maxWidth: .infinity)

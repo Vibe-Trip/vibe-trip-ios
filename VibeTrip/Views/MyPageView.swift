@@ -147,7 +147,7 @@ struct MyPageView: View {
             VStack(spacing: 8) {
                 Text(viewModel.userProfile?.nickname ?? "-")
                     .font(Font.setPretendard(weight: .semiBold, size: 18))
-                    .foregroundStyle(Color.textPrimary)
+                    .foregroundStyle(Color.text)
                 if let email = viewModel.userProfile?.email {
                     Text(email)
                         .font(Font.setPretendard(weight: .regular, size: 14))
@@ -297,7 +297,7 @@ struct MyPageView: View {
                 HStack {
                     Text("로그아웃")
                         .font(Font.setPretendard(weight: .semiBold, size: 16))
-                        .foregroundStyle(Color.textPrimary)
+                        .foregroundStyle(Color.text)
                     Spacer()
                 }
                 .frame(height: Constants.rowHeight)
@@ -311,7 +311,7 @@ struct MyPageView: View {
                 HStack {
                     Text("회원탈퇴")
                         .font(Font.setPretendard(weight: .semiBold, size: 16))
-                        .foregroundStyle(Color(.textPrimary))
+                        .foregroundStyle(Color(.text))
                     Spacer()
                 }
                 .frame(height: Constants.rowHeight)
@@ -345,7 +345,7 @@ struct MyPageView: View {
                 Spacer()
                 Image(systemName: "chevron.right")
                     .font(.system(size: 14, weight: .medium))
-                    .foregroundStyle(Color.textPrimary)
+                    .foregroundStyle(Color.text)
             }
             .frame(height: Constants.rowHeight)
             .padding(.horizontal, 20)

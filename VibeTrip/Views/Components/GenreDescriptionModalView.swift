@@ -40,7 +40,7 @@ struct GenreDescriptionModalView: View {
                     Button(action: onClose) {
                         Image(systemName: "xmark")
                             .font(.system(size: 18, weight: .medium))
-                            .foregroundStyle(Color.textPrimary)
+                            .foregroundStyle(Color.text)
                             .frame(width: 24, height: 24)
                     }
                 }
