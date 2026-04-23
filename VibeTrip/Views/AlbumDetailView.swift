@@ -286,6 +286,7 @@ struct AlbumDetailView: View {
     @State private var albumDestination: String
     @State private var albumDateText: String
     @State private var albumCoverImageUrl: URL?
+    private let isActionButtonsOverlayEnabled: Bool = false
     
     //최상단 이동 버튼 표시 -> 블러 네비게이션 바 전환 시
     private var showScrollToTop: Bool { overlayOpacity < 1 }
@@ -372,7 +373,9 @@ struct AlbumDetailView: View {
             .allowsHitTesting(isOverlayActive)
             
             // 액션 버튼 오버레이 (스크롤 추적 → 네비게이션 바 하단 고정)
-            actionButtonsOverlay
+            if isActionButtonsOverlayEnabled {
+                actionButtonsOverlay
+            }
             
             // 앨범 옵션 팝업
             if isAlbumMenuVisible {
@@ -749,12 +752,13 @@ private extension AlbumDetailView {
         }
         .padding(.horizontal, Constants.horizontalPadding)
         .padding(.bottom, Constants.actionsBottomPadding)
-        // 오버레이 준비되면 원본 숨김 (레이아웃 공간은 유지)
-        .opacity(actionButtonsY == .greatestFiniteMagnitude ? 1 : 0)
-        .allowsHitTesting(actionButtonsY == .greatestFiniteMagnitude)
+        // 오버레이 활성화 시 원본 숨김 (레이아웃 공간은 유지)
+        .opacity(isActionButtonsOverlayEnabled && actionButtonsY != .greatestFiniteMagnitude ? 0 : 1)
+        .allowsHitTesting(!(isActionButtonsOverlayEnabled && actionButtonsY != .greatestFiniteMagnitude))
         .onGeometryChange(for: CGFloat.self) {
             $0.frame(in: .global).minY
         } action: { minY in
+            guard isActionButtonsOverlayEnabled else { return }
             guard actionButtonsY == .greatestFiniteMagnitude else { return }
             actionButtonsY = minY
         }
