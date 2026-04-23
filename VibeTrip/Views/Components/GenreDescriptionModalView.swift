@@ -32,8 +32,8 @@ struct GenreDescriptionModalView: View {
                     Spacer()
 
                     Text("장르 설명")
-                        .font(Font.setPretendard(weight: .medium, size: 16))
-                        .foregroundStyle(Color.textPrimary)
+                        .font(Font.setPretendard(weight: .semiBold, size: 14))
+                        .foregroundStyle(Color.text)
 
                     Spacer()
 
@@ -53,13 +53,13 @@ struct GenreDescriptionModalView: View {
                             VStack(alignment: .leading, spacing: 4) {
                                 Text(item.genre.rawValue)
                                     .font(Font.setPretendard(weight: .semiBold, size: 16))
-                                    .foregroundStyle(Color.textPrimary)
+                                    .foregroundStyle(Color.text)
                                     .frame(maxWidth: .infinity, alignment: .leading)
                                     .multilineTextAlignment(.leading)
 
                                 Text(item.description)
                                     .font(Font.setPretendard(weight: .regular, size: 14))
-                                    .foregroundStyle(Color.textPrimary)
+                                    .foregroundStyle(Color.text)
                                     .frame(maxWidth: .infinity, alignment: .leading)
                                     .multilineTextAlignment(.leading)
                                     .fixedSize(horizontal: false, vertical: true)
