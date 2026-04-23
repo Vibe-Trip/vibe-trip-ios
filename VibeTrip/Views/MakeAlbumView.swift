@@ -117,10 +117,11 @@ struct MakeAlbumView: View {
             }
         }
         // 토스트 메시지
-        .overlay(alignment: .bottom) {
+        .overlay(alignment: keyboardHeight > 0 ? .top : .bottom) {
             if let toastMessage = viewModel.toastMessage {
                 AppToastView(message: toastMessage)
-                    .padding(.bottom, keyboardAwareToastPadding)
+                    .padding(.top, keyboardHeight > 0 ? keyboardAwareToastTopPadding : 0)
+                    .padding(.bottom, keyboardHeight > 0 ? 0 : toastBottomPadding)
                     .transition(.move(edge: .bottom).combined(with: .opacity))
             }
         }
@@ -228,9 +229,14 @@ struct MakeAlbumView: View {
         }
     }
     
-    // 키보드가 올라와 있으면 키보드 바로 위에, 그렇지 않으면 하단에서 고정 여백으로 표시
-    private var keyboardAwareToastPadding: CGFloat {
-        keyboardHeight > 0 ? keyboardHeight + 32 : 96
+    // 키보드 미활성 시 토스트 하단 여백
+    private var toastBottomPadding: CGFloat {
+        52 + 20
+    }
+
+    // 키보드 활성 시: 네비게이션바 하단에서 20pt 아래에 토스트 배치
+    private var keyboardAwareToastTopPadding: CGFloat {
+        46 + 20
     }
     
     private var headerSpacer: some View {
@@ -258,9 +264,9 @@ struct MakeAlbumView: View {
     
     // 필수 입력 검증 통과 시 선택 입력 화면으로 push
     private func handleProceedToOptionalStep() {
-        dismissKeyboard()
         viewModel.proceedToOptionalStep()
         guard viewModel.currentStep == .optionalInput else { return }
+        dismissKeyboard()
         if navigationPath.last != .optionalInput {
             navigationPath.append(.optionalInput)
         }

@@ -333,7 +333,15 @@ struct EditAlbumView: View {
         .safeAreaInset(edge: .bottom, spacing: 0) {
             EditAlbumBottomButton(
                 isEnabled: viewModel.isValid && !viewModel.isLoading,
-                action: { Task { await viewModel.submitEdit() } }
+                action: {
+                    guard !viewModel.isLoading else { return }
+                    guard viewModel.isValid else {
+                        viewModel.toastMessage = "필수 입력 항목을 모두 입력해 주세요."
+                        return
+                    }
+                    dismissKeyboard()
+                    Task { await viewModel.submitEdit() }
+                }
             )
         }
         // 장르 설명 모달
@@ -346,10 +354,11 @@ struct EditAlbumView: View {
             }
         }
         // 토스트 (viewModel + 입력 검증 공용)
-        .overlay(alignment: .bottom) {
+        .overlay(alignment: keyboardHeight > 0 ? .top : .bottom) {
             if let message = viewModel.toastMessage {
                 AppToastView(message: message)
-                    .padding(.bottom, keyboardAwareToastPadding)
+                    .padding(.top, keyboardHeight > 0 ? keyboardAwareToastTopPadding : 0)
+                    .padding(.bottom, keyboardHeight > 0 ? 0 : toastBottomPadding)
                     .transition(.move(edge: .bottom).combined(with: .opacity))
             }
         }
@@ -401,11 +410,6 @@ struct EditAlbumView: View {
                 )
             }
         }
-        .simultaneousGesture(
-            TapGesture().onEnded {
-                dismissKeyboard()
-            }
-        )
         .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillShowNotification)) { notification in
             guard let frame = notification.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? CGRect else {
                 return
@@ -422,8 +426,12 @@ struct EditAlbumView: View {
         Color.clear.frame(height: Layout.headerHeight)
     }
 
-    private var keyboardAwareToastPadding: CGFloat {
-        keyboardHeight > 0 ? keyboardHeight + 32 : 96
+    private var toastBottomPadding: CGFloat {
+        60 + 20
+    }
+
+    private var keyboardAwareToastTopPadding: CGFloat {
+        46 + 20
     }
 
     private func dismissKeyboard() {
