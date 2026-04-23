@@ -276,6 +276,7 @@ struct AlbumDetailView: View {
     
     // UIScrollView KVO로 감지한 contentOffset.y (스크롤 이벤트와 동일 사이클 반영)
     @State private var scrollContentOffset: CGFloat = 0
+    @State private var observedScrollView: UIScrollView?
     
     // 타이틀 텍스트의 초기 global Y (스크롤 = 0 기준, 1회만 측정)
     @State private var titleContentY: CGFloat = .greatestFiniteMagnitude
@@ -328,7 +329,12 @@ struct AlbumDetailView: View {
                         Color.clear
                             .frame(height: 0)
                             .id("scrollTop")
-                        ScrollOffsetObserver(contentOffset: $scrollContentOffset)
+                        ScrollOffsetObserver(
+                            contentOffset: $scrollContentOffset,
+                            onScrollViewResolved: { scrollView in
+                                observedScrollView = scrollView
+                            }
+                        )
                             .frame(height: 0)
                         
                         coverImageSection
@@ -341,9 +347,7 @@ struct AlbumDetailView: View {
                 .background(Color.white.ignoresSafeArea())
                 .overlay(alignment: .bottomTrailing) {
                     scrollToTopButton {
-                        withAnimation(.easeInOut(duration: 0.5)) {
-                            proxy.scrollTo("scrollTop", anchor: .top)
-                        }
+                        scrollToTop(using: proxy)
                     }
                 }
             }
@@ -593,6 +597,13 @@ private extension AlbumDetailView {
     // 전환 구간(0 < opacity < 1)에서 두 네비게이션 바가 동시에 터치를 받는 문제 방지
     private var isOverlayActive: Bool { titleNavOffset > 15 }
     
+    // 오버스크롤(음수 offset) 시 커버 이미지 확장 높이
+    private var coverImageStretch: CGFloat {
+        let pullDistance = max(0, -scrollContentOffset)
+        guard pullDistance > 0 else { return 0 }
+        return pullDistance + Constants.coverStretchCompensation
+    }
+    
     // 오버레이 Y 위치 (ZStack-local 좌표)
     // actionButtonsY: global 좌표
     // 스크롤을 따라 올라가다가 nav bar 바로 아래(44pt)에서 클램프
@@ -658,16 +669,6 @@ private extension AlbumDetailView {
     var coverImageSection: some View {
         VStack(spacing: 0) {
             coverImage
-                .frame(width: Constants.coverWidth, height: Constants.coverHeight)
-                .clipShape(
-                    UnevenRoundedRectangle(
-                        topLeadingRadius: 0,
-                        bottomLeadingRadius: Constants.coverBottomCornerRadius,
-                        bottomTrailingRadius: Constants.coverBottomCornerRadius,
-                        topTrailingRadius: 0
-                    )
-                )
-                .appShadow(.mainCardImage)
             
             // 앨범 정보
             VStack(alignment: .leading, spacing: Constants.infoTextSpacing) {
@@ -715,15 +716,29 @@ private extension AlbumDetailView {
             switch phase {
             case .success(let image):
                 image
-                    .resizable()    /// 비율 유지 채택 시  ->  .scaledToFill()
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .clipped()
+                    .resizable()
+                    .scaledToFill()
             default:
                 Image("AlbumDetail_Placeholder")
                     .resizable()
                     .scaledToFill()
             }
         }
+        .frame(
+            width: Constants.coverWidth,
+            height: Constants.coverHeight + coverImageStretch
+        )
+        .clipShape(
+            UnevenRoundedRectangle(
+                topLeadingRadius: 0,
+                bottomLeadingRadius: Constants.coverBottomCornerRadius,
+                bottomTrailingRadius: Constants.coverBottomCornerRadius,
+                topTrailingRadius: 0
+            )
+        )
+        .offset(y: -coverImageStretch)
+        .frame(width: Constants.coverWidth, height: Constants.coverHeight, alignment: .top)
+        .appShadow(.mainCardImage)
     }
     
     var actionButtonsSection: some View {
@@ -821,6 +836,18 @@ private extension AlbumDetailView {
     }
     
     // MARK: - 최상단 이동 버튼
+    
+    func scrollToTop(using proxy: ScrollViewProxy) {
+        if let scrollView = observedScrollView {
+            let topOffsetY = -scrollView.adjustedContentInset.top
+            scrollView.setContentOffset(CGPoint(x: scrollView.contentOffset.x, y: topOffsetY), animated: true)
+            return
+        }
+        
+        withAnimation(.easeInOut(duration: 0.5)) {
+            proxy.scrollTo("scrollTop", anchor: .top)
+        }
+    }
     
     func scrollToTopButton(action: @escaping () -> Void) -> some View {
         Button(action: action) {
@@ -931,6 +958,7 @@ private extension AlbumDetailView {
         static let coverWidth: CGFloat = 402
         static let coverHeight: CGFloat = 500
         static let coverBottomCornerRadius: CGFloat = 16
+        static let coverStretchCompensation: CGFloat = 1
         static let placeholderIconSize: CGFloat = 44
         
         // 앨범 정보 텍스트
@@ -1090,7 +1118,7 @@ private struct AlbumDetailActionButton: View {
                 }
                 .font(.setPretendard(weight: .medium, size: Constants.fontSize))
             }
-            .foregroundStyle(Color.appPrimary400)
+            .foregroundStyle(Color("appPrimary500"))
             .padding(.horizontal, Constants.horizontalPadding)
             .padding(.vertical, Constants.verticalPadding)
             .frame(maxWidth: .infinity, minHeight: Constants.height)
