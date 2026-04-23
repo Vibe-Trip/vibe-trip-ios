@@ -12,6 +12,7 @@ import SwiftUI
 struct ScrollOffsetObserver: UIViewRepresentable {
 
     @Binding var contentOffset: CGFloat
+    var onScrollViewResolved: ((UIScrollView) -> Void)? = nil
 
     func makeCoordinator() -> Coordinator { Coordinator() }
 
@@ -29,6 +30,7 @@ struct ScrollOffsetObserver: UIViewRepresentable {
         DispatchQueue.main.async {
             guard context.coordinator.scrollView == nil,
                   let scrollView = uiView.parentScrollView() else { return }
+            onScrollViewResolved?(scrollView)
             context.coordinator.startObserving(scrollView, binding: $contentOffset)
         }
     }
