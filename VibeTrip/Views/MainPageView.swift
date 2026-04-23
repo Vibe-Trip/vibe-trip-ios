@@ -198,7 +198,7 @@ struct MainPageView: View {
                     Image("AppLogo_Home")
                         .resizable()
                         .scaledToFit()
-                        .frame(width: 120, height: 30)
+                        .frame(width: 120, height: 35)
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
             }
@@ -219,7 +219,7 @@ struct MainPageView: View {
                 Image("AppLogo_Home")
                     .resizable()
                     .scaledToFit()
-                    .frame(width: 120, height: 30)
+                    .frame(width: 120, height: 35)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         }
