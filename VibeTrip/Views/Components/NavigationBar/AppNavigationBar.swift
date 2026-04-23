@@ -204,7 +204,7 @@ struct AppNavigationBar<Leading: View, Trailing: View>: View {
                             .init(color: .black,                     location: 0.0),
                             .init(color: .black,                     location: 0.70),
                             .init(color: Color.black.opacity(0.6),   location: 0.82),
-                            .init(color: Color.black.opacity(0.15),  location: 0.92),
+                            .init(color: Color.black.opacity(0.35),  location: 0.93),
                             .init(color: .clear,                     location: 1.0)
                         ]),
                         startPoint: .top,
