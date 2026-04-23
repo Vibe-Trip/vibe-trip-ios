@@ -121,7 +121,7 @@ struct EditAlbumView: View {
                                 sectionHeader(title: "앨범 제목", subtitle: "필수 입력 (최대 15자)", isRequired: true)
 
                                 TextField("앨범 제목을 입력해주세요.", text: $viewModel.albumTitle)
-                                    .font(Font.setPretendard(weight: .regular, size: 16))
+                                    .font(Font.setPretendard(weight: .regular, size: 14))
                                     .foregroundColor(Color.textPrimary)
                                     .padding(.horizontal, 16)
                                     .frame(maxWidth: .infinity, minHeight: 48, maxHeight: 48, alignment: .leading)
@@ -143,7 +143,7 @@ struct EditAlbumView: View {
                             sectionHeader(title: "여행지", subtitle: "필수 입력 (최대 25자)", isRequired: true)
 
                             TextField("여행지의 이름을 입력해주세요.", text: $viewModel.destination)
-                                .font(Font.setPretendard(weight: .regular, size: 16))
+                                .font(Font.setPretendard(weight: .regular, size: 14))
                                 .foregroundColor(Color.textPrimary)
                                 .padding(.horizontal, 16)
                                 .frame(maxWidth: .infinity, minHeight: 48, maxHeight: 48, alignment: .leading)
@@ -175,7 +175,7 @@ struct EditAlbumView: View {
                                         ? "여행 기간을 입력해주세요."
                                         : formattedDateRange
                                     )
-                                    .font(Font.setPretendard(weight: .regular, size: 16))
+                                    .font(Font.setPretendard(weight: .regular, size: 14))
                                     .foregroundStyle(
                                         formattedDateRange.isEmpty
                                         ? Color("GrayScale/300")
@@ -569,7 +569,7 @@ private struct CommentarySection: View {
 
             ZStack(alignment: .topLeading) {
                 TextEditor(text: $commentary)
-                    .font(Font.setPretendard(weight: .medium, size: 16))
+                    .font(Font.setPretendard(weight: .medium, size: 14))
                     .foregroundColor(Color.textPrimary)
                     .scrollContentBackground(.hidden)
                     .padding(.horizontal, 12)
@@ -587,7 +587,7 @@ private struct CommentarySection: View {
 
                 if commentary.isEmpty {
                     Text("어떤 분위기의 노래를 만들고 싶나요?\n지금 느끼는 감정을 기록해보세요.")
-                        .font(Font.setPretendard(weight: .medium, size: 16))
+                        .font(Font.setPretendard(weight: .medium, size: 14))
                         .foregroundStyle(Color("GrayScale/300"))
                         .padding(.horizontal, 16)
                         .padding(.top, 20)
@@ -629,11 +629,11 @@ private struct EditAlbumBottomButton: View {
                 .frame(maxWidth: .infinity)
                 .frame(height: 52)
                 .background(isEnabled ? Color.appPrimary : Color.buttonDisabledBackground)
-                .clipShape(Capsule())
+                .clipShape(RoundedRectangle(cornerRadius: 12))
         }
         .buttonStyle(.plain)
         .padding(.horizontal, 20)
-        .padding(.top, 32)
+        .padding(.top, 12)
         .padding(.bottom, 8)
         .background(
             LinearGradient(
