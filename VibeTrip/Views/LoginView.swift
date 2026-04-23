@@ -23,13 +23,16 @@ struct LoginView: View {
     private enum Constants {
         static let toastBottomPadding: CGFloat = 10
         static let toastAnimationDuration: Double = 3.0
+        static let headerTopPadding: CGFloat = 20
+        static let headerSpacing: CGFloat = 4
+        static let subtitleLetterSpacing: CGFloat = -0.32
     }
     
     var body: some View {
         VStack(spacing: 0) {
             // Header: Logo + Subtitle
             headerArea
-                .padding(.top, 12)
+                .padding(.top, Constants.headerTopPadding)
             
             Spacer()
             
@@ -73,7 +76,7 @@ struct LoginView: View {
         .overlay {
             if case .retryPopup(let message) = viewModel.errorState {
                 ExitPopupView(
-                    title: "인증서버 타임아웃",
+                    title: "로그인 지연",
                     message: message,
                     onCancel: { viewModel.errorState = nil },
                     onConfirm: {
@@ -81,23 +84,12 @@ struct LoginView: View {
                         viewModel.retryLogin()
                     },
                     confirmTitle: "다시 시도",
-                    cancelTitle: "닫기"
+                    cancelTitle: "나중에 하기"
                 )
                 .transition(.opacity)
             }
         }
         .animation(.easeInOut(duration: 0.2), value: viewModel.errorState)
-        // 확인 팝업
-        .alert("이용 제한", isPresented: Binding(
-            get: { if case .alertPopup = viewModel.errorState { return true }; return false },
-            set: { if !$0 { viewModel.errorState = nil } }
-        )) {
-            Button("확인") { viewModel.errorState = nil }
-        } message: {
-            if case .alertPopup(let message) = viewModel.errorState {
-                Text(message)
-            }
-        }
         // 로그인 성공 -> 메인화면(fullScreenCover)
         .fullScreenCover(isPresented: $viewModel.isLoggedIn) {
             MainTabBarView()
@@ -160,7 +152,7 @@ struct LoginView: View {
     
     // MARK: - Header(로고 + 텍스트)
     private var headerArea: some View {
-        VStack(spacing: 20) {
+        VStack(spacing: Constants.headerSpacing) {
             logoPlaceholder
             subtitleText
         }
@@ -171,7 +163,7 @@ struct LoginView: View {
         Image("AppLogo_Login")
             .resizable()
             .scaledToFit()
-            .frame(width: 138, height: 30)
+            .frame(width: 160, height: 46)
     }
     
     // MARK: - Subtitle
@@ -179,8 +171,9 @@ struct LoginView: View {
         Text("여행 사진 한 장으로 시작하는\n이 세상에 하나뿐인 사운드트랙")
             .font(.setPretendard(weight: .semiBold, size: 16))
             .multilineTextAlignment(.center)
-            .foregroundColor(.white)
+            .foregroundStyle(Color("GrayScale/White"))
             .lineSpacing(4)
+            .kerning(Constants.subtitleLetterSpacing)
     }
     
     // MARK: - Button Area
@@ -195,7 +188,7 @@ struct LoginView: View {
                         .frame(width: 20, height: 20)
                         
                     Text("카카오로 계속하기")
-                        .font(.setPretendard(weight: .medium, size: 20))
+                        .font(.setPretendard(weight: .medium, size: 18))
                 }
                 .foregroundColor(.black.opacity(0.85))
                 .padding(.horizontal, 16)
@@ -216,7 +209,7 @@ struct LoginView: View {
                         .frame(width: 20, height: 20)
 
                     Text("Apple로 계속하기")
-                        .font(.setPretendard(weight: .medium, size: 20))
+                        .font(.setPretendard(weight: .medium, size: 18))
                 }
                 .foregroundColor(.white)
                 .padding(.horizontal, 16)

@@ -60,13 +60,13 @@ struct DateRangePickerSheetView: View {
         VStack(alignment: .leading, spacing: 24) {
             Text("여행 기간")
                 .font(.setPretendard(weight: .semiBold, size: 18))
-                .foregroundStyle(Color.textPrimary)
+                .foregroundStyle(Color.text)
                 .frame(maxWidth: .infinity, alignment: .center)
 
             VStack(alignment: .leading, spacing: 4) {
                 Text("선택한 날짜")
                     .font(.setPretendard(weight: .semiBold, size: 16))
-                    .foregroundStyle(Color.textPrimary)
+                    .foregroundStyle(Color.text)
 
                 Text("\(startDate.albumDateString) - \(endDate.albumDateString)")
                     .font(.setPretendard(weight: .medium, size: 14))
@@ -89,7 +89,7 @@ struct DateRangePickerSheetView: View {
                     .frame(maxWidth: .infinity)
                     .frame(height: 52)
                     .background(Color.appPrimary)
-                    .clipShape(Capsule())
+                    .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
             }
         }
         .padding(.horizontal, 20)
@@ -139,7 +139,7 @@ private struct SwiftUICalendarRangePickerView: View {
             } label: {
                 Image(systemName: "chevron.left")
                     .font(.system(size: 22, weight: .medium))
-                    .foregroundStyle(Color.textPrimary)
+                    .foregroundStyle(Color.text)
                     .frame(width: 44, height: 44)
             }
             .buttonStyle(.plain)
@@ -148,7 +148,7 @@ private struct SwiftUICalendarRangePickerView: View {
 
             Text(monthTitle)
                 .font(.setPretendard(weight: .semiBold, size: 18))
-                .foregroundStyle(Color.textPrimary)
+                .foregroundStyle(Color.text)
 
             Spacer()
 
@@ -157,7 +157,7 @@ private struct SwiftUICalendarRangePickerView: View {
             } label: {
                 Image(systemName: "chevron.right")
                     .font(.system(size: 22, weight: .medium))
-                    .foregroundStyle(Color.textPrimary)
+                    .foregroundStyle(Color.text)
                     .frame(width: 44, height: 44)
             }
             .buttonStyle(.plain)
@@ -304,7 +304,7 @@ private struct DayCellView: View {
 
             if visualState.showsSelectedCircle {
                 Circle()
-                    .fill(Color.appPrimary400)
+                    .fill(Color.appPrimary)
                     .frame(width: Layout.circleSize, height: Layout.circleSize)
             }
 
@@ -344,7 +344,7 @@ private struct DayCellView: View {
     }
 
     private var textColor: Color {
-        visualState.showsSelectedCircle ? .white : Color.textPrimary
+        visualState.showsSelectedCircle ? .white : Color.text
     }
 
     private func rangeFill(leftRounded: Bool, rightRounded: Bool) -> some View {

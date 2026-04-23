@@ -84,6 +84,28 @@ final class AlbumLogViewModelTests: XCTestCase {
 
         XCTAssertFalse(sut.isSaving)
     }
+    
+    // 텍스트가 비어있으면 저장 요청 없이 검증 토스트 노출
+    func test_saveLog_emptyText_showsValidationToastWithoutSaving() async {
+        sut.logText = ""
+        
+        await sut.saveLog()
+        
+        XCTAssertEqual(stub.saveCallCount, 0)
+        XCTAssertEqual(sut.toastMessage, "이야기를 작성해야 저장할 수 있어요.")
+        XCTAssertFalse(sut.isSaved)
+    }
+    
+    // 공백만 입력한 경우도 저장 요청 없이 검증 토스트 노출
+    func test_saveLog_whitespaceText_showsValidationToastWithoutSaving() async {
+        sut.logText = "   \n  "
+        
+        await sut.saveLog()
+        
+        XCTAssertEqual(stub.saveCallCount, 0)
+        XCTAssertEqual(sut.toastMessage, "이야기를 작성해야 저장할 수 있어요.")
+        XCTAssertFalse(sut.isSaved)
+    }
 
     // MARK: - saveLog: 실패
 

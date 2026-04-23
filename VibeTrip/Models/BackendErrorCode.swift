@@ -43,6 +43,29 @@ enum BackendErrorCode: String {
     case e2009 = "E2009"
     case e2010 = "E2010"
 
+    // MARK: - Album
+    case e3000 = "E3000"
+    case e3001 = "E3001"
+    case e3002 = "E3002"
+    case e3003 = "E3003"
+    case e3004 = "E3004"
+    case e3005 = "E3005"
+    case e3006 = "E3006"
+    case e3007 = "E3007"
+    case e3008 = "E3008"
+
+    // MARK: - AlbumLog
+    case e4000 = "E4000"
+
+    // MARK: - AlbumLogImage
+    case e5000 = "E5000"
+
+    // MARK: - AlbumMember
+    case e6000 = "E6000"
+
+    // MARK: - Album Music
+    case e7000 = "E7000"
+
     /// 미정의 에러코드 
     case unknown
 }
@@ -52,32 +75,15 @@ enum BackendErrorCode: String {
 extension BackendErrorCode {
     var loginErrorState: LoginErrorState {
         switch self {
-        case .e400:
-            return .toast(message: "잘못된 요청입니다. 다시 시도해주세요.")
-        case .e401:
-            return .toast(message: "인증이 필요합니다. 다시 로그인해주세요.")
-        case .e403:
-            return .toast(message: "로그인 인증에 실패했습니다. 다시 시도해주세요.")
-        case .e404:
-            return .toast(message: "요청한 정보를 찾을 수 없습니다.")
-        case .e409:
-            return .toast(message: "요청이 충돌했습니다. 다시 시도해주세요.")
         case .e429:
-            return .retryPopup(message: "요청이 너무 많습니다.\n잠시 후 다시 시도해주세요.")
-        case .e500:
-            return .toast(message: "로그인 중 오류가 발생했어요.")
-        case .e1000, .e1001, .e1002, .e1003:
-            return .toast(message: "로그인 정보가 올바르지 않습니다.")
-        case .e2000, .e2001, .e2003, .e2004, .e2005, .e2006:
-            return .toast(message: "로그인 중 오류가 발생했어요..")
-        case .e2002:
-            return .toast(message: "로그인이 만료되었습니다. 다시 로그인해주세요.")
-        case .e2007:
-            return .toast(message: "소셜 로그인 정보를 확인할 수 없습니다. 다시 시도해주세요.")
-        case .e2008, .e2009, .e2010:
-            return .toast(message: "Apple 로그인 처리 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.")
-        case .unknown:
-            return .toast(message: "알 수 없는 오류가 발생했습니다. 다시 시도해주세요.")
+            return .retryPopup(message: "지금은 로그인이 원활하지 않습니다.\n연결 상태를 확인하고 다시 시도해 주세요.")
+        case .e400, .e401, .e403, .e404, .e409, .e500,
+             .e1000, .e1001, .e1002, .e1003,
+             .e2000, .e2001, .e2002, .e2003, .e2004, .e2005, .e2006, .e2007, .e2008, .e2009, .e2010,
+             .e3000, .e3001, .e3002, .e3003, .e3004, .e3005, .e3006, .e3007, .e3008,
+             .e4000, .e5000, .e6000, .e7000,
+             .unknown:
+            return .toast(message: "로그인 서비스에 일시적인 문제가 생겼습니다.")
         }
     }
 }

@@ -47,10 +47,14 @@ import Combine
         return formatter
     }()
     
-    @MainActor init(albumId: String, service: AlbumServiceProtocol = AlbumService()) {
+    @MainActor init(albumId: String, service: AlbumServiceProtocol) {
         self.albumId = albumId
         self.albumIdInt = Int(albumId) ?? 0
         self.service = service
+    }
+    
+    @MainActor convenience init(albumId: String) {
+        self.init(albumId: albumId, service: AlbumService())
     }
     
     func loadInitialLogs() async {
@@ -660,6 +664,7 @@ private extension AlbumDetailView {
                         topTrailingRadius: 0
                     )
                 )
+                .appShadow(.mainCardImage)
             
             // 앨범 정보
             VStack(alignment: .leading, spacing: Constants.infoTextSpacing) {
@@ -826,7 +831,7 @@ private extension AlbumDetailView {
                 height: Constants.scrollToTopButtonSize,
                 alignment: .center
             )
-            .background(Color.appPrimary400)
+            .background(Color("appPrimary500"))
             .cornerRadius(Constants.scrollToTopButtonSize / 2)
             // 최상단이동버튼 -> buttonTextField shadow
             .appShadow(.buttonTextField)
@@ -920,15 +925,15 @@ private extension AlbumDetailView {
         
         // 커버 이미지
         static let coverWidth: CGFloat = 402
-        static let coverHeight: CGFloat = 460
-        static let coverBottomCornerRadius: CGFloat = 28
+        static let coverHeight: CGFloat = 500
+        static let coverBottomCornerRadius: CGFloat = 16
         static let placeholderIconSize: CGFloat = 44
         
         // 앨범 정보 텍스트
         static let infoTopPadding: CGFloat = 12
         static let infoBottomPadding: CGFloat = 16
         static let infoTextSpacing: CGFloat = 4
-        static let titleFontSize: CGFloat = 22
+        static let titleFontSize: CGFloat = 20
         static let subtitleFontSize: CGFloat = 14
         static let dateFontSize: CGFloat = 12
         
@@ -999,6 +1004,7 @@ private struct AlbumDetailNavigationOverlay: View {
                 Image(systemName: "chevron.left")
                     .font(.system(size: Constants.iconSize, weight: .semibold))
                     .foregroundStyle(.white)
+                    .blendMode(.difference)
                     .frame(width: Constants.touchTargetSize, height: Constants.touchTargetSize)
             }
             
@@ -1009,9 +1015,11 @@ private struct AlbumDetailNavigationOverlay: View {
                 Image(systemName: "ellipsis")
                     .font(.system(size: Constants.iconSize, weight: .semibold))
                     .foregroundStyle(.white)
+                    .blendMode(.difference)
                     .frame(width: Constants.touchTargetSize, height: Constants.touchTargetSize)
             }
         }
+        .compositingGroup()
         .padding(.horizontal, Constants.horizontalPadding)
         .padding(.top, Constants.topPadding)
         .frame(maxWidth: .infinity, alignment: .top)
@@ -1024,9 +1032,9 @@ private struct AlbumDetailActionButton: View {
     
     private enum Constants {
         static let height: CGFloat = 48
-        static let cornerRadius: CGFloat = 28
-        static let iconTextSpacing: CGFloat = 8
-        static let fontSize: CGFloat = 16
+        static let cornerRadius: CGFloat = 24
+        static let iconTextSpacing: CGFloat = 4
+        static let fontSize: CGFloat = 14
         static let iconSize: CGFloat = 18
         static let assetIconSize: CGFloat = 22
         
@@ -1168,6 +1176,7 @@ private struct AlbumDetailAlbumMenuPopup: View {
     private enum Constants {
         static let popupWidth: CGFloat = 160
         static let padding: CGFloat = 8
+        static let itemSpacing: CGFloat = 8
         static let cornerRadius: CGFloat = 12
         static let itemFontSize: CGFloat = 14
     }
@@ -1193,7 +1202,7 @@ private struct AlbumDetailAlbumMenuPopup: View {
     }
     
     var body: some View {
-        VStack(alignment: .center, spacing: 0) {
+        VStack(alignment: .center, spacing: Constants.itemSpacing) {
             ForEach(MenuItem.allCases, id: \.self) { item in
                 menuItem(item)
             }
@@ -1220,7 +1229,7 @@ private struct AlbumDetailAlbumMenuPopup: View {
             HStack(alignment: .center, spacing: 0) {
                 Text(item.title)
                     .font(.setPretendard(weight: .medium, size: Constants.itemFontSize))
-                    .foregroundStyle(isDisabled ? Color.buttonDisabledForeground : Color.textPrimary)
+                    .foregroundStyle(isDisabled ? Color("GrayScale/50") : Color.textPrimary)
             }
         }
         .disabled(isDisabled)
@@ -1235,6 +1244,7 @@ private struct AlbumDetailLogMenuPopup: View {
     private enum Constants {
         static let popupWidth: CGFloat = 140
         static let padding: CGFloat = 8
+        static let itemSpacing: CGFloat = 8
         static let cornerRadius: CGFloat = 12
         static let itemFontSize: CGFloat = 14
     }
@@ -1243,7 +1253,7 @@ private struct AlbumDetailLogMenuPopup: View {
     let onDeleteLog: () -> Void
     
     var body: some View {
-        VStack(alignment: .center, spacing: 0) {
+        VStack(alignment: .center, spacing: Constants.itemSpacing) {
             Button(action: onEditLog) {
                 Text("로그 수정")
                     .font(.setPretendard(weight: .medium, size: Constants.itemFontSize))
@@ -1356,7 +1366,7 @@ private struct AlbumDetailLogItemCard: View {
         static let dateFontSize: CGFloat = 14
         static let menuIconSize: CGFloat = 16
         static let menuTouchTarget: CGFloat = 44
-        static let contentSpacing: CGFloat = 8
+        static let contentSpacing: CGFloat = 12
         static let menuAnimationDuration: Double = 0.15
         static let menuTopOffset: CGFloat = 26
         static let menuTrailingPadding: CGFloat = 17
@@ -1452,7 +1462,7 @@ private struct AlbumDetailLogImageSlider: View {
     @State private var currentIndex: Int = 0
     
     private enum Constants {
-        static let cornerRadius: CGFloat = 12
+        static let cornerRadius: CGFloat = 16
         static let dotSize: CGFloat = 6
         static let dotSpacing: CGFloat = 6
         static let indicatorBottomPadding: CGFloat = 10
@@ -1532,6 +1542,9 @@ private struct AlbumDetailLogTextSection: View {
         static let lineLimit: Int = 2
         static let widthBuffer: CGFloat = 1
         static let truncationSuffix: String = "...더 보기"
+        static let foldButtonText: String = "접기"
+        static let foldButtonSpacing: CGFloat = 8
+        static let foldButtonTrailingPadding: CGFloat = 20
     }
     
     private var textFont: Font { .setPretendard(weight: .regular, size: Constants.fontSize) }
@@ -1540,6 +1553,10 @@ private struct AlbumDetailLogTextSection: View {
     private var uiFont: UIFont {
         UIFont(name: "Pretendard-Regular", size: Constants.fontSize)
         ?? UIFont.systemFont(ofSize: Constants.fontSize)
+    }
+    
+    private var foldButtonWidth: CGFloat {
+        (Constants.foldButtonText as NSString).size(withAttributes: [.font: uiFont]).width
     }
     
     private func truncatedText(for width: CGFloat) -> String? {
@@ -1575,26 +1592,81 @@ private struct AlbumDetailLogTextSection: View {
         return String(chars.prefix(lo))
     }
     
+    private func shouldWrapFoldButton(for width: CGFloat) -> Bool {
+        guard width > 0 else { return false }
+        
+        let attrs: [NSAttributedString.Key: Any] = [.font: uiFont]
+        let fullWidth = width - Constants.widthBuffer
+        let inlineReservedWidth = Constants.foldButtonTrailingPadding + Constants.foldButtonSpacing + foldButtonWidth
+        let inlineTextWidth = max(0, fullWidth - inlineReservedWidth)
+        let constraintHeight = CGFloat.greatestFiniteMagnitude
+        
+        let fullRect = (text as NSString).boundingRect(
+            with: CGSize(width: fullWidth, height: constraintHeight),
+            options: [.usesLineFragmentOrigin, .usesFontLeading],
+            attributes: attrs,
+            context: nil
+        )
+        
+        let inlineRect = (text as NSString).boundingRect(
+            with: CGSize(width: inlineTextWidth, height: constraintHeight),
+            options: [.usesLineFragmentOrigin, .usesFontLeading],
+            attributes: attrs,
+            context: nil
+        )
+        
+        return inlineRect.height > (fullRect.height + 0.5)
+    }
+    
     var body: some View {
         // 실제 너비 측정 후 truncation 계산
         let cutText = truncatedText(for: contentWidth)
         let isTruncated = cutText != nil
+        let wrapFoldButton = shouldWrapFoldButton(for: contentWidth)
         
         Group {
             if isExpanded {
                 // 펼친 상태
-                ZStack(alignment: .bottomTrailing) {
-                    Text(text)
-                        .font(textFont)
-                        .foregroundStyle(Color.textPrimary)
-                        .frame(maxWidth: .infinity, alignment: .leading)
-                    
-                    Button("접기") {
-                        withAnimation(.easeInOut(duration: 0.2)) { isExpanded = false }
+                if wrapFoldButton {
+                    VStack(alignment: .leading, spacing: 0) {
+                        Text(text)
+                            .font(textFont)
+                            .foregroundStyle(Color.textPrimary)
+                            .lineLimit(nil)
+                            .fixedSize(horizontal: false, vertical: true)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                        
+                        HStack(spacing: 0) {
+                            Spacer(minLength: 0)
+                            Button(Constants.foldButtonText) {
+                                withAnimation(.easeInOut(duration: 0.2)) { isExpanded = false }
+                            }
+                            .font(textFont)
+                            .foregroundStyle(actionColor)
+                            .buttonStyle(.plain)
+                        }
+                        .padding(.trailing, Constants.foldButtonTrailingPadding)
                     }
-                    .font(textFont)
-                    .foregroundStyle(actionColor)
-                    .background(Color.white)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                } else {
+                    HStack(alignment: .lastTextBaseline, spacing: Constants.foldButtonSpacing) {
+                        Text(text)
+                            .font(textFont)
+                            .foregroundStyle(Color.textPrimary)
+                            .lineLimit(nil)
+                            .fixedSize(horizontal: false, vertical: true)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                        
+                        Button(Constants.foldButtonText) {
+                            withAnimation(.easeInOut(duration: 0.2)) { isExpanded = false }
+                        }
+                        .font(textFont)
+                        .foregroundStyle(actionColor)
+                        .buttonStyle(.plain)
+                            .fixedSize(horizontal: true, vertical: false)
+                    }
+                    .padding(.trailing, Constants.foldButtonTrailingPadding)
+                    .frame(maxWidth: .infinity, alignment: .leading)
                 }
             } else if isTruncated, let cut = cutText {
                 // 접힌 상태 + truncation

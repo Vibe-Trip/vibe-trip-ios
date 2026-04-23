@@ -35,9 +35,6 @@ enum LoginErrorState: Equatable {
 
     /// 재시도 팝업
     case retryPopup(message: String)
-
-    /// 확인 팝업
-    case alertPopup(message: String)
 }
 
 // MARK: - LoginError -> LoginErrorState 변환
@@ -47,11 +44,11 @@ extension LoginError {
     var errorState: LoginErrorState? {
         switch self {
         case .providerError:
-            return .toast(message: "로그인 중 오류가 발생했어요.")
+            return .toast(message: "로그인 서비스에 일시적인 문제가 생겼습니다.")
         case .networkError:
-            return .toast(message: "네트워크 연결을 다시 확인해 주세요.")
+            return .toast(message: "네트워크 연결이 원활하지 않습니다.")
         case .timeout:
-            return .retryPopup(message: "로그인 서버 응답이 지연되고 있어요. \n잠시 후 다시 해볼까요?")
+            return .retryPopup(message: "지금은 로그인이 원활하지 않습니다.\n연결 상태를 확인하고 다시 시도해 주세요.")
         case .backendError(let code):
             return code.loginErrorState
         case .cancelled:

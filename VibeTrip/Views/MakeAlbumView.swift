@@ -173,6 +173,7 @@ struct MakeAlbumView: View {
                         doNotShowEntryPopupAgain = false
                     },
                     onConfirm: {
+                        dismissKeyboard()
                         if doNotShowEntryPopupAgain {
                             shouldShowEntryPopup = false
                         }
@@ -185,6 +186,7 @@ struct MakeAlbumView: View {
                             onFatalError: onFatalError
                         )
                     },
+                    confirmTitle: "시작하기",
                     doNotShowAgain: $doNotShowEntryPopupAgain
                 )
             }
@@ -256,6 +258,7 @@ struct MakeAlbumView: View {
     
     // 필수 입력 검증 통과 시 선택 입력 화면으로 push
     private func handleProceedToOptionalStep() {
+        dismissKeyboard()
         viewModel.proceedToOptionalStep()
         guard viewModel.currentStep == .optionalInput else { return }
         if navigationPath.last != .optionalInput {
@@ -273,6 +276,7 @@ struct MakeAlbumView: View {
     
     // 앨범 생성 버튼 탭 처리
     private func handleCreateTap() {
+        dismissKeyboard()
         if shouldShowEntryPopup {
             doNotShowEntryPopupAgain = false
             withAnimation(.easeInOut(duration: 0.2)) {
@@ -286,6 +290,15 @@ struct MakeAlbumView: View {
                 onFatalError: onFatalError
             )
         }
+    }
+
+    private func dismissKeyboard() {
+        UIApplication.shared.sendAction(
+            #selector(UIResponder.resignFirstResponder),
+            to: nil,
+            from: nil,
+            for: nil
+        )
     }
 }
 
@@ -328,7 +341,8 @@ private struct MakeAlbumRequiredInputContent: View {
                         albumSectionHeader(
                             title: "사진",
                             subtitle: "필수 선택",
-                            showsIndicator: true
+                            showsIndicator: true,
+                            subtitleWeight: .semiBold
                         )
                         
                         // 사진 선택 유무 분기
@@ -346,12 +360,13 @@ private struct MakeAlbumRequiredInputContent: View {
                         )
                         
                         TextField("여행지의 이름을 입력해주세요.", text: $destinationInput)
-                            .font(Font.setPretendard(weight: .regular, size: 16))
+                            .font(Font.setPretendard(weight: .regular, size: 14))
                             .foregroundColor(Color.textPrimary)
                             .padding(.horizontal, 16)
                             .frame(maxWidth: .infinity, minHeight: 48, maxHeight: 48, alignment: .leading)
                             .background(Color.fieldBackground)
                             .clipShape(RoundedRectangle(cornerRadius: 8))
+                            .submitLabel(.done)
                             .overlay(
                                 RoundedRectangle(cornerRadius: 8)
                                     .stroke(Color.fieldBorder, lineWidth: 1)
@@ -387,7 +402,7 @@ private struct MakeAlbumRequiredInputContent: View {
                                     ? "여행 기간을 입력해주세요."
                                     : viewModel.album.formattedTravelDateRange
                                 )
-                                .font(Font.setPretendard(weight: .regular, size: 16))
+                                .font(Font.setPretendard(weight: .regular, size: 14))
                                 .foregroundStyle(
                                     viewModel.album.formattedTravelDateRange.isEmpty
                                     ? Color("GrayScale/300")
@@ -453,7 +468,7 @@ private struct MakeAlbumRequiredInputContent: View {
                 // 가사 옵션 전환 에니메이션: fade
                 .animation(.easeInOut(duration: 0.2), value: viewModel.album.lyricsOption)
                 .padding(.horizontal, 20)
-                .padding(.top, 24)
+                .padding(.top, 22)
                 .padding(.bottom, 24)
             }
             .onChange(of: viewModel.album.lyricsOption) { _, newValue in
@@ -481,7 +496,8 @@ private struct MakeAlbumRequiredInputContent: View {
     private func albumSectionHeader(
         title: String,
         subtitle: String,
-        showsIndicator: Bool = false
+        showsIndicator: Bool = false,
+        subtitleWeight: Font.FontWeight = .medium
     ) -> some View {
         HStack(alignment: .firstTextBaseline, spacing: 4) {
             HStack(alignment: .top, spacing: 4) {
@@ -492,14 +508,14 @@ private struct MakeAlbumRequiredInputContent: View {
                 if showsIndicator {
                     // 필수 항목 dot
                     Circle()
-                        .fill(Color(red: 0.5, green: 0.52, blue: 0.89))
+                        .fill(Color("appPrimary"))
                         .frame(width: 5, height: 5)
                         .offset(y: 2)
                 }
             }
             
             Text(subtitle)
-                .font(Font.setPretendard(weight: .medium, size: 12))
+                .font(Font.setPretendard(weight: subtitleWeight, size: 12))
                 .foregroundStyle(Color("GrayScale/300"))
         }
     }
@@ -553,7 +569,7 @@ private struct MakeAlbumOptionalInputContent: View {
                                 }) {
                                     Image(systemName: "info.circle")
                                         .font(.system(size: 18))
-                                        .foregroundStyle(Color.appPrimary.opacity(0.6))
+                                        .foregroundStyle(Color("appPrimary500"))
                                 }
                                 .buttonStyle(.plain)
                             }
@@ -582,8 +598,8 @@ private struct MakeAlbumOptionalInputContent: View {
                                                 RoundedRectangle(cornerRadius: 8)
                                                     .fill(
                                                         viewModel.album.selectedGenre == genre
-                                                        ? Color.chipSelectedBackground
-                                                        : Color.chipUnselectedBackground
+                                                        ? Color("appPrimary50")
+                                                        : Color("GrayScale/50")
                                                     )
                                                     .appShadow(.buttonTextField)
                                             )
@@ -591,8 +607,8 @@ private struct MakeAlbumOptionalInputContent: View {
                                                 RoundedRectangle(cornerRadius: 8)
                                                     .stroke(
                                                         viewModel.album.selectedGenre == genre
-                                                        ? Color.appPrimary.opacity(0.35)
-                                                        : Color.fieldBorder,
+                                                        ? Color("appPrimary100")
+                                                        : Color("GrayScale/100"),
                                                         lineWidth: 1
                                                     )
                                             )
@@ -642,15 +658,20 @@ private struct MakeAlbumOptionalInputContent: View {
                                 .toolbar {
                                     ToolbarItemGroup(placement: .keyboard) {
                                         Spacer()
-                                        Button("완료") {
+                                        Button(action: {
                                             isCommentaryFocused = false
+                                        }) {
+                                            Image(systemName: "keyboard.chevron.compact.down")  // 키보드 비활성화 심볼
+                                                .font(.system(size: 18, weight: .light))
                                         }
+                                        .tint(Color("appPrimary400"))
                                     }
                                 }
                                 
                                 if viewModel.album.albumCommentary.isEmpty {
                                     Text("어떤 분위기의 노래를 만들고 싶나요?\n지금 느끼는 감정을 기록해보세요.")
-                                        .font(Font.setPretendard(weight: .medium, size: 16))
+                                        .font(Font.setPretendard(weight: .regular, size: 14))
+                                        .tracking(-0.28)
                                         .foregroundStyle(Color("GrayScale/300"))
                                         .padding(.horizontal, 16)
                                         .padding(.top, 20)
@@ -680,7 +701,7 @@ private struct MakeAlbumOptionalInputContent: View {
                         .id(ScrollTarget.commentary)
                     }
                     .padding(.horizontal, 20)
-                    .padding(.top, 24)
+                    .padding(.top, 22)
                     .padding(.bottom, 140)
                 }
                 .onChange(of: isCommentaryFocused) { _, isFocused in
@@ -757,7 +778,7 @@ private struct MakeAlbumPhotoBox: View {
                         .font(.system(size: 40, weight: .regular))
                         .foregroundStyle(Color.placeholderSymbol)
                     
-                    Text("음악으로 만들고 싶은 찰나의 순간을 올려주세요. \nAI가 사진의 온도와 색감을 곡으로 빚어냅니다.")
+                    Text("음악으로 만들고 싶은 순간을 올려주세요. \nAI가 사진의 온도와 색감을 곡으로 빚어냅니다.")
                         .font(Font.setPretendard(weight: .medium, size: 14))
                         .foregroundStyle(Color("GrayScale/300"))
                         .multilineTextAlignment(.center)
@@ -786,13 +807,13 @@ private struct MakeAlbumBottomButton: View {
     var body: some View {
         Button(action: action) {
             Text(title)
-                .font(Font.setPretendard(weight: .semiBold, size: 18))
-                .foregroundStyle(isEnabled ? .white : Color.buttonDisabledForeground)
+                .font(Font.setPretendard(weight: .semiBold, size: 16))
+                .foregroundStyle(Color("GrayScale/50"))
                 .frame(maxWidth: .infinity)
                 .frame(height: 52)
             /// 배경색 조정
                 .background(isEnabled ? Color.appPrimary : Color.buttonDisabledBackground)
-                .clipShape(Capsule())
+                .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
         }
         .buttonStyle(.plain)
         .padding(.horizontal, 20)
