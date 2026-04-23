@@ -309,7 +309,7 @@ private struct NotificationRow: View {
             id: "3",
             type: .failed,
             title: "앨범 생성에 실패했습니다.",
-            body: "[오류 원인]으로 생성에 실패했습니다. 앨범 만들기를 다시 시도해 주세요",
+            body: "앨범 만들기를 다시 시도해 주세요.",
             createdAt: Date(timeIntervalSinceNow: -7200),
             isRead: true
         )

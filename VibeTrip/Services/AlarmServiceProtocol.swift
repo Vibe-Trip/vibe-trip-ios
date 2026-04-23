@@ -61,7 +61,7 @@ extension AlarmResponse {
         case .completed:
             return forceLineBreak(in: normalized, after: "완성되었습니다.")
         case .failed:
-            return forceLineBreak(in: normalized, after: "실패하였습니다.")
+            return "앨범 만들기를 다시 시도해 주세요."
         case .generating:
             return normalized
         }
@@ -197,7 +197,7 @@ extension AlarmResponse {
         AlarmResponse(
             alarmId: 3,
             title: "앨범 생성에 실패했습니다",
-            description: "일시적인 오류로 생성에 실패했습니다. 앨범 만들기를 다시 시도해 볼까요?",
+            description: "앨범 만들기를 다시 시도해 주세요.",
             alarmType: "FAILED",
             createdAt: "2026-04-07T08:00:00.000Z",
             albumId: nil
