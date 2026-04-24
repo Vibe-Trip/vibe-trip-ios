@@ -14,7 +14,7 @@ struct GenreDescriptionModalView: View {
         static let modalHeight: CGFloat = 528
         static let modalCornerRadius: CGFloat = 12
         static let modalPadding: CGFloat = 16
-        static let sectionSpacing: CGFloat = 12
+        static let sectionSpacing: CGFloat = 16
         static let titleTopPadding: CGFloat = 16
         static let titleToContentSpacing: CGFloat = 23.5
     }
