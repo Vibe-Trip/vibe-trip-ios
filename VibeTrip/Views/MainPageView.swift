@@ -198,7 +198,7 @@ struct MainPageView: View {
                     Image("AppLogo_Home")
                         .resizable()
                         .scaledToFit()
-                        .frame(width: 120, height: 30)
+                        .frame(width: 120, height: 35)
                 }
                 .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
             }
@@ -219,7 +219,7 @@ struct MainPageView: View {
                 Image("AppLogo_Home")
                     .resizable()
                     .scaledToFit()
-                    .frame(width: 120, height: 30)
+                    .frame(width: 120, height: 35)
             }
             .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .top)
         }
@@ -233,7 +233,7 @@ struct MainPageView: View {
                 .resizable()
                 .scaledToFit()
                 .frame(width: 120, height: 120)
-                .foregroundStyle(Color.placeholderSymbol)
+                .foregroundStyle(Color("GrayScale/200"))
                 .contentShape(Rectangle())
                 .onTapGesture {
                     handleEmptyStatePlaceholderTap()
@@ -250,7 +250,7 @@ struct MainPageView: View {
                 Text("아래 '앨범 만들기'를 눌러 시작 해보세요!")
                     .font(Font.setPretendard(weight: .medium, size: 16))
                     .multilineTextAlignment(.center)
-                    .foregroundStyle(Color.placeholderText)
+                    .foregroundStyle(Color("GrayScale/400"))
                     .padding(.horizontal, 39)
                     .frame(maxWidth: .infinity, alignment: .center)
             }

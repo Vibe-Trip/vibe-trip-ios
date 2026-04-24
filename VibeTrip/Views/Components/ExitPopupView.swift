@@ -45,14 +45,14 @@ struct ExitPopupView: View {
                     Text(title)
                         .font(Font.setPretendard(weight: .bold, size: 20))
                         .multilineTextAlignment(.center)
-                        .foregroundStyle(Color.textPrimary)
+                        .foregroundStyle(Color.text)
                         .frame(maxWidth: .infinity, alignment: .top)
 
                     if !message.isEmpty {
                         Text(message)
                             .font(Font.setPretendard(weight: .regular, size: 14))
                             .multilineTextAlignment(.center)
-                            .foregroundStyle(Color.textPrimary)
+                            .foregroundStyle(Color.text)
                     }
                 }
 

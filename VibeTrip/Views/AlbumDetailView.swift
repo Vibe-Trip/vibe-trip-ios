@@ -276,6 +276,7 @@ struct AlbumDetailView: View {
     
     // UIScrollView KVO로 감지한 contentOffset.y (스크롤 이벤트와 동일 사이클 반영)
     @State private var scrollContentOffset: CGFloat = 0
+    @State private var observedScrollView: UIScrollView?
     
     // 타이틀 텍스트의 초기 global Y (스크롤 = 0 기준, 1회만 측정)
     @State private var titleContentY: CGFloat = .greatestFiniteMagnitude
@@ -286,6 +287,7 @@ struct AlbumDetailView: View {
     @State private var albumDestination: String
     @State private var albumDateText: String
     @State private var albumCoverImageUrl: URL?
+    private let isActionButtonsOverlayEnabled: Bool = false
     
     //최상단 이동 버튼 표시 -> 블러 네비게이션 바 전환 시
     private var showScrollToTop: Bool { overlayOpacity < 1 }
@@ -327,8 +329,13 @@ struct AlbumDetailView: View {
                         Color.clear
                             .frame(height: 0)
                             .id("scrollTop")
-                        ScrollOffsetObserver(contentOffset: $scrollContentOffset)
-                            .frame(height: 0)
+                        ScrollOffsetObserver(
+                            contentOffset: $scrollContentOffset,
+                            onScrollViewResolved: { scrollView in
+                                observedScrollView = scrollView
+                            }
+                        )
+                        .frame(height: 0)
                         
                         coverImageSection
                         actionButtonsSection
@@ -340,9 +347,7 @@ struct AlbumDetailView: View {
                 .background(Color.white.ignoresSafeArea())
                 .overlay(alignment: .bottomTrailing) {
                     scrollToTopButton {
-                        withAnimation(.easeInOut(duration: 0.5)) {
-                            proxy.scrollTo("scrollTop", anchor: .top)
-                        }
+                        scrollToTop(using: proxy)
                     }
                 }
             }
@@ -356,7 +361,7 @@ struct AlbumDetailView: View {
                 Button(action: showAlbumMenu) {
                     Image(systemName: "ellipsis")
                         .font(.system(size: Constants.navIconSize, weight: .semibold))
-                        .foregroundStyle(Color.textPrimary)
+                        .foregroundStyle(Color.text)
                         .frame(width: Constants.navTouchTargetSize, height: Constants.navTouchTargetSize)
                 }
             }
@@ -372,7 +377,9 @@ struct AlbumDetailView: View {
             .allowsHitTesting(isOverlayActive)
             
             // 액션 버튼 오버레이 (스크롤 추적 → 네비게이션 바 하단 고정)
-            actionButtonsOverlay
+            if isActionButtonsOverlayEnabled {
+                actionButtonsOverlay
+            }
             
             // 앨범 옵션 팝업
             if isAlbumMenuVisible {
@@ -590,6 +597,13 @@ private extension AlbumDetailView {
     // 전환 구간(0 < opacity < 1)에서 두 네비게이션 바가 동시에 터치를 받는 문제 방지
     private var isOverlayActive: Bool { titleNavOffset > 15 }
     
+    // 오버스크롤(음수 offset) 시 커버 이미지 확장 높이
+    private var coverImageStretch: CGFloat {
+        let pullDistance = max(0, -scrollContentOffset)
+        guard pullDistance > 0 else { return 0 }
+        return pullDistance + Constants.coverStretchCompensation
+    }
+    
     // 오버레이 Y 위치 (ZStack-local 좌표)
     // actionButtonsY: global 좌표
     // 스크롤을 따라 올라가다가 nav bar 바로 아래(44pt)에서 클램프
@@ -655,23 +669,13 @@ private extension AlbumDetailView {
     var coverImageSection: some View {
         VStack(spacing: 0) {
             coverImage
-                .frame(width: Constants.coverWidth, height: Constants.coverHeight)
-                .clipShape(
-                    UnevenRoundedRectangle(
-                        topLeadingRadius: 0,
-                        bottomLeadingRadius: Constants.coverBottomCornerRadius,
-                        bottomTrailingRadius: Constants.coverBottomCornerRadius,
-                        topTrailingRadius: 0
-                    )
-                )
-                .appShadow(.mainCardImage)
             
             // 앨범 정보
             VStack(alignment: .leading, spacing: Constants.infoTextSpacing) {
                 /// 앨범 제목
                 Text(albumTitle)
                     .font(.setPretendard(weight: .semiBold, size: Constants.titleFontSize))
-                    .foregroundStyle(Color.textPrimary)
+                    .foregroundStyle(Color.text)
                     .lineLimit(1)
                     .onGeometryChange(for: CGFloat.self) {
                         $0.frame(in: .global).minY
@@ -712,15 +716,29 @@ private extension AlbumDetailView {
             switch phase {
             case .success(let image):
                 image
-                    .resizable()    /// 비율 유지 채택 시  ->  .scaledToFill()
-                    .frame(maxWidth: .infinity, maxHeight: .infinity)
-                    .clipped()
+                    .resizable()
+                    .scaledToFill()
             default:
                 Image("AlbumDetail_Placeholder")
                     .resizable()
                     .scaledToFill()
             }
         }
+        .frame(
+            width: Constants.coverWidth,
+            height: Constants.coverHeight + coverImageStretch
+        )
+        .clipShape(
+            UnevenRoundedRectangle(
+                topLeadingRadius: 0,
+                bottomLeadingRadius: Constants.coverBottomCornerRadius,
+                bottomTrailingRadius: Constants.coverBottomCornerRadius,
+                topTrailingRadius: 0
+            )
+        )
+        .offset(y: -coverImageStretch)
+        .frame(width: Constants.coverWidth, height: Constants.coverHeight, alignment: .top)
+        .appShadow(.mainCardImage)
     }
     
     var actionButtonsSection: some View {
@@ -749,12 +767,13 @@ private extension AlbumDetailView {
         }
         .padding(.horizontal, Constants.horizontalPadding)
         .padding(.bottom, Constants.actionsBottomPadding)
-        // 오버레이 준비되면 원본 숨김 (레이아웃 공간은 유지)
-        .opacity(actionButtonsY == .greatestFiniteMagnitude ? 1 : 0)
-        .allowsHitTesting(actionButtonsY == .greatestFiniteMagnitude)
+        // 오버레이 활성화 시 원본 숨김 (레이아웃 공간은 유지)
+        .opacity(isActionButtonsOverlayEnabled && actionButtonsY != .greatestFiniteMagnitude ? 0 : 1)
+        .allowsHitTesting(!(isActionButtonsOverlayEnabled && actionButtonsY != .greatestFiniteMagnitude))
         .onGeometryChange(for: CGFloat.self) {
             $0.frame(in: .global).minY
         } action: { minY in
+            guard isActionButtonsOverlayEnabled else { return }
             guard actionButtonsY == .greatestFiniteMagnitude else { return }
             actionButtonsY = minY
         }
@@ -817,6 +836,18 @@ private extension AlbumDetailView {
     }
     
     // MARK: - 최상단 이동 버튼
+    
+    func scrollToTop(using proxy: ScrollViewProxy) {
+        if let scrollView = observedScrollView {
+            let topOffsetY = -scrollView.adjustedContentInset.top
+            scrollView.setContentOffset(CGPoint(x: scrollView.contentOffset.x, y: topOffsetY), animated: true)
+            return
+        }
+        
+        withAnimation(.easeInOut(duration: 0.5)) {
+            proxy.scrollTo("scrollTop", anchor: .top)
+        }
+    }
     
     func scrollToTopButton(action: @escaping () -> Void) -> some View {
         Button(action: action) {
@@ -927,6 +958,7 @@ private extension AlbumDetailView {
         static let coverWidth: CGFloat = 402
         static let coverHeight: CGFloat = 500
         static let coverBottomCornerRadius: CGFloat = 16
+        static let coverStretchCompensation: CGFloat = 1
         static let placeholderIconSize: CGFloat = 44
         
         // 앨범 정보 텍스트
@@ -942,7 +974,7 @@ private extension AlbumDetailView {
         static let actionsBottomPadding: CGFloat = 16
         
         // 빈 상태 영역
-        static let emptyStateTopPadding: CGFloat = 40
+        static let emptyStateTopPadding: CGFloat = 56
         static let emptyStateMinHeight: CGFloat = 240
         
         // 앨범 옵션 팝업 위치
@@ -1086,7 +1118,7 @@ private struct AlbumDetailActionButton: View {
                 }
                 .font(.setPretendard(weight: .medium, size: Constants.fontSize))
             }
-            .foregroundStyle(Color.appPrimary400)
+            .foregroundStyle(Color("appPrimary500"))
             .padding(.horizontal, Constants.horizontalPadding)
             .padding(.vertical, Constants.verticalPadding)
             .frame(maxWidth: .infinity, minHeight: Constants.height)
@@ -1112,12 +1144,12 @@ private struct AlbumDetailEmptyStateSection: View {
         VStack(spacing: Constants.spacing) {
             Text("아직 기록된 로그가 없어요.")
                 .font(.setPretendard(weight: .semiBold, size: Constants.titleFontSize))
-                .foregroundStyle(Color.placeholderText)
+                .foregroundStyle(Color("GrayScale/500"))
                 .multilineTextAlignment(.center)
             
             Text("로그를 작성하고 여행의 추억을 완성해 보세요.")
                 .font(.setPretendard(weight: .medium, size: Constants.descriptionFontSize))
-                .foregroundStyle(Color.placeholderText)
+                .foregroundStyle(Color("GrayScale/400"))
                 .multilineTextAlignment(.center)
         }
         .frame(maxWidth: .infinity)
@@ -1229,7 +1261,7 @@ private struct AlbumDetailAlbumMenuPopup: View {
             HStack(alignment: .center, spacing: 0) {
                 Text(item.title)
                     .font(.setPretendard(weight: .medium, size: Constants.itemFontSize))
-                    .foregroundStyle(isDisabled ? Color("GrayScale/50") : Color.textPrimary)
+                    .foregroundStyle(isDisabled ? Color("GrayScale/50") : Color.text)
             }
         }
         .disabled(isDisabled)
@@ -1257,14 +1289,14 @@ private struct AlbumDetailLogMenuPopup: View {
             Button(action: onEditLog) {
                 Text("로그 수정")
                     .font(.setPretendard(weight: .medium, size: Constants.itemFontSize))
-                    .foregroundStyle(Color.textPrimary)
+                    .foregroundStyle(Color.text)
             }
             .buttonStyle(LogMenuItemButtonStyle())
             
             Button(action: onDeleteLog) {
                 Text("로그 삭제")
                     .font(.setPretendard(weight: .medium, size: Constants.itemFontSize))
-                    .foregroundStyle(Color.textPrimary)
+                    .foregroundStyle(Color.text)
             }
             .buttonStyle(LogMenuItemButtonStyle())
         }
@@ -1491,7 +1523,7 @@ private struct AlbumDetailLogImageSlider: View {
                                 Color.secondary.opacity(0.12)
                                 Image(systemName: "photo")
                                     .font(.system(size: Constants.placeholderIconSize))
-                                    .foregroundStyle(Color.placeholderSymbol)
+                                    .foregroundStyle(Color("GrayScale/200"))
                             }
                         }
                     }
@@ -1513,7 +1545,7 @@ private struct AlbumDetailLogImageSlider: View {
                             .foregroundStyle(
                                 index == currentIndex ? Color.appPrimary400 : Color.white
                             )
-                            // 페이지컨트롤dot -> pageControl shadow
+                        // 페이지컨트롤dot -> pageControl shadow
                             .appShadow(.pageControl)
                     }
                 }
@@ -1541,158 +1573,133 @@ private struct AlbumDetailLogTextSection: View {
         static let fontSize: CGFloat = 16
         static let lineLimit: Int = 2
         static let widthBuffer: CGFloat = 1
-        static let truncationSuffix: String = "...더 보기"
+        static let truncationToken: String = "..."
+        static let moreButtonText: String = "더 보기"
         static let foldButtonText: String = "접기"
-        static let foldButtonSpacing: CGFloat = 8
-        static let foldButtonTrailingPadding: CGFloat = 20
+        static let foldSpacer: String = "  "    /// 접기 버튼과 본문 텍스트 사이 공간 예약용
     }
     
     private var textFont: Font { .setPretendard(weight: .regular, size: Constants.fontSize) }
-    private let actionColor = Color(red: 0.74, green: 0.75, blue: 0.76)
+    private let actionColor = Color("GrayScale/400")
     
     private var uiFont: UIFont {
         UIFont(name: "Pretendard-Regular", size: Constants.fontSize)
         ?? UIFont.systemFont(ofSize: Constants.fontSize)
     }
     
-    private var foldButtonWidth: CGFloat {
-        (Constants.foldButtonText as NSString).size(withAttributes: [.font: uiFont]).width
+    // NSLayoutManager 기반 줄 수 측정 (접힌 상태 prefix 이진 탐색용)
+    private func lineCount(_ value: String, width: CGFloat) -> Int {
+        guard width > 0, !value.isEmpty else { return 0 }
+        
+        let storage = NSTextStorage(
+            string: value,
+            attributes: [.font: uiFont]
+        )
+        let container = NSTextContainer(size: CGSize(width: width, height: .greatestFiniteMagnitude))
+        container.lineFragmentPadding = 0
+        container.lineBreakMode = .byWordWrapping
+        container.maximumNumberOfLines = 0
+        
+        let manager = NSLayoutManager()
+        manager.addTextContainer(container)
+        storage.addLayoutManager(manager)
+        _ = manager.glyphRange(for: container)
+        
+        var count = 0
+        manager.enumerateLineFragments(
+            forGlyphRange: NSRange(location: 0, length: manager.numberOfGlyphs)
+        ) { _, _, _, _, _ in
+            count += 1
+        }
+        return count
     }
     
-    private func truncatedText(for width: CGFloat) -> String? {
+    // 접힌 상태: 이진 탐색 계산으로 ... 더 보기 표시
+    // 원문이 2줄 이내일 경우 nil 반환 -> truncation 불필요
+    private func collapsedPrefix(for width: CGFloat) -> String? {
         guard width > 0 else { return nil }
         
-        let attrs: [NSAttributedString.Key: Any] = [.font: uiFont]
-        let measureWidth = width - Constants.widthBuffer
-        let constraintSize = CGSize(width: measureWidth, height: .greatestFiniteMagnitude)
-        let twoLineHeight = uiFont.lineHeight * CGFloat(Constants.lineLimit) + 1
+        let measureWidth = max(0, width - Constants.widthBuffer)
+        guard measureWidth > 0 else { return nil }
         
-        // 전체 텍스트가 2줄 이내면 truncation 불필요
-        let fullRect = (text as NSString).boundingRect(
-            with: constraintSize,
-            options: [.usesLineFragmentOrigin, .usesFontLeading],
-            attributes: attrs,
-            context: nil
-        )
-        guard fullRect.height > twoLineHeight else { return nil }
+        if lineCount(text, width: measureWidth) <= Constants.lineLimit { return nil }
+        
+        let tail = Constants.truncationToken + Constants.moreButtonText
+        
+        func fits(_ candidate: String) -> Bool {
+            lineCount(candidate + tail, width: measureWidth) <= Constants.lineLimit
+        }
         
         let chars = Array(text)
         var lo = 0, hi = chars.count
         while lo < hi {
             let mid = (lo + hi + 1) / 2
-            let candidate = String(chars.prefix(mid)) + Constants.truncationSuffix
-            let rect = (candidate as NSString).boundingRect(
-                with: constraintSize,
-                options: [.usesLineFragmentOrigin, .usesFontLeading],
-                attributes: attrs,
-                context: nil
-            )
-            if rect.height <= twoLineHeight { lo = mid } else { hi = mid - 1 }
+            if fits(String(chars.prefix(mid))) { lo = mid } else { hi = mid - 1 }
         }
         return String(chars.prefix(lo))
     }
     
-    private func shouldWrapFoldButton(for width: CGFloat) -> Bool {
-        guard width > 0 else { return false }
-        
-        let attrs: [NSAttributedString.Key: Any] = [.font: uiFont]
-        let fullWidth = width - Constants.widthBuffer
-        let inlineReservedWidth = Constants.foldButtonTrailingPadding + Constants.foldButtonSpacing + foldButtonWidth
-        let inlineTextWidth = max(0, fullWidth - inlineReservedWidth)
-        let constraintHeight = CGFloat.greatestFiniteMagnitude
-        
-        let fullRect = (text as NSString).boundingRect(
-            with: CGSize(width: fullWidth, height: constraintHeight),
-            options: [.usesLineFragmentOrigin, .usesFontLeading],
-            attributes: attrs,
-            context: nil
-        )
-        
-        let inlineRect = (text as NSString).boundingRect(
-            with: CGSize(width: inlineTextWidth, height: constraintHeight),
-            options: [.usesLineFragmentOrigin, .usesFontLeading],
-            attributes: attrs,
-            context: nil
-        )
-        
-        return inlineRect.height > (fullRect.height + 0.5)
-    }
-    
     var body: some View {
-        // 실제 너비 측정 후 truncation 계산
-        let cutText = truncatedText(for: contentWidth)
-        let isTruncated = cutText != nil
-        let wrapFoldButton = shouldWrapFoldButton(for: contentWidth)
+        let cutPrefix = collapsedPrefix(for: contentWidth)
         
         Group {
             if isExpanded {
-                // 펼친 상태
-                if wrapFoldButton {
-                    VStack(alignment: .leading, spacing: 0) {
-                        Text(text)
-                            .font(textFont)
-                            .foregroundStyle(Color.textPrimary)
-                            .lineLimit(nil)
-                            .fixedSize(horizontal: false, vertical: true)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                        
-                        HStack(spacing: 0) {
-                            Spacer(minLength: 0)
-                            Button(Constants.foldButtonText) {
-                                withAnimation(.easeInOut(duration: 0.2)) { isExpanded = false }
-                            }
-                            .font(textFont)
-                            .foregroundStyle(actionColor)
-                            .buttonStyle(.plain)
-                        }
-                        .padding(.trailing, Constants.foldButtonTrailingPadding)
-                    }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                } else {
-                    HStack(alignment: .lastTextBaseline, spacing: Constants.foldButtonSpacing) {
-                        Text(text)
-                            .font(textFont)
-                            .foregroundStyle(Color.textPrimary)
-                            .lineLimit(nil)
-                            .fixedSize(horizontal: false, vertical: true)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                        
-                        Button(Constants.foldButtonText) {
-                            withAnimation(.easeInOut(duration: 0.2)) { isExpanded = false }
-                        }
-                        .font(textFont)
-                        .foregroundStyle(actionColor)
-                        .buttonStyle(.plain)
-                            .fixedSize(horizontal: true, vertical: false)
-                    }
-                    .padding(.trailing, Constants.foldButtonTrailingPadding)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                }
-            } else if isTruncated, let cut = cutText {
-                // 접힌 상태 + truncation
-                (
-                    Text(cut)
-                        .foregroundStyle(Color.textPrimary)
-                    + Text("...  ")
-                        .foregroundStyle(Color.textPrimary)
-                    + Text("더 보기")
-                        .foregroundStyle(actionColor)
-                )
-                .font(textFont)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .onTapGesture {
-                    withAnimation(.easeInOut(duration: 0.2)) { isExpanded = true }
-                }
+                expandedContent
+            } else if let cutPrefix {
+                collapsedContent(cutPrefix: cutPrefix)
             } else {
                 Text(text)
                     .font(textFont)
-                    .foregroundStyle(Color.textPrimary)
+                    .foregroundStyle(Color.text)
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
         }
         // 콘텐츠 너비 측정
         .onGeometryChange(for: CGFloat.self) { $0.size.width } action: { w in
-            if contentWidth == 0 { DispatchQueue.main.async { contentWidth = w } }
+            if abs(contentWidth - w) > 0.5 {
+                DispatchQueue.main.async { contentWidth = w }
+            }
+        }
+    }
+    
+    // 펼친 상태: SwiftUI 레이아웃에 공간 예약을 맡겨 접기 버튼 배치
+    private var expandedContent: some View {
+        (
+            Text(text)
+            + Text(Constants.foldSpacer + Constants.foldButtonText)
+                .foregroundColor(.clear)
+        )
+        .font(textFont)
+        .foregroundStyle(Color.text)
+        .lineLimit(nil)
+        .fixedSize(horizontal: false, vertical: true)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .overlay(alignment: .bottomTrailing) {  /// 접기 버튼 배치
+            Button(Constants.foldButtonText) {
+                withAnimation(.easeInOut(duration: 0.2)) { isExpanded = false }
+            }
+            .font(textFont)
+            .foregroundStyle(actionColor)
+            .buttonStyle(.plain)
+        }
+    }
+    
+    // 접힌 상태:  cut + "..." + "더 보기" 를 Text concat 으로 한 줄로 이어 렌더
+    // prefix 이진 탐색: 2줄에 맞게 잘라줌
+    private func collapsedContent(cutPrefix: String) -> some View {
+        (
+            Text(cutPrefix + Constants.truncationToken)
+            + Text(Constants.moreButtonText)
+                .foregroundColor(actionColor)
+        )
+        .font(textFont)
+        .foregroundStyle(Color.text)
+        .lineLimit(Constants.lineLimit)
+        .fixedSize(horizontal: false, vertical: true)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .contentShape(Rectangle())
+        .onTapGesture {
+            withAnimation(.easeInOut(duration: 0.2)) { isExpanded = true }
         }
     }
 }

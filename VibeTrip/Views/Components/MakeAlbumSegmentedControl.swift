@@ -36,7 +36,7 @@ struct MakeAlbumSegmentedControl<Option: Identifiable & Hashable>: View {
                         )
                         .overlay(
                             RoundedRectangle(cornerRadius: 8)
-                                .stroke(isSelected ? Color.chipSelectedBorder : Color.fieldBorder, lineWidth: 1)
+                                .stroke(isSelected ? Color("appPrimary100") : Color.fieldBorder, lineWidth: 1)
                         )
                 }
                 .buttonStyle(.plain)

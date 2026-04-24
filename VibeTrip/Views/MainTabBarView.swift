@@ -21,7 +21,7 @@ enum AppTab: Int, CaseIterable {
     // 미선택 상태 아이콘 (outline)
     var icon: String {
         switch self {
-        case .home:         return "house.fill"
+        case .home:         return "house"
         case .makeAlbum:    return "rectangle.stack.badge.plus"
         case .notification: return "bell"
         case .myPage:       return "person"
@@ -32,7 +32,7 @@ enum AppTab: Int, CaseIterable {
     var selectedIcon: String {
         switch self {
         case .home:         return "house.fill"
-        case .makeAlbum:    return "rectangle.stack.fill.badge.plus"
+        case .makeAlbum:    return "rectangle.stack.fill.badge.plus.fill"
         case .notification: return "bell.fill"
         case .myPage:       return "person.fill"
         }
@@ -689,7 +689,7 @@ struct LiquidGlassTabBar: View {
         .foregroundStyle(
             isSelected
                 ? AnyShapeStyle(Color.appPrimary)
-                : AnyShapeStyle(Color.tabLabelUnselected)
+                : AnyShapeStyle(Color("GrayScale/500"))
         )
         .frame(width: tabW, height: Layout.barHeight)
         .animation(.easeInOut(duration: 0.2), value: isSelected)
