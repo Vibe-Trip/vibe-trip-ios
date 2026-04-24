@@ -140,28 +140,38 @@ struct VibeTripApp: App {
     @StateObject private var appState = AppState()
     @StateObject private var backgroundMusicService = BackgroundMusicService()
 
+    @State private var showSplash = true
+    @State private var minimumSplashElapsed = false
+
     private let keychainService: KeychainServiceProtocol = KeychainService()
 
     var body: some Scene {
         WindowGroup {
-            Group {
-                switch appState.isLoggedIn {
-                case .none:
-                    // Keychain 확인 전: 빈화면
-                    Color(.systemBackground).ignoresSafeArea()
-                case .some(false):
-                    LoginView()
-                        .environmentObject(appState)
-                        .onOpenURL { url in
-                            // 카카오톡 앱 로그인 후 돌아오는 URL 처리 (취소 포함)
-                            if AuthApi.isKakaoTalkLoginUrl(url) {
-                                _ = AuthController.handleOpenUrl(url: url)
+            ZStack {
+                Group {
+                    switch appState.isLoggedIn {
+                    case .none:
+                        Color(.systemBackground).ignoresSafeArea()
+                    case .some(false):
+                        LoginView()
+                            .environmentObject(appState)
+                            .onOpenURL { url in
+                                // 카카오톡 앱 로그인 후 돌아오는 URL 처리 (취소 포함)
+                                if AuthApi.isKakaoTalkLoginUrl(url) {
+                                    _ = AuthController.handleOpenUrl(url: url)
+                                }
                             }
-                        }
-                case .some(true):
-                    MainTabBarView()
-                        .environmentObject(appState)
-                        .environmentObject(backgroundMusicService)
+                    case .some(true):
+                        MainTabBarView()
+                            .environmentObject(appState)
+                            .environmentObject(backgroundMusicService)
+                    }
+                }
+
+                if showSplash {
+                    SplashView()
+                        .transition(.opacity)
+                        .zIndex(1)
                 }
             }
             .task {
@@ -169,6 +179,19 @@ struct VibeTripApp: App {
                 appState.isLoggedIn = (try? keychainService.getAccessToken()) != nil
                 delegate.appState = appState
             }
+            .task {
+                try? await Task.sleep(for: .seconds(1))
+                minimumSplashElapsed = true
+            }
+            .onChange(of: minimumSplashElapsed) { _, _ in dismissSplashIfReady() }
+            .onChange(of: appState.isLoggedIn) { _, _ in dismissSplashIfReady() }
+        }
+    }
+
+    private func dismissSplashIfReady() {
+        guard showSplash, minimumSplashElapsed, appState.isLoggedIn != nil else { return }
+        withAnimation(.easeOut(duration: 0.3)) {
+            showSplash = false
         }
     }
 }
