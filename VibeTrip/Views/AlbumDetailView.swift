@@ -1326,7 +1326,7 @@ private struct AlbumDetailLogFeedSection: View {
     
     private enum Constants {
         static let horizontalPadding: CGFloat = 20
-        static let topPadding: CGFloat = 8
+        static let topPadding: CGFloat = 4
         static let bottomPadding: CGFloat = 40
     }
     
