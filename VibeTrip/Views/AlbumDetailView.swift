@@ -603,6 +603,15 @@ private extension AlbumDetailView {
         guard pullDistance > 0 else { return 0 }
         return pullDistance + Constants.coverStretchCompensation
     }
+
+    // 디자인 비율(402:500) 유지
+    private var coverWidth: CGFloat {
+        UIScreen.main.bounds.width
+    }
+
+    private var coverHeight: CGFloat {
+        coverWidth * Constants.coverAspectRatio
+    }
     
     // 오버레이 Y 위치 (ZStack-local 좌표)
     // actionButtonsY: global 좌표
@@ -725,8 +734,8 @@ private extension AlbumDetailView {
             }
         }
         .frame(
-            width: Constants.coverWidth,
-            height: Constants.coverHeight + coverImageStretch
+            width: coverWidth,
+            height: coverHeight + coverImageStretch
         )
         .clipShape(
             UnevenRoundedRectangle(
@@ -737,7 +746,7 @@ private extension AlbumDetailView {
             )
         )
         .offset(y: -coverImageStretch)
-        .frame(width: Constants.coverWidth, height: Constants.coverHeight, alignment: .top)
+        .frame(width: coverWidth, height: coverHeight, alignment: .top)
         .appShadow(.mainCardImage)
     }
     
@@ -955,8 +964,7 @@ private extension AlbumDetailView {
         static let horizontalPadding: CGFloat = 20
         
         // 커버 이미지
-        static let coverWidth: CGFloat = 402
-        static let coverHeight: CGFloat = 500
+        static let coverAspectRatio: CGFloat = 500.0 / 402.0
         static let coverBottomCornerRadius: CGFloat = 16
         static let coverStretchCompensation: CGFloat = 1
         static let placeholderIconSize: CGFloat = 44
