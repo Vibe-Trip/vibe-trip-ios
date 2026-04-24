@@ -597,7 +597,13 @@ private struct MakeAlbumOptionalInputContent: View {
                                         viewModel.toggleGenre(genre)
                                     }) {
                                         Text(genre.rawValue)
-                                            .font(Font.setPretendard(weight: .medium, size: 16))
+                                            .font(
+                                                Font.setPretendard(
+                                                    weight: viewModel.album.selectedGenre == genre ? .semiBold : .medium,
+                                                    size: 14
+                                                )
+                                            )
+                                            .tracking(-0.28)
                                             .foregroundStyle(Color.text)
                                             .frame(maxWidth: .infinity)
                                             .frame(height: 52)

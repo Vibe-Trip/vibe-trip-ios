@@ -707,14 +707,14 @@ private extension AlbumDetailView {
                     .foregroundStyle(Color("GrayScale/400"))
                     .lineLimit(1)
             }
+            // 블러 네비게이션 바 전환 시: 앨범 정보 텍스트 페이드아웃 + 살짝 위로 밀리는 효과
+            .opacity(overlayOpacity)
+            .offset(y: -(1 - overlayOpacity) * 8)
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.horizontal, Constants.horizontalPadding)
             .padding(.top, Constants.infoTopPadding)
             .padding(.bottom, Constants.infoBottomPadding)
             .background(Color.white)
-            // 블러 네비게이션 바 전환 시: 앨범 정보 텍스트 페이드아웃 + 살짝 위로 밀리는 효과
-            .opacity(overlayOpacity)
-            .offset(y: -(1 - overlayOpacity) * 8)
         }
     }
     
@@ -1326,7 +1326,7 @@ private struct AlbumDetailLogFeedSection: View {
     
     private enum Constants {
         static let horizontalPadding: CGFloat = 20
-        static let topPadding: CGFloat = 8
+        static let topPadding: CGFloat = 4
         static let bottomPadding: CGFloat = 40
     }
     
@@ -1406,6 +1406,7 @@ private struct AlbumDetailLogItemCard: View {
         static let dateFontSize: CGFloat = 14
         static let menuIconSize: CGFloat = 16
         static let menuTouchTarget: CGFloat = 44
+        static let dateToImageSpacing: CGFloat = 8
         static let contentSpacing: CGFloat = 12
         static let menuAnimationDuration: Double = 0.15
         static let menuTopOffset: CGFloat = 26
@@ -1426,7 +1427,7 @@ private struct AlbumDetailLogItemCard: View {
     
     var body: some View {
         ZStack(alignment: .topTrailing) {
-            VStack(alignment: .leading, spacing: Constants.contentSpacing) {
+            VStack(alignment: .leading, spacing: 0) {
                 // 날짜 + 로그 옵션 버튼
                 HStack {
                     Text(dateLabel)
@@ -1447,15 +1448,18 @@ private struct AlbumDetailLogItemCard: View {
                             )
                     }
                     .buttonStyle(.plain)
+                    .padding(.trailing, -4)
                 }
                 
                 // 이미지 슬라이더 (이미지 있을 때만)
                 if !entry.images.isEmpty {
                     AlbumDetailLogImageSlider(images: entry.images)
+                        .padding(.top, Constants.dateToImageSpacing)
                 }
                 
                 // 텍스트 + 더보기/접기
                 AlbumDetailLogTextSection(text: entry.description)
+                    .padding(.top, Constants.contentSpacing)
             }
             
             // 팝업 표시 시: 외부 탭 dismiss 영역 + 팝업
