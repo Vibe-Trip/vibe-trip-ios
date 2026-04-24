@@ -116,14 +116,10 @@ struct AlbumLogView: View {
                             } else {
                                 Text("저장")
                                     .font(.setPretendard(weight: .semiBold, size: 16))
-                                    .foregroundStyle(
-                                        viewModel.isSaveEnabled
-                                        ? Color.appPrimary
-                                        : Color.buttonDisabledForeground
-                                    )
+                                    .foregroundStyle(Color.appPrimary)
                             }
                         }
-                        .disabled(!viewModel.isSaveEnabled || viewModel.isSaving)
+                        .disabled(viewModel.isSaving)
                     }
                 }
                 .safeAreaInset(edge: .bottom, spacing: 0) {
@@ -157,7 +153,7 @@ struct AlbumLogView: View {
             // 토스트 메시지
             if isToastVisible, let message = viewModel.toastMessage {
                 AppToastView(message: message)
-                    .padding(.bottom, Constants.toolbarHeight + Constants.toastBottomPadding)
+                    .padding(.bottom, toastBottomPaddingFromToolbar)
                     .transition(.opacity)
                     .zIndex(1)
             }
@@ -281,10 +277,10 @@ private extension AlbumLogView {
     var textEditorArea: some View {
         ZStack(alignment: .topLeading) {
             if viewModel.logText.isEmpty {
-                Text("여행지에서 느꼈던 추억을 기록해보세요.")
+                Text(placeholderText)
                     .font(.setPretendard(weight: .regular, size: 16))
                     .lineSpacing(8)
-                    .foregroundStyle(Color.placeholderText)
+                    .foregroundStyle(Color("GrayScale/300"))
                     .padding(.horizontal, Constants.contentHorizontalPadding)
                     .padding(.top, Constants.textEditorTopPadding)
             }
@@ -299,6 +295,16 @@ private extension AlbumLogView {
                 .padding(.top, Constants.textEditorTopPadding - Constants.textEditorInsetCorrection)
                 .frame(minHeight: Constants.textEditorMinHeight)
         }
+    }
+    
+    var placeholderText: String {
+        viewModel.selectedPhotos.isEmpty
+        ? "여행지에서 느꼈던 추억을 기록해보세요."
+        : "여행 기록을 저장하려면 짧은 이야기를 작성해주세요."
+    }
+    
+    var toastBottomPaddingFromToolbar: CGFloat {
+        Constants.toolbarHeight + Constants.toastBottomPadding + keyboardHeight
     }
 
     // 하단 아이콘 툴바
@@ -321,7 +327,7 @@ private extension AlbumLogView {
                         .resizable()
                         .aspectRatio(contentMode: .fit)
                         .frame(width: Constants.cameraIconWidth, height: Constants.cameraIconHeight)
-                        .foregroundStyle(Color.placeholderText)
+                        .foregroundStyle(Color("GrayScale/300"))
                         .frame(width: Constants.toolbarIconSize, height: Constants.toolbarIconSize)
                 }
                 .disabled(viewModel.isSaving)
@@ -334,7 +340,7 @@ private extension AlbumLogView {
                         .resizable()
                         .aspectRatio(contentMode: .fit)
                         .frame(width: Constants.clockIconSize, height: Constants.clockIconSize)
-                        .foregroundStyle(Color.placeholderText)
+                        .foregroundStyle(Color("GrayScale/300"))
                         .frame(width: Constants.toolbarIconSize, height: Constants.toolbarIconSize)
                 }
                 .disabled(viewModel.isSaving)

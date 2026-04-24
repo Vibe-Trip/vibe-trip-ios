@@ -121,8 +121,8 @@ struct EditAlbumView: View {
                                 sectionHeader(title: "앨범 제목", subtitle: "필수 입력 (최대 15자)", isRequired: true)
 
                                 TextField("앨범 제목을 입력해주세요.", text: $viewModel.albumTitle)
-                                    .font(Font.setPretendard(weight: .regular, size: 16))
-                                    .foregroundColor(Color.textPrimary)
+                                    .font(Font.setPretendard(weight: .regular, size: 14))
+                                    .foregroundColor(Color.text)
                                     .padding(.horizontal, 16)
                                     .frame(maxWidth: .infinity, minHeight: 48, maxHeight: 48, alignment: .leading)
                                     .background(Color.fieldBackground)
@@ -143,8 +143,8 @@ struct EditAlbumView: View {
                             sectionHeader(title: "여행지", subtitle: "필수 입력 (최대 25자)", isRequired: true)
 
                             TextField("여행지의 이름을 입력해주세요.", text: $viewModel.destination)
-                                .font(Font.setPretendard(weight: .regular, size: 16))
-                                .foregroundColor(Color.textPrimary)
+                                .font(Font.setPretendard(weight: .regular, size: 14))
+                                .foregroundColor(Color.text)
                                 .padding(.horizontal, 16)
                                 .frame(maxWidth: .infinity, minHeight: 48, maxHeight: 48, alignment: .leading)
                                 .background(Color.fieldBackground)
@@ -175,11 +175,11 @@ struct EditAlbumView: View {
                                         ? "여행 기간을 입력해주세요."
                                         : formattedDateRange
                                     )
-                                    .font(Font.setPretendard(weight: .regular, size: 16))
+                                    .font(Font.setPretendard(weight: .regular, size: 14))
                                     .foregroundStyle(
                                         formattedDateRange.isEmpty
                                         ? Color("GrayScale/300")
-                                        : Color.textPrimary
+                                        : Color.text
                                     )
 
                                     Spacer()
@@ -241,7 +241,7 @@ struct EditAlbumView: View {
                                         HStack(alignment: .firstTextBaseline, spacing: 4) {
                                             Text("장르 선택")
                                                 .font(Font.setPretendard(weight: .semiBold, size: 16))
-                                                .foregroundStyle(Color.textPrimary)
+                                                .foregroundStyle(Color.text)
 
                                             Text("선택 입력")
                                                 .font(Font.setPretendard(weight: .medium, size: 12))
@@ -279,7 +279,7 @@ struct EditAlbumView: View {
                                         }) {
                                             Text(genre.rawValue)
                                                 .font(Font.setPretendard(weight: .medium, size: 16))
-                                                .foregroundStyle(Color.textPrimary)
+                                                .foregroundStyle(Color.text)
                                                 .frame(maxWidth: .infinity)
                                                 .frame(height: 52)
                                                 .background(
@@ -333,7 +333,15 @@ struct EditAlbumView: View {
         .safeAreaInset(edge: .bottom, spacing: 0) {
             EditAlbumBottomButton(
                 isEnabled: viewModel.isValid && !viewModel.isLoading,
-                action: { Task { await viewModel.submitEdit() } }
+                action: {
+                    guard !viewModel.isLoading else { return }
+                    guard viewModel.isValid else {
+                        viewModel.toastMessage = "필수 입력 항목을 모두 입력해 주세요."
+                        return
+                    }
+                    dismissKeyboard()
+                    Task { await viewModel.submitEdit() }
+                }
             )
         }
         // 장르 설명 모달
@@ -346,10 +354,11 @@ struct EditAlbumView: View {
             }
         }
         // 토스트 (viewModel + 입력 검증 공용)
-        .overlay(alignment: .bottom) {
+        .overlay(alignment: keyboardHeight > 0 ? .top : .bottom) {
             if let message = viewModel.toastMessage {
                 AppToastView(message: message)
-                    .padding(.bottom, keyboardAwareToastPadding)
+                    .padding(.top, keyboardHeight > 0 ? keyboardAwareToastTopPadding : 0)
+                    .padding(.bottom, keyboardHeight > 0 ? 0 : toastBottomPadding)
                     .transition(.move(edge: .bottom).combined(with: .opacity))
             }
         }
@@ -401,11 +410,6 @@ struct EditAlbumView: View {
                 )
             }
         }
-        .simultaneousGesture(
-            TapGesture().onEnded {
-                dismissKeyboard()
-            }
-        )
         .onReceive(NotificationCenter.default.publisher(for: UIResponder.keyboardWillShowNotification)) { notification in
             guard let frame = notification.userInfo?[UIResponder.keyboardFrameEndUserInfoKey] as? CGRect else {
                 return
@@ -422,8 +426,12 @@ struct EditAlbumView: View {
         Color.clear.frame(height: Layout.headerHeight)
     }
 
-    private var keyboardAwareToastPadding: CGFloat {
-        keyboardHeight > 0 ? keyboardHeight + 32 : 96
+    private var toastBottomPadding: CGFloat {
+        60 + 20
+    }
+
+    private var keyboardAwareToastTopPadding: CGFloat {
+        46 + 20
     }
 
     private func dismissKeyboard() {
@@ -442,7 +450,7 @@ struct EditAlbumView: View {
             HStack(alignment: .top, spacing: 4) {
                 Text(title)
                     .font(Font.setPretendard(weight: .semiBold, size: 16))
-                    .foregroundStyle(Color.textPrimary)
+                    .foregroundStyle(Color.text)
 
                 if isRequired {
                     Circle()
@@ -519,7 +527,7 @@ private struct EditAlbumPhotoBox: View {
                                     .frame(width: imageWidth, height: imageHeight - 0.5)
                                     .clipped()
                             default:
-                                Color.placeholderSymbol
+                                Color("GrayScale/200")
                                     .frame(width: imageWidth, height: imageHeight - 0.5)
                             }
                         }
@@ -531,8 +539,8 @@ private struct EditAlbumPhotoBox: View {
                 // 사진 미선택 상태
                 VStack(spacing: 8) {
                     Image(systemName: "camera")
-                        .font(.system(size: 40, weight: .regular))
-                        .foregroundStyle(Color.placeholderSymbol)
+                        .font(.system(size: 30, weight: .regular))
+                        .foregroundStyle(Color("GrayScale/300"))
 
                     Text("앨범 커버 사진을 선택해주세요.")
                         .font(Font.setPretendard(weight: .medium, size: 14))
@@ -560,7 +568,7 @@ private struct CommentarySection: View {
             HStack(alignment: .firstTextBaseline, spacing: 4) {
                 Text("앨범 코멘터리")
                     .font(Font.setPretendard(weight: .semiBold, size: 16))
-                    .foregroundStyle(Color.textPrimary)
+                    .foregroundStyle(Color.text)
 
                 Text("선택 입력")
                     .font(Font.setPretendard(weight: .medium, size: 12))
@@ -569,8 +577,8 @@ private struct CommentarySection: View {
 
             ZStack(alignment: .topLeading) {
                 TextEditor(text: $commentary)
-                    .font(Font.setPretendard(weight: .medium, size: 16))
-                    .foregroundColor(Color.textPrimary)
+                    .font(Font.setPretendard(weight: .medium, size: 14))
+                    .foregroundColor(Color.text)
                     .scrollContentBackground(.hidden)
                     .padding(.horizontal, 12)
                     .padding(.top, 8)
@@ -587,7 +595,7 @@ private struct CommentarySection: View {
 
                 if commentary.isEmpty {
                     Text("어떤 분위기의 노래를 만들고 싶나요?\n지금 느끼는 감정을 기록해보세요.")
-                        .font(Font.setPretendard(weight: .medium, size: 16))
+                        .font(Font.setPretendard(weight: .medium, size: 14))
                         .foregroundStyle(Color("GrayScale/300"))
                         .padding(.horizontal, 16)
                         .padding(.top, 20)
@@ -625,15 +633,15 @@ private struct EditAlbumBottomButton: View {
         Button(action: action) {
             Text("수정 완료")
                 .font(Font.setPretendard(weight: .semiBold, size: 18))
-                .foregroundStyle(isEnabled ? .white : Color.buttonDisabledForeground)
+                .foregroundStyle(isEnabled ? .white : Color("GrayScale/50"))
                 .frame(maxWidth: .infinity)
                 .frame(height: 52)
-                .background(isEnabled ? Color.appPrimary : Color.buttonDisabledBackground)
-                .clipShape(Capsule())
+                .background(isEnabled ? Color.appPrimary : Color("GrayScale/300"))
+                .clipShape(RoundedRectangle(cornerRadius: 12))
         }
         .buttonStyle(.plain)
         .padding(.horizontal, 20)
-        .padding(.top, 32)
+        .padding(.top, 12)
         .padding(.bottom, 8)
         .background(
             LinearGradient(

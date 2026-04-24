@@ -24,8 +24,8 @@ struct MakeAlbumSegmentedControl<Option: Identifiable & Hashable>: View {
                     onSelect(option)
                 }) {
                     Text(title(option))
-                        .font(Font.setPretendard(weight: .medium, size: 16))
-                        .foregroundStyle(Color.textPrimary)
+                        .font(Font.setPretendard(weight: .medium, size: 14))
+                        .foregroundStyle(Color.text)
                         .frame(maxWidth: .infinity)
                         .frame(height: 48)
                         .background(
@@ -36,7 +36,7 @@ struct MakeAlbumSegmentedControl<Option: Identifiable & Hashable>: View {
                         )
                         .overlay(
                             RoundedRectangle(cornerRadius: 8)
-                                .stroke(isSelected ? Color.chipSelectedBorder : Color.fieldBorder, lineWidth: 1)
+                                .stroke(isSelected ? Color("appPrimary100") : Color.fieldBorder, lineWidth: 1)
                         )
                 }
                 .buttonStyle(.plain)

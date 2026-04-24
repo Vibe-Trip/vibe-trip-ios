@@ -135,33 +135,51 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
 
 @main
 struct VibeTripApp: App {
+    private enum SplashTiming {
+        static let minimumDisplay: Double = 1.0
+        static let fadeOutDuration: Double = 0.3 // 페이드아웃 속도
+    }
+
     @UIApplicationDelegateAdaptor(AppDelegate.self) var delegate
 
     @StateObject private var appState = AppState()
     @StateObject private var backgroundMusicService = BackgroundMusicService()
 
+    @State private var showSplash = true
+    @State private var splashOpacity = 1.0
+    @State private var isDismissingSplash = false
+    @State private var minimumSplashElapsed = false
+
     private let keychainService: KeychainServiceProtocol = KeychainService()
 
     var body: some Scene {
         WindowGroup {
-            Group {
-                switch appState.isLoggedIn {
-                case .none:
-                    // Keychain 확인 전: 빈화면
-                    Color(.systemBackground).ignoresSafeArea()
-                case .some(false):
-                    LoginView()
-                        .environmentObject(appState)
-                        .onOpenURL { url in
-                            // 카카오톡 앱 로그인 후 돌아오는 URL 처리 (취소 포함)
-                            if AuthApi.isKakaoTalkLoginUrl(url) {
-                                _ = AuthController.handleOpenUrl(url: url)
+            ZStack {
+                Group {
+                    switch appState.isLoggedIn {
+                    case .none:
+                        Color(.systemBackground).ignoresSafeArea()
+                    case .some(false):
+                        LoginView()
+                            .environmentObject(appState)
+                            .onOpenURL { url in
+                                // 카카오톡 앱 로그인 후 돌아오는 URL 처리 (취소 포함)
+                                if AuthApi.isKakaoTalkLoginUrl(url) {
+                                    _ = AuthController.handleOpenUrl(url: url)
+                                }
                             }
-                        }
-                case .some(true):
-                    MainTabBarView()
-                        .environmentObject(appState)
-                        .environmentObject(backgroundMusicService)
+                    case .some(true):
+                        MainTabBarView()
+                            .environmentObject(appState)
+                            .environmentObject(backgroundMusicService)
+                    }
+                }
+
+                if showSplash {
+                    SplashView()
+                        .opacity(splashOpacity)
+                        .animation(.linear(duration: SplashTiming.fadeOutDuration), value: splashOpacity)
+                        .zIndex(1)
                 }
             }
             .task {
@@ -169,6 +187,22 @@ struct VibeTripApp: App {
                 appState.isLoggedIn = (try? keychainService.getAccessToken()) != nil
                 delegate.appState = appState
             }
+            .task {
+                try? await Task.sleep(for: .seconds(SplashTiming.minimumDisplay))
+                minimumSplashElapsed = true
+            }
+            .onChange(of: minimumSplashElapsed) { _, _ in dismissSplashIfReady() }
+            .onChange(of: appState.isLoggedIn) { _, _ in dismissSplashIfReady() }
+        }
+    }
+
+    private func dismissSplashIfReady() {
+        guard showSplash, !isDismissingSplash, minimumSplashElapsed, appState.isLoggedIn != nil else { return }
+        isDismissingSplash = true
+
+        splashOpacity = 0
+        DispatchQueue.main.asyncAfter(deadline: .now() + SplashTiming.fadeOutDuration) {
+            showSplash = false
         }
     }
 }

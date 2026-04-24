@@ -128,7 +128,7 @@ struct NotificationView: View {
                 Text("소식이 생기면 알려드릴게요!")
                     .font(Font.setPretendard(weight: .medium, size: Layout.emptyBodySize))
                     .multilineTextAlignment(.center)
-                    .foregroundStyle(Color.placeholderText)
+                    .foregroundStyle(Color("GrayScale/400"))
                     .padding(.horizontal, Layout.emptyTextPadding)
                     .frame(maxWidth: .infinity, alignment: .center)
             }
@@ -213,7 +213,7 @@ private struct NotificationRow: View {
                 /// 제목
                 Text(item.title)
                     .font(Font.setPretendard(weight: .semiBold, size: Layout.titleSize))
-                    .foregroundStyle(Color.textPrimary)
+                    .foregroundStyle(Color.text)
                     .frame(maxWidth: .infinity, alignment: .leading)
 
                 /// 본문
@@ -244,7 +244,7 @@ private struct NotificationRow: View {
         .padding(.vertical, Layout.verticalPadding)
         .frame(maxWidth: .infinity)
         // 읽음: 흰 배경, 안읽음: appPrimary100
-        .background(item.isRead ? Color.white : Color("appPrimary100"))
+        .background(item.isRead ? Color.white : Color("appPrimary50"))
         // 알림 항목 구분선
         .overlay(alignment: .bottom) {
             Rectangle()
@@ -309,7 +309,7 @@ private struct NotificationRow: View {
             id: "3",
             type: .failed,
             title: "앨범 생성에 실패했습니다.",
-            body: "[오류 원인]으로 생성에 실패했습니다. 앨범 만들기를 다시 시도해 주세요",
+            body: "앨범 만들기를 다시 시도해 주세요.",
             createdAt: Date(timeIntervalSinceNow: -7200),
             isRead: true
         )

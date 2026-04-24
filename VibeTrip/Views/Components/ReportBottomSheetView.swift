@@ -49,8 +49,8 @@ struct ReportBottomSheetView: View {
             // 타이틀 + X 버튼
             HStack(alignment: .center) {
                 Text("신고 사유를 선택해주세요")
-                    .font(Font.setPretendard(weight: .bold, size: Layout.titleFontSize))
-                    .foregroundStyle(Color.textPrimary)
+                    .font(Font.setPretendard(weight: .semiBold, size: Layout.titleFontSize))
+                    .foregroundStyle(Color.text)
 
                 Spacer()
 
@@ -59,7 +59,7 @@ struct ReportBottomSheetView: View {
                 } label: {
                     Image(systemName: "xmark")
                         .font(.system(size: Layout.closeButtonSize, weight: .medium))
-                        .foregroundStyle(Color.textPrimary)
+                        .foregroundStyle(Color.text)
                         .frame(width: Layout.closeButtonSize, height: Layout.closeButtonSize)
                 }
             }
@@ -70,7 +70,7 @@ struct ReportBottomSheetView: View {
             // 보조 타이틀
             Text("신고하신 내용은 리트립 팀에서 신속하고 꼼꼼하게 검토하여\n안전한 서비스 환경을 만드는 데 반영하겠습니다.")
                 .font(Font.setPretendard(weight: .regular, size: Layout.bodyFontSize))
-                .foregroundStyle(Color.black)
+                .foregroundStyle(Color.text)
                 .lineSpacing(4)
 
             Spacer().frame(height: Layout.bodyOptionsSpacing)
@@ -126,7 +126,7 @@ struct ReportBottomSheetView: View {
 
             Text(reason.rawValue)
                 .font(Font.setPretendard(weight: .regular, size: Layout.optionFontSize))
-                .foregroundStyle(Color.black)
+                .foregroundStyle(Color.text)
         }
         .contentShape(Rectangle())
         .onTapGesture {

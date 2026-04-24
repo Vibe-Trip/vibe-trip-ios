@@ -14,7 +14,7 @@ struct GenreDescriptionModalView: View {
         static let modalHeight: CGFloat = 528
         static let modalCornerRadius: CGFloat = 12
         static let modalPadding: CGFloat = 16
-        static let sectionSpacing: CGFloat = 12
+        static let sectionSpacing: CGFloat = 16
         static let titleTopPadding: CGFloat = 16
         static let titleToContentSpacing: CGFloat = 23.5
     }
@@ -32,15 +32,15 @@ struct GenreDescriptionModalView: View {
                     Spacer()
 
                     Text("장르 설명")
-                        .font(Font.setPretendard(weight: .medium, size: 16))
-                        .foregroundStyle(Color.textPrimary)
+                        .font(Font.setPretendard(weight: .semiBold, size: 14))
+                        .foregroundStyle(Color.text)
 
                     Spacer()
 
                     Button(action: onClose) {
                         Image(systemName: "xmark")
                             .font(.system(size: 18, weight: .medium))
-                            .foregroundStyle(Color.textPrimary)
+                            .foregroundStyle(Color.text)
                             .frame(width: 24, height: 24)
                     }
                 }
@@ -53,13 +53,13 @@ struct GenreDescriptionModalView: View {
                             VStack(alignment: .leading, spacing: 4) {
                                 Text(item.genre.rawValue)
                                     .font(Font.setPretendard(weight: .semiBold, size: 16))
-                                    .foregroundStyle(Color.textPrimary)
+                                    .foregroundStyle(Color.text)
                                     .frame(maxWidth: .infinity, alignment: .leading)
                                     .multilineTextAlignment(.leading)
 
                                 Text(item.description)
                                     .font(Font.setPretendard(weight: .regular, size: 14))
-                                    .foregroundStyle(Color.textPrimary)
+                                    .foregroundStyle(Color.text)
                                     .frame(maxWidth: .infinity, alignment: .leading)
                                     .multilineTextAlignment(.leading)
                                     .fixedSize(horizontal: false, vertical: true)
