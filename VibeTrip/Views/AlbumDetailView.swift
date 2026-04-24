@@ -1448,6 +1448,7 @@ private struct AlbumDetailLogItemCard: View {
                             )
                     }
                     .buttonStyle(.plain)
+                    .padding(.trailing, -4)
                 }
                 
                 // 이미지 슬라이더 (이미지 있을 때만)
