@@ -64,7 +64,7 @@ struct AppNavBackButton: View {
                     size: AppNavigationBarConstants.backIconSize,
                     weight: .medium
                 ))
-                .foregroundStyle(Color.textPrimary)
+                .foregroundStyle(Color.text)
                 .frame(
                     width: AppNavigationBarConstants.touchTargetSize,
                     height: AppNavigationBarConstants.touchTargetSize
@@ -131,7 +131,7 @@ struct AppNavigationBar<Leading: View, Trailing: View>: View {
                     if let title {
                         Text(title)
                             .font(.setPretendard(weight: .semiBold, size: 24))
-                            .foregroundStyle(Color.textPrimary)
+                            .foregroundStyle(Color.text)
                     } else {
                         leading
                     }
@@ -160,7 +160,7 @@ struct AppNavigationBar<Leading: View, Trailing: View>: View {
                     if let title {
                         Text(title)
                             .font(.setPretendard(weight: .semiBold, size: 16))
-                            .foregroundStyle(Color.textPrimary)
+                            .foregroundStyle(Color.text)
                             .lineLimit(1)
                             .opacity(titleOpacity)
                     }
@@ -204,7 +204,7 @@ struct AppNavigationBar<Leading: View, Trailing: View>: View {
                             .init(color: .black,                     location: 0.0),
                             .init(color: .black,                     location: 0.70),
                             .init(color: Color.black.opacity(0.6),   location: 0.82),
-                            .init(color: Color.black.opacity(0.35),  location: 0.93),
+                            .init(color: Color.black.opacity(0.33),  location: 0.93),
                             .init(color: .clear,                     location: 1.0)
                         ]),
                         startPoint: .top,
