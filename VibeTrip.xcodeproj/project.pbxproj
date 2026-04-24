@@ -41,14 +41,14 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
-		F59BA9BA2F668A3000F9AAB0 /* Exceptions for "VibeTrip" folder in "VibeTrip" target */ = {
-			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
-			membershipExceptions = (
-				"GoogleService-Info.plist",
-				Info.plist,
-			);
-			target = F5D0104E2F52015C0007B939 /* VibeTrip */;
-		};
+			F59BA9BA2F668A3000F9AAB0 /* Exceptions for "VibeTrip" folder in "VibeTrip" target */ = {
+				isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+				membershipExceptions = (
+					"GoogleService-Info.plist",
+					Info.plist,
+				);
+				target = F5D0104E2F52015C0007B939 /* VibeTrip */;
+			};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
