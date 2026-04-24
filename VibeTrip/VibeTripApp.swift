@@ -135,12 +135,19 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
 
 @main
 struct VibeTripApp: App {
+    private enum SplashTiming {
+        static let minimumDisplay: Double = 1.0
+        static let fadeOutDuration: Double = 0.3 // 페이드아웃 속도
+    }
+
     @UIApplicationDelegateAdaptor(AppDelegate.self) var delegate
 
     @StateObject private var appState = AppState()
     @StateObject private var backgroundMusicService = BackgroundMusicService()
 
     @State private var showSplash = true
+    @State private var splashOpacity = 1.0
+    @State private var isDismissingSplash = false
     @State private var minimumSplashElapsed = false
 
     private let keychainService: KeychainServiceProtocol = KeychainService()
@@ -170,7 +177,8 @@ struct VibeTripApp: App {
 
                 if showSplash {
                     SplashView()
-                        .transition(.opacity)
+                        .opacity(splashOpacity)
+                        .animation(.linear(duration: SplashTiming.fadeOutDuration), value: splashOpacity)
                         .zIndex(1)
                 }
             }
@@ -180,7 +188,7 @@ struct VibeTripApp: App {
                 delegate.appState = appState
             }
             .task {
-                try? await Task.sleep(for: .seconds(1))
+                try? await Task.sleep(for: .seconds(SplashTiming.minimumDisplay))
                 minimumSplashElapsed = true
             }
             .onChange(of: minimumSplashElapsed) { _, _ in dismissSplashIfReady() }
@@ -189,8 +197,11 @@ struct VibeTripApp: App {
     }
 
     private func dismissSplashIfReady() {
-        guard showSplash, minimumSplashElapsed, appState.isLoggedIn != nil else { return }
-        withAnimation(.easeOut(duration: 0.3)) {
+        guard showSplash, !isDismissingSplash, minimumSplashElapsed, appState.isLoggedIn != nil else { return }
+        isDismissingSplash = true
+
+        splashOpacity = 0
+        DispatchQueue.main.asyncAfter(deadline: .now() + SplashTiming.fadeOutDuration) {
             showSplash = false
         }
     }
