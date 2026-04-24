@@ -1406,6 +1406,7 @@ private struct AlbumDetailLogItemCard: View {
         static let dateFontSize: CGFloat = 14
         static let menuIconSize: CGFloat = 16
         static let menuTouchTarget: CGFloat = 44
+        static let dateToImageSpacing: CGFloat = 8
         static let contentSpacing: CGFloat = 12
         static let menuAnimationDuration: Double = 0.15
         static let menuTopOffset: CGFloat = 26
@@ -1426,7 +1427,7 @@ private struct AlbumDetailLogItemCard: View {
     
     var body: some View {
         ZStack(alignment: .topTrailing) {
-            VStack(alignment: .leading, spacing: Constants.contentSpacing) {
+            VStack(alignment: .leading, spacing: 0) {
                 // 날짜 + 로그 옵션 버튼
                 HStack {
                     Text(dateLabel)
@@ -1452,10 +1453,12 @@ private struct AlbumDetailLogItemCard: View {
                 // 이미지 슬라이더 (이미지 있을 때만)
                 if !entry.images.isEmpty {
                     AlbumDetailLogImageSlider(images: entry.images)
+                        .padding(.top, Constants.dateToImageSpacing)
                 }
                 
                 // 텍스트 + 더보기/접기
                 AlbumDetailLogTextSection(text: entry.description)
+                    .padding(.top, Constants.contentSpacing)
             }
             
             // 팝업 표시 시: 외부 탭 dismiss 영역 + 팝업
