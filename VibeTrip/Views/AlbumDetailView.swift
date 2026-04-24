@@ -707,14 +707,14 @@ private extension AlbumDetailView {
                     .foregroundStyle(Color("GrayScale/400"))
                     .lineLimit(1)
             }
+            // 블러 네비게이션 바 전환 시: 앨범 정보 텍스트 페이드아웃 + 살짝 위로 밀리는 효과
+            .opacity(overlayOpacity)
+            .offset(y: -(1 - overlayOpacity) * 8)
             .frame(maxWidth: .infinity, alignment: .leading)
             .padding(.horizontal, Constants.horizontalPadding)
             .padding(.top, Constants.infoTopPadding)
             .padding(.bottom, Constants.infoBottomPadding)
             .background(Color.white)
-            // 블러 네비게이션 바 전환 시: 앨범 정보 텍스트 페이드아웃 + 살짝 위로 밀리는 효과
-            .opacity(overlayOpacity)
-            .offset(y: -(1 - overlayOpacity) * 8)
         }
     }
     
