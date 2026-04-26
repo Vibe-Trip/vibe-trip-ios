@@ -1,6 +1,14 @@
 # Vibe-Trip iOS App
 > 사진이 음악이 되는 여행 아카이브 iOS App
 
+[![App Store](https://img.shields.io/badge/App_Store-0D96F6?style=for-the-badge&logo=app-store&logoColor=white)](https://apps.apple.com/kr/app/retrip-%EB%8B%A4%EC%8B%9C-%EB%93%A3%EB%8A%94-%EB%82%98%EC%9D%98-%EC%97%AC%ED%96%89-%EA%B8%B0%EB%A1%9D/id6760816556)
+
+
+
+<img width="1920" height="1080" alt="retripThumbnail" src="https://github.com/user-attachments/assets/e354cec8-65ff-4530-a378-173e474335e2" /> 
+
+
+
 ## 프로젝트 소개
 Hear Your Trip Again → "잊히지 않을 나만의 여행 사운드트랙"
 
@@ -19,18 +27,29 @@ RETRIP은 사진, 여행지, 장르를 입력하면 AI가 사진의 색감과 �
 | **Reactive** | Combine |
 | **IDE** | Xcode |
 | **iOS** | 17.0+ |
+| **Dependency** | Swift Package Manager |
 
 ## 🗂️ 프로젝트 구조
 
 ```
-VibeTrip/
-├── VibeTripApp.swift
-├── Models/
-├── Views/
-├── ViewModels/
-├── Services/
-├── Resources/
-└── Extensions/
+vibe-trip-ios/
+├── VibeTrip/
+│   ├── VibeTripApp.swift
+│   ├── Extensions/
+│   ├── Models/
+│   ├── Resources/
+│   ├── Services/
+│   ├── ViewModels/
+│   ├── Views/
+│   ├── Assets.xcassets/
+│   ├── Info.plist
+│   ├── GoogleService-Info.plist  # gitignore 처리
+│   ├── PrivacyInfo.xcprivacy
+│   └── VibeTrip.entitlements
+├── VibeTripTests/
+├── VibeTripUITests/
+├── Config/
+├── ci_scripts/
 ```
 
 ## 📌 브랜치 전략
