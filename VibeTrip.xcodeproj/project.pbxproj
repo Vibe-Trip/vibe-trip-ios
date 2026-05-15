@@ -12,6 +12,7 @@
 		F59BA9B82F6681BE00F9AAB0 /* KakaoSDKUser in Frameworks */ = {isa = PBXBuildFile; productRef = F59BA9B72F6681BE00F9AAB0 /* KakaoSDKUser */; };
 		F59BA9BF2F66CD1000F9AAB0 /* FirebaseCore in Frameworks */ = {isa = PBXBuildFile; productRef = F59BA9BE2F66CD1000F9AAB0 /* FirebaseCore */; };
 		F59BA9C12F66CD1000F9AAB0 /* FirebaseMessaging in Frameworks */ = {isa = PBXBuildFile; productRef = F59BA9C02F66CD1000F9AAB0 /* FirebaseMessaging */; };
+		F5BDE2C72FAB7ECB003444BE /* FirebaseAnalytics in Frameworks */ = {isa = PBXBuildFile; productRef = F5BDE2C62FAB7ECB003444BE /* FirebaseAnalytics */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -41,14 +42,14 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
-			F59BA9BA2F668A3000F9AAB0 /* Exceptions for "VibeTrip" folder in "VibeTrip" target */ = {
-				isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
-				membershipExceptions = (
-					"GoogleService-Info.plist",
-					Info.plist,
-				);
-				target = F5D0104E2F52015C0007B939 /* VibeTrip */;
-			};
+		F59BA9BA2F668A3000F9AAB0 /* Exceptions for "VibeTrip" folder in "VibeTrip" target */ = {
+			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
+			membershipExceptions = (
+				"GoogleService-Info.plist",
+				Info.plist,
+			);
+			target = F5D0104E2F52015C0007B939 /* VibeTrip */;
+		};
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
@@ -84,6 +85,7 @@
 			files = (
 				F59BA9B62F6681BE00F9AAB0 /* KakaoSDKCommon in Frameworks */,
 				F59BA9B42F6681BE00F9AAB0 /* KakaoSDKAuth in Frameworks */,
+				F5BDE2C72FAB7ECB003444BE /* FirebaseAnalytics in Frameworks */,
 				F59BA9C12F66CD1000F9AAB0 /* FirebaseMessaging in Frameworks */,
 				F59BA9BF2F66CD1000F9AAB0 /* FirebaseCore in Frameworks */,
 				F59BA9B82F6681BE00F9AAB0 /* KakaoSDKUser in Frameworks */,
@@ -107,6 +109,13 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		F5BDE2C52FAB7ECB003444BE /* Frameworks */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			name = Frameworks;
+			sourceTree = "<group>";
+		};
 		F5CFG00102F52015D0007B939 /* Config */ = {
 			isa = PBXGroup;
 			children = (
@@ -125,6 +134,7 @@
 				F5D010512F52015D0007B939 /* VibeTrip */,
 				F5D0105F2F52015D0007B939 /* VibeTripTests */,
 				F5D010692F52015D0007B939 /* VibeTripUITests */,
+				F5BDE2C52FAB7ECB003444BE /* Frameworks */,
 				F5D010502F52015D0007B939 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -165,6 +175,7 @@
 				F59BA9B72F6681BE00F9AAB0 /* KakaoSDKUser */,
 				F59BA9BE2F66CD1000F9AAB0 /* FirebaseCore */,
 				F59BA9C02F66CD1000F9AAB0 /* FirebaseMessaging */,
+				F5BDE2C62FAB7ECB003444BE /* FirebaseAnalytics */,
 			);
 			productName = VibeTrip;
 			productReference = F5D0104F2F52015D0007B939 /* VibeTrip.app */;
@@ -500,7 +511,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.0.2;
+				MARKETING_VERSION = 1.0.3;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
@@ -542,7 +553,7 @@
 					"$(inherited)",
 					"@executable_path/Frameworks",
 				);
-				MARKETING_VERSION = 1.0.2;
+				MARKETING_VERSION = 1.0.3;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				STRING_CATALOG_GENERATE_SYMBOLS = YES;
 				SUPPORTED_PLATFORMS = "iphoneos iphonesimulator";
@@ -727,6 +738,11 @@
 			isa = XCSwiftPackageProductDependency;
 			package = F59BA9BD2F66CD1000F9AAB0 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
 			productName = FirebaseMessaging;
+		};
+		F5BDE2C62FAB7ECB003444BE /* FirebaseAnalytics */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = F59BA9BD2F66CD1000F9AAB0 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
+			productName = FirebaseAnalytics;
 		};
 /* End XCSwiftPackageProductDependency section */
 	};

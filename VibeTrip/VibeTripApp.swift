@@ -9,6 +9,7 @@ import SwiftUI
 import AVFoundation
 import FirebaseCore
 import FirebaseMessaging
+import FirebaseAnalytics
 import UserNotifications
 import KakaoSDKCommon
 import KakaoSDKAuth
@@ -56,6 +57,7 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
 
         // Firebase 초기화
         FirebaseApp.configure()
+        Analytics.setAnalyticsCollectionEnabled(true)
         UNUserNotificationCenter.current().delegate = self
         // TODO: FCM 토큰 만료/회전으로 알림 수신 불가 이슈가 발생 시, MessagingDelegate + didReceiveRegistrationToken 재연동
         
