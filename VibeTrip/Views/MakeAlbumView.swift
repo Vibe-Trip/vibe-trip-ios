@@ -590,7 +590,7 @@ private struct MakeAlbumOptionalInputContent: View {
                                     GridItem(.flexible(), spacing: 4)
                                 ],
                                 alignment: .leading,
-                                spacing: 8
+                                spacing: 12
                             ) {
                                 ForEach(viewModel.displayedGenres) { genre in
                                     Button(action: {
@@ -633,7 +633,7 @@ private struct MakeAlbumOptionalInputContent: View {
                         }
                         
                         // MARK: - 앨범 코멘터리
-                        
+
                         VStack(alignment: .leading, spacing: 8) {
                             HStack(alignment: .firstTextBaseline, spacing: 4) {
                                 Text("앨범 코멘터리")
@@ -660,7 +660,7 @@ private struct MakeAlbumOptionalInputContent: View {
                                 .scrollContentBackground(.hidden)
                                 .padding(.horizontal, 12)
                                 .padding(.top, 8)
-                                .frame(height: 220)
+                                .frame(height: 240)
                                 .background(Color.fieldBackground)
                                 .clipShape(RoundedRectangle(cornerRadius: 8))
                                 .overlay(
@@ -709,11 +709,12 @@ private struct MakeAlbumOptionalInputContent: View {
                                             .padding(.bottom, 14)
                                     }
                                 }
-                                .frame(height: 220)
+                                .frame(height: 240)
                                 // 터치 비활성화
                                 .allowsHitTesting(false)
                             }
                         }
+                        .padding(.top, 40)
                         .id(ScrollTarget.commentary)
                     }
                     .padding(.horizontal, 20)
