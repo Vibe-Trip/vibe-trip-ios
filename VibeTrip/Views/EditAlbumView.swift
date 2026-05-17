@@ -271,7 +271,7 @@ struct EditAlbumView: View {
                                         GridItem(.flexible(), spacing: 4)
                                     ],
                                     alignment: .leading,
-                                    spacing: 8
+                                    spacing: 12
                                 ) {
                                     ForEach(displayedGenres) { genre in
                                         Button(action: {
@@ -310,6 +310,7 @@ struct EditAlbumView: View {
 
                         // MARK: - 앨범 코멘터리
                         CommentarySection(commentary: $viewModel.commentary)
+                            .padding(.top, 40)
                         }
                         .padding(.horizontal, 20)
                         .padding(.top, 12)
@@ -582,7 +583,7 @@ private struct CommentarySection: View {
                     .scrollContentBackground(.hidden)
                     .padding(.horizontal, 12)
                     .padding(.top, 8)
-                    .frame(height: 220)
+                    .frame(height: 240)
                     .background(Color.fieldBackground)
                     .clipShape(RoundedRectangle(cornerRadius: 8))
                     .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.fieldBorder, lineWidth: 1))
@@ -614,7 +615,7 @@ private struct CommentarySection: View {
                             .padding(.bottom, 14)
                     }
                 }
-                .frame(height: 220)
+                .frame(height: 240)
                 .allowsHitTesting(false)
             }
         }

@@ -144,7 +144,7 @@ final class AlbumModelDecoderTests: XCTestCase {
     func test_albumGenre_knownServerValues_decodeCorrectly() throws {
         let cases: [(serverValue: String, expected: AlbumGenre)] = [
             ("POP", .pop), ("K_POP", .kPop), ("JAZZ", .jazz),
-            ("LO_FI", .loFi), ("CLASSICAL", .classical), ("BOSSA_NOVA", .bossaNova)
+            ("LO_FI", .loFi), ("BOSSA_NOVA", .bossaNova)
         ]
 
         for (serverValue, expected) in cases {

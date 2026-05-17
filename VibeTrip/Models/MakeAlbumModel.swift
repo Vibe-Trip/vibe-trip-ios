@@ -62,14 +62,11 @@ enum AlbumGenre: String, CaseIterable, Identifiable {
     case pop = "Pop"
     case kPop = "K-Pop"
     case jPop = "J-Pop"
-    case latin = "Latin"
     case rnb = "R&B"
     case rock = "Rock"
-    case country = "Country"
     case acoustic = "Acoustic"
     case indie = "Indie"
     case ballad = "Ballad"
-    case classical = "Classical"
     case jazz = "Jazz"
     case loFi = "Lofi"
     case ambient = "Ambient"
@@ -78,9 +75,6 @@ enum AlbumGenre: String, CaseIterable, Identifiable {
     case chillout = "Chillout"
     case bossaNova = "Bossa Nova"
     case tropicalHouse = "Tropical House"
-    case postRock = "Post-Rock"
-    case classicSolo = "Classic Solo"
-    case acousticFolk = "Acoustic Folk"
     case deepHouse = "Deep House"
 
     var id: String { rawValue }
@@ -91,15 +85,12 @@ enum AlbumGenre: String, CaseIterable, Identifiable {
             .pop,
             .kPop,
             .jPop,
-            .latin,
-            .rnb,
-            .rock,
-            .country,
             .acoustic,
-            .indie,
             .ballad,
-            .classical,
-            .jazz
+            .indie,
+            .rock,
+            .jazz,
+            .rnb
         ]
     }
 
@@ -110,14 +101,11 @@ enum AlbumGenre: String, CaseIterable, Identifiable {
             .ambient,
             .cinematic,
             .newAge,
-            .chillout,
             .jazz,
             .bossaNova,
             .tropicalHouse,
-            .postRock,
-            .classicSolo,
-            .acousticFolk,
-            .deepHouse
+            .deepHouse,
+            .chillout
         ]
     }
 }
