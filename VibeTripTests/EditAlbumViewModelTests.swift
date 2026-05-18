@@ -294,4 +294,44 @@ final class EditAlbumViewModelTests: XCTestCase {
         XCTAssertNotNil(sut.toastMessage)
         XCTAssertEqual(stub.updateCallCount, 1)
     }
+
+    // MARK: - Analytics
+
+    // 수정 성공 + 음악 재생성 미선택 -> album_edit_complete가 music_regenerated=false로 기록
+    func test_submitEdit_success_withoutRegenerate_logsEditComplete() async {
+        let analytics = MockAnalyticsService()
+        let sut = makeSUT(analytics: analytics)
+        setupValidInput(sut)
+        sut.regenerateMusic = false
+        await sut.submitEdit()
+
+        XCTAssertEqual(analytics.loggedEvents.count, 1)
+        XCTAssertEqual(analytics.loggedEvents.first?.event, .albumEditComplete)
+        XCTAssertEqual(analytics.loggedEvents.first?.parameters?[.musicRegenerated] as? Bool, false)
+    }
+
+    // 수정 성공 + 음악 재생성 선택 -> album_edit_complete가 music_regenerated=true로 기록
+    func test_submitEdit_success_withRegenerate_logsEditCompleteWithTrue() async {
+        let analytics = MockAnalyticsService()
+        let sut = makeSUT(analytics: analytics)
+        setupValidInput(sut)
+        sut.regenerateMusic = true
+        sut.selectedImage = makeDummyImage()
+        await sut.submitEdit()
+
+        XCTAssertEqual(analytics.loggedEvents.count, 1)
+        XCTAssertEqual(analytics.loggedEvents.first?.event, .albumEditComplete)
+        XCTAssertEqual(analytics.loggedEvents.first?.parameters?[.musicRegenerated] as? Bool, true)
+    }
+
+    // 수정 실패 시 album_edit_complete가 기록되지 않음
+    func test_submitEdit_serviceError_doesNotLogEditComplete() async {
+        let analytics = MockAnalyticsService()
+        let stub = StubAlbumService(updateResult: .failure(APIClientError.serverError(.e400)))
+        let sut = makeSUT(stub: stub, analytics: analytics)
+        setupValidInput(sut)
+        await sut.submitEdit()
+
+        XCTAssertTrue(analytics.loggedEvents.isEmpty)
+    }
 }

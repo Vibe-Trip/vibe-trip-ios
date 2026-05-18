@@ -61,8 +61,11 @@ final class MakeAlbumViewModelTests: XCTestCase {
     // MARK: - 헬퍼
 
     // 지정한 서비스 스텁으로 ViewModel 초기화
-    private func makeSUT(stub: StubAlbumService) {
-        sut = MakeAlbumViewModel(albumService: stub)
+    private func makeSUT(
+        stub: StubAlbumService,
+        analytics: AnalyticsServiceProtocol = MockAnalyticsService()
+    ) {
+        sut = MakeAlbumViewModel(albumService: stub, analytics: analytics)
     }
 
     // 필수 입력 항목을 모두 채운 유효 상태로 설정
@@ -246,5 +249,31 @@ final class MakeAlbumViewModelTests: XCTestCase {
 
         await fulfillment(of: [expectation], timeout: 2.0)
         XCTAssertEqual(stub.callCount, 1)
+    }
+
+    // MARK: - Analytics
+
+    // 서버 에러로 fatalError 분기 진입 시 album_create_fail이 step=album_request로 기록되는지 검증
+    func test_submitAlbum_serverError_logsAlbumCreateFail() async {
+        let stub = StubAlbumService(results: [.failure(APIClientError.serverError(.e400))])
+        let analytics = MockAnalyticsService()
+        makeSUT(stub: stub, analytics: analytics)
+        setupValidInput()
+
+        let expectation = expectation(description: "onFatalError 호출")
+        sut.submitAlbum(
+            onStarted: {},
+            onSuccess: { _ in },
+            onNetworkError: { _ in },
+            onFatalError: { expectation.fulfill() }
+        )
+        await fulfillment(of: [expectation], timeout: 2.0)
+
+        XCTAssertEqual(analytics.loggedEvents.count, 1)
+        XCTAssertEqual(analytics.loggedEvents.first?.event, .albumCreateFail)
+        XCTAssertEqual(
+            analytics.loggedEvents.first?.parameters?[.step] as? String,
+            AnalyticsStep.albumRequest.rawValue
+        )
     }
 }
