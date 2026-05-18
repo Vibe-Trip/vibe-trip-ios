@@ -17,7 +17,7 @@ struct MainPageView: View {
     @StateObject private var viewModel: MainPageViewModel
     @EnvironmentObject private var appState: AppState
 
-    init(viewModel: MainPageViewModel = MainPageViewModel()) {
+    init(viewModel: MainPageViewModel) {
         _viewModel = StateObject(wrappedValue: viewModel)
     }
 
@@ -88,6 +88,7 @@ struct MainPageView: View {
             }) { album in
                 AlbumDetailView(
                     displayModel: album.toDisplayModel(),
+                    source: .mainList,
                     onBackTap: { selectedAlbum = nil },
                     onEditSaved: { outcome in
                         // 재생성 저장일 때만 메인 복귀 + 스켈레톤/폴링 흐름으로 전환
@@ -122,6 +123,8 @@ struct MainPageView: View {
                 }
             }
             .animation(.easeInOut(duration: 0.2), value: showGeneratingToast)
+            // 메인(앨범 리스트) 화면 진입 추적
+            .trackScreen("Home")
     }
 
     // 타입 체커 부하 분산을 위해 콘텐츠 및 기본 동작 modifier를 별도 분리

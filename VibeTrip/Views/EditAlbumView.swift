@@ -78,7 +78,11 @@ struct EditAlbumView: View {
     // MARK: - Init
 
     init(albumId: Int, onExit: @escaping () -> Void, onSaved: @escaping (EditAlbumSaveOutcome) -> Void) {
-        _viewModel = StateObject(wrappedValue: EditAlbumViewModel(albumId: albumId, onSaved: onSaved))
+        _viewModel = StateObject(wrappedValue: EditAlbumViewModel(
+            albumId: albumId,
+            analytics: FirebaseAnalyticsService(),
+            onSaved: onSaved
+        ))
         self.onExit = onExit
     }
 
@@ -421,6 +425,8 @@ struct EditAlbumView: View {
             keyboardHeight = 0
         }
         .task { await viewModel.load() }
+        // 앨범 수정 화면 진입 추적
+        .trackScreen("AlbumEdit")
     }
 
     private var headerSpacer: some View {

@@ -54,7 +54,7 @@ final class AlbumLogViewModelTests: XCTestCase {
     override func setUp() async throws {
         try await super.setUp()
         stub = StubAlbumLogService()
-        sut = AlbumLogViewModel(albumId: "1", mode: .create, service: stub)
+        sut = AlbumLogViewModel(albumId: "1", mode: .create, service: stub, analytics: MockAnalyticsService())
     }
 
     override func tearDown() async throws {
@@ -190,7 +190,7 @@ final class AlbumLogViewModelEditTests: XCTestCase {
     override func setUp() async throws {
         try await super.setUp()
         stub = StubAlbumLogService()
-        sut = AlbumLogViewModel(albumId: "1", mode: .edit(mockEntry), service: stub)
+        sut = AlbumLogViewModel(albumId: "1", mode: .edit(mockEntry), service: stub, analytics: MockAnalyticsService())
     }
 
     override func tearDown() async throws {
@@ -271,7 +271,7 @@ final class AlbumLogViewModelEditTests: XCTestCase {
             ]
         )
         stub = StubAlbumLogService()
-        sut = AlbumLogViewModel(albumId: "1", mode: .edit(entryWithImages), service: stub)
+        sut = AlbumLogViewModel(albumId: "1", mode: .edit(entryWithImages), service: stub, analytics: MockAnalyticsService())
         sut.logText = "텍스트"
 
         // 첫 번째 기존 이미지(id: 10) 삭제 (existingPhotosCount 기준 인덱스 0)
@@ -292,11 +292,54 @@ final class AlbumLogViewModelEditTests: XCTestCase {
             ]
         )
         stub = StubAlbumLogService()
-        sut = AlbumLogViewModel(albumId: "1", mode: .edit(entryWithImages), service: stub)
+        sut = AlbumLogViewModel(albumId: "1", mode: .edit(entryWithImages), service: stub, analytics: MockAnalyticsService())
         sut.logText = "텍스트"
 
         await sut.saveLog()
 
         XCTAssertEqual(stub.lastUpdateRequest?.removeImageIds, [Int64]())
+    }
+
+    // MARK: - Analytics
+
+    // .create 모드 저장 성공 -> log_save 기록 (char_count, has_photo 정확)
+    func test_saveLog_createModeSuccess_logsLogSave() async {
+        let analytics = MockAnalyticsService()
+        let stub = StubAlbumLogService()
+        let sut = AlbumLogViewModel(albumId: "1", mode: .create, service: stub, analytics: analytics)
+        sut.logText = "  여행 메모  " // 트림 후 5자 (여, 행, 공백, 메, 모)
+
+        await sut.saveLog()
+
+        XCTAssertEqual(analytics.loggedEvents.count, 1)
+        XCTAssertEqual(analytics.loggedEvents.first?.event, .logSave)
+        XCTAssertEqual(analytics.loggedEvents.first?.parameters?[.charCount] as? Int, 5)
+        XCTAssertEqual(analytics.loggedEvents.first?.parameters?[.hasPhoto] as? Bool, false)
+    }
+
+    // .edit 모드 저장 성공 -> log_save 기록되지 않음 (의미가 다르므로 제외)
+    func test_saveLog_editModeSuccess_doesNotLogLogSave() async {
+        let analytics = MockAnalyticsService()
+        let stub = StubAlbumLogService()
+        let mockEntry = AlbumLogEntry(id: 1, description: "기존", postedAt: "2026-01-01T00:00:00Z", images: [])
+        let sut = AlbumLogViewModel(albumId: "1", mode: .edit(mockEntry), service: stub, analytics: analytics)
+        sut.logText = "수정된 텍스트"
+
+        await sut.saveLog()
+
+        XCTAssertTrue(analytics.loggedEvents.isEmpty)
+    }
+
+    // 저장 실패 -> log_save 기록되지 않음
+    func test_saveLog_createModeFailure_doesNotLog() async {
+        let analytics = MockAnalyticsService()
+        let stub = StubAlbumLogService()
+        stub.saveResult = .failure(APIClientError.serverError(.e400))
+        let sut = AlbumLogViewModel(albumId: "1", mode: .create, service: stub, analytics: analytics)
+        sut.logText = "텍스트"
+
+        await sut.saveLog()
+
+        XCTAssertTrue(analytics.loggedEvents.isEmpty)
     }
 }
