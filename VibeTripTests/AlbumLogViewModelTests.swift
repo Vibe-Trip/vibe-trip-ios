@@ -54,7 +54,7 @@ final class AlbumLogViewModelTests: XCTestCase {
     override func setUp() async throws {
         try await super.setUp()
         stub = StubAlbumLogService()
-        sut = AlbumLogViewModel(albumId: "1", mode: .create, service: stub)
+        sut = AlbumLogViewModel(albumId: "1", mode: .create, service: stub, analytics: MockAnalyticsService())
     }
 
     override func tearDown() async throws {
@@ -190,7 +190,7 @@ final class AlbumLogViewModelEditTests: XCTestCase {
     override func setUp() async throws {
         try await super.setUp()
         stub = StubAlbumLogService()
-        sut = AlbumLogViewModel(albumId: "1", mode: .edit(mockEntry), service: stub)
+        sut = AlbumLogViewModel(albumId: "1", mode: .edit(mockEntry), service: stub, analytics: MockAnalyticsService())
     }
 
     override func tearDown() async throws {
@@ -271,7 +271,7 @@ final class AlbumLogViewModelEditTests: XCTestCase {
             ]
         )
         stub = StubAlbumLogService()
-        sut = AlbumLogViewModel(albumId: "1", mode: .edit(entryWithImages), service: stub)
+        sut = AlbumLogViewModel(albumId: "1", mode: .edit(entryWithImages), service: stub, analytics: MockAnalyticsService())
         sut.logText = "텍스트"
 
         // 첫 번째 기존 이미지(id: 10) 삭제 (existingPhotosCount 기준 인덱스 0)
@@ -292,7 +292,7 @@ final class AlbumLogViewModelEditTests: XCTestCase {
             ]
         )
         stub = StubAlbumLogService()
-        sut = AlbumLogViewModel(albumId: "1", mode: .edit(entryWithImages), service: stub)
+        sut = AlbumLogViewModel(albumId: "1", mode: .edit(entryWithImages), service: stub, analytics: MockAnalyticsService())
         sut.logText = "텍스트"
 
         await sut.saveLog()

@@ -72,7 +72,8 @@ struct AlbumLogView: View {
             wrappedValue: AlbumLogViewModel(
                 albumId: albumId,
                 mode: mode,
-                service: AlbumService()
+                service: AlbumService(),
+                analytics: FirebaseAnalyticsService()
             )
         )
     }
