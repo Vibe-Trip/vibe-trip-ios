@@ -292,6 +292,12 @@ struct AlbumDetailView: View {
     @State private var albumDateText: String
     @State private var albumCoverImageUrl: URL?
     private let isActionButtonsOverlayEnabled: Bool = false
+
+    // 음악 청취 추적용 상태
+    // 2초 이상 청취 시 music_play 전송
+    @State private var musicPlayLogged: Bool = false
+    @State private var musicPlayTask: Task<Void, Never>? = nil
+    private let musicPlayThresholdSeconds: UInt64 = 2_000_000_000
     
     //최상단 이동 버튼 표시 -> 블러 네비게이션 바 전환 시
     private var showScrollToTop: Bool { overlayOpacity < 1 }
@@ -537,10 +543,16 @@ struct AlbumDetailView: View {
             guard isReady, let url = logViewModel.musicUrl else { return }
             musicService.play(url: url)
         }
+        // 재생 상태 변화 추적: 2초 이상 연속 재생 시 music_play 전송
+        .onChange(of: musicService.isPlaying) { _, isPlaying in
+            handlePlayingStateChange(isPlaying: isPlaying)
+        }
         // 상세 페이지 닫힐 때 음악 정지 + 초기화
         .onDisappear {
             guard logPresentation == nil, !isEditPresented else { return } // 로그/수정 페이지 전환 시 음악 정지 방지
             musicService.stop()
+            // 음악 청취 추적도 같은 조건으로 초기화 (로그/수정 전환 시에는 유지)
+            resetMusicPlayTracking()
         }
         // 앨범 수정 화면
         .fullScreenCover(isPresented: $isEditPresented) {
@@ -799,7 +811,34 @@ private extension AlbumDetailView {
             actionButtonsY = minY
         }
     }
-    
+
+    // 재생 상태 변화 -> 2초 청취 카운트 관리 (자동/수동 모두 포함, 진입당 1회 전송)
+    func handlePlayingStateChange(isPlaying: Bool) {
+        guard !musicPlayLogged else { return }
+        if isPlaying {
+            musicPlayTask?.cancel()
+            musicPlayTask = Task { [thresholdSeconds = musicPlayThresholdSeconds] in
+                try? await Task.sleep(nanoseconds: thresholdSeconds)
+                guard !Task.isCancelled else { return }
+                await MainActor.run {
+                    guard !musicPlayLogged, musicService.isPlaying else { return }
+                    analytics.log(.musicPlay)
+                    musicPlayLogged = true
+                }
+            }
+        } else {
+            musicPlayTask?.cancel()
+            musicPlayTask = nil
+        }
+    }
+
+    // 상세 페이지 진짜 이탈 시 카운트 정리 (로그/수정 전환은 호출X)
+    func resetMusicPlayTracking() {
+        musicPlayTask?.cancel()
+        musicPlayTask = nil
+        musicPlayLogged = false
+    }
+
     // 스크롤을 따라 움직이다가 네비게이션 바에 도달하면 고정되는 액션 버튼 오버레이
     // VStack+spacer 방식: 뷰 이탈 애니메이션과 함께 자연스럽게 사라짐
     var actionButtonsOverlay: some View {
