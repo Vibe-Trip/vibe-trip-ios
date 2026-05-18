@@ -81,6 +81,7 @@ struct MainTabBarView: View {
     @State private var ownCoverPendingAlbumId: String? = nil
 
     @EnvironmentObject private var appState: AppState
+    @Environment(\.analytics) private var analytics
     @StateObject private var notificationViewModel = NotificationViewModel()
     @StateObject private var mainPageViewModel = MainPageViewModel()
 
@@ -422,6 +423,9 @@ struct MainTabBarView: View {
     }
 
     private func presentMakeAlbumFlow() {
+        // 앨범 만들기 시작 추적 (메인 탭바 진입 시점)
+        analytics.log(.albumCreateStart)
+
         withAnimation(.easeInOut(duration: 0.18)) {
             isTabBarHidden = true
         }
