@@ -169,6 +169,8 @@ struct MakeAlbumLoadingView: View {
                 }
             }
         }
+        // 음악 생성 로딩 화면 진입 추적
+        .trackScreen("AlbumCreate_Loading")
     }
 }
 

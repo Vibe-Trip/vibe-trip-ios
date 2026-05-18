@@ -122,6 +122,8 @@ struct MainPageView: View {
                 }
             }
             .animation(.easeInOut(duration: 0.2), value: showGeneratingToast)
+            // 메인(앨범 리스트) 화면 진입 추적
+            .trackScreen("Home")
     }
 
     // 타입 체커 부하 분산을 위해 콘텐츠 및 기본 동작 modifier를 별도 분리

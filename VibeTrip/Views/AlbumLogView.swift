@@ -189,6 +189,8 @@ struct AlbumLogView: View {
             guard message != nil else { return }
             showToast()
         }
+        // 로그 작성 화면 진입 추적
+        .trackScreen("LogWrite")
     }
 }
 

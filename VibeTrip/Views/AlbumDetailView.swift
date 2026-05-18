@@ -558,6 +558,8 @@ struct AlbumDetailView: View {
                 }
             )
         }
+        // 앨범 상세 화면 진입 추적
+        .trackScreen("AlbumDetail")
     }
 }
 

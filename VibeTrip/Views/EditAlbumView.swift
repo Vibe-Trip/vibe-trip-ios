@@ -421,6 +421,8 @@ struct EditAlbumView: View {
             keyboardHeight = 0
         }
         .task { await viewModel.load() }
+        // 앨범 수정 화면 진입 추적
+        .trackScreen("AlbumEdit")
     }
 
     private var headerSpacer: some View {

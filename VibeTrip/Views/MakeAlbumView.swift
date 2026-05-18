@@ -498,8 +498,10 @@ private struct MakeAlbumRequiredInputContent: View {
                 bottomSpacing: keyboardHeight > 0 ? 20 : 0
             )
         }
+        // 앨범 생성 1단계(사진/필수 입력) 화면 진입 추적
+        .trackScreen("AlbumCreate_Step1")
     }
-    
+
     // 섹션 헤더 빌더
     private func albumSectionHeader(
         title: String,
@@ -740,6 +742,8 @@ private struct MakeAlbumOptionalInputContent: View {
                 bottomSpacing: keyboardHeight > 0 ? 44 : 0
             )
         }
+        // 앨범 생성 2단계(장르/코멘터리) 화면 진입 추적
+        .trackScreen("AlbumCreate_Step2")
     }
 }
 
