@@ -63,16 +63,20 @@ final class MainPageViewModel: ObservableObject {
 
     // MARK: - Init
 
-    nonisolated init(
+    private let analytics: AnalyticsServiceProtocol
+
+    init(
         albumService: AlbumServiceProtocol = AlbumService(),
         pollingInterval: UInt64 = 5_000_000_000,
         notificationAuthorizationChecker: @escaping @Sendable () async -> UNAuthorizationStatus = {
             await UNUserNotificationCenter.current().notificationSettings().authorizationStatus
-        }
+        },
+        analytics: AnalyticsServiceProtocol = FirebaseAnalyticsService()
     ) {
         self.albumService = albumService
         self.pollingInterval = pollingInterval
         self.notificationAuthorizationChecker = notificationAuthorizationChecker
+        self.analytics = analytics
     }
 
     // MARK: - Load
@@ -192,7 +196,7 @@ final class MainPageViewModel: ObservableObject {
         }
         if let detail = try? await albumService.fetchAlbum(albumId: albumId),
            detail.musicUrl != nil {
-            applyAlbumReady(title: detail.title, for: albumId)
+            applyAlbumReady(detail: detail, for: albumId)
             return
         }
         // 단건 확인 실패: 반복 폴링으로 폴백
@@ -210,7 +214,7 @@ final class MainPageViewModel: ObservableObject {
         pollingTasks[albumId] = nil
         if let detail = try? await albumService.fetchAlbum(albumId: albumId),
            detail.musicUrl != nil {
-            applyAlbumReady(title: detail.title, for: albumId)
+            applyAlbumReady(detail: detail, for: albumId)
             return
         }
         // 단건 확인 실패: 반복 폴링으로 폴백
@@ -228,15 +232,18 @@ final class MainPageViewModel: ObservableObject {
             guard !Task.isCancelled else { return }
             guard let detail = try? await albumService.fetchAlbum(albumId: albumId),
                   detail.musicUrl != nil else { continue }
-            applyAlbumReady(title: detail.title, for: albumId)
+            applyAlbumReady(detail: detail, for: albumId)
             return
         }
         pollingTasks[albumId] = nil
     }
 
     // 음악 생성 완료 시: title 업데이트 + readyAlbumIds 등록 + 폴링 Task 정리
-    private func applyAlbumReady(title: String?, for albumId: Int) {
-        if let title, let idx = albums.firstIndex(where: { $0.id == albumId }) {
+    // FCM + 폴링이 모두 도달해도 album_create_complete가 한 번만 전송되도록 readyAlbumIds 가드 사용
+    private func applyAlbumReady(detail: AlbumDetail, for albumId: Int) {
+        let alreadyReady = readyAlbumIds.contains(albumId)
+
+        if let title = detail.title, let idx = albums.firstIndex(where: { $0.id == albumId }) {
             let old = albums[idx]
             albums[idx] = AlbumCard(
                 id: old.id,
@@ -252,6 +259,15 @@ final class MainPageViewModel: ObservableObject {
         readyAlbumIds.insert(albumId)
         pollingTasks[albumId] = nil
         lastCompletedAlbumId = albumId
+
+        // 앨범 생성 완료 추적 (FCM + 폴링 양 경로의 수렴점, albumId 단위 1회 전송)
+        guard !alreadyReady else { return }
+        analytics.log(.albumCreateComplete, parameters: [
+            .genre: detail.genre?.serverValue ?? "unknown",
+            .hasLyrics: detail.withLyrics,
+            .vocalGender: detail.vocalGender?.serverValue ?? "none",
+            .hasCommentary: !(detail.comment?.isEmpty ?? true)
+        ])
     }
 
     // 신고된 앨범을 로컬에서 숨김 처리

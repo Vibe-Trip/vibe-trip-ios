@@ -17,7 +17,7 @@ struct MainPageView: View {
     @StateObject private var viewModel: MainPageViewModel
     @EnvironmentObject private var appState: AppState
 
-    init(viewModel: MainPageViewModel = MainPageViewModel()) {
+    init(viewModel: MainPageViewModel) {
         _viewModel = StateObject(wrappedValue: viewModel)
     }
 
