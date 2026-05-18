@@ -82,14 +82,18 @@ import UIKit
 
     // MARK: - Init
 
+    private let analytics: AnalyticsServiceProtocol
+
     init(
         albumId: String,
         mode: LogViewMode,
-        service: AlbumServiceProtocol = AlbumService()
+        service: AlbumServiceProtocol = AlbumService(),
+        analytics: AnalyticsServiceProtocol
     ) {
         self.albumId = albumId
         self.mode = mode
         self.service = service
+        self.analytics = analytics
 
         switch mode {
         case .create:
@@ -179,6 +183,11 @@ import UIKit
                     photoDataList: photoDataList
                 )
                 try await service.saveLog(request: request)
+                // 로그 작성 추적
+                analytics.log(.logSave, parameters: [
+                    .charCount: trimmedLogText.count,
+                    .hasPhoto: !selectedPhotos.isEmpty
+                ])
 
             case .edit:
                 guard let albumLogId else { return }

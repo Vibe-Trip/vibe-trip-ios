@@ -11,7 +11,7 @@ import SwiftUI
 struct GenreDescriptionModalView: View {
 
     private enum Layout {
-        static let modalHeight: CGFloat = 528
+        static let modalHeight: CGFloat = 500
         static let modalCornerRadius: CGFloat = 12
         static let modalPadding: CGFloat = 16
         static let sectionSpacing: CGFloat = 16

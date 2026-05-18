@@ -13,36 +13,30 @@ extension AlbumGenre {
 
     var descriptionText: String {
         switch self {
-        case .pop:          return "세련된 글로벌 트렌디 사운드의 정석"
-        case .kPop:         return "화려하고 에너제틱한 주인공의 기분"
-        case .jPop:         return "도심 산책에 어울리는 청량하고 맑은 무드"
-        case .latin:        return "휴양지의 열정을 더하는 이국적인 리듬"
-        case .rnb:          return "도시의 밤을 적시는 감각적인 그루브"
-        case .rock:         return "자유로운 에너지가 폭발하는 드라이브 감성"
-        case .country:      return "자연 속을 달리는 편안한 로드트립의 여유"
-        case .acoustic:     return "통기타 선율이 전하는 따뜻하고 진솔한 위로"
-        case .indie:        return "나만의 취향을 담은 독특하고 힙한 무드"
-        case .ballad:       return "잊지 못할 여행의 추억을 담은 애틋한 선율"
-        case .classical:    return "대자연의 웅장함을 담은 고품격 대서사시"
-        case .jazz:         return "루프탑 야경에 어울리는 여유롭고 낭만적인 밤"
-        case .loFi:         return "나른한 오후의 여유를 담은 편안하고 낮은 비트"
-        case .ambient:      return "공간을 가득 채우는 몽환적이고 신비로운 울림"
-        case .cinematic:    return "영화 속 주인공이 된 듯한 웅장하고 드라마틱한 감동"
-        case .newAge:       return "맑은 피아노 선율이 전하는 평온하고 순수한 휴식"
-        case .chillout:     return "복잡한 생각을 비워주는 세련된 휴양지의 무드"
-        case .bossaNova:    return "햇살 가득한 해변을 걷는 듯 가볍고 경쾌한 리듬"
-        case .tropicalHouse: return "파도 소리가 들리는 듯 시원하고 청량한 여름의 설렘"
-        case .postRock:     return "서서히 차오르는 서정적인 감정의 깊은 파동"
-        case .classicSolo:  return "우아한 악기 선율로 완성하는 품격 있는 기록"
-        case .acousticFolk: return "소박한 기타 연주에 담긴 따뜻하고 다정한 자연의 향기"
-        case .deepHouse:    return "세련된 도시의 밤거리를 닮은 절제된 감각의 비트"
+        case .pop:          return "밝고 트렌디한 대중 음악"
+        case .kPop:         return "에너지 넘치고 화려한 아이돌 감성"
+        case .jPop:         return "청량하고 맑은 일본 감성의 음악"
+        case .rnb:          return "부드럽고 세련된 감성의 그루브 음악"
+        case .rock:         return "시원하고 자유로운 밴드 사운드"
+        case .acoustic:     return "따뜻하고 편안한 통기타 감성"
+        case .indie:        return "나만의 취향을 담은 감성적인 음악"
+        case .ballad:       return "추억과 감성을 담은 잔잔한 음악"
+        case .jazz:         return "재즈바 같은 낭만적인 분위기"
+        case .loFi:         return "휴식에 어울리는 잔잔한 비트"
+        case .ambient:      return "몽환적이고 신비로운 분위기의 음악"
+        case .cinematic:    return "영화 같은 웅장한 분위기의 음악"
+        case .newAge:       return "잔잔한 피아노 중심의 편안한 음악"
+        case .chillout:     return "노을과 휴식에 어울리는 부드러운 감성 음악"
+        case .bossaNova:    return "햇살 가득한 카페 같은 감성"
+        case .tropicalHouse: return "바다와 여행이 떠오르는 시원한 리듬"
+        case .deepHouse:    return "리듬감 있게 몰입되는 세련된 전자 음악"
         }
     }
 
     // Jazz: 가사 유무에 따른 다른 설명
     func descriptionText(for lyricsOption: LyricsOption) -> String {
         if self == .jazz && lyricsOption == .exclude {
-            return "세련되고 낭만적인 밤의 여유를 담은 즉흥 선율"
+            return "재즈바 같은 여유롭고 낭만적인 연주"
         }
         return descriptionText
     }

@@ -45,12 +45,17 @@ final class MakeAlbumViewModel: ObservableObject {
     @Published var stagedEndDate: Date?
     
     private let albumService: AlbumServiceProtocol
+    private let analytics: AnalyticsServiceProtocol
 
     // 네트워크 오류 시 생성 데이터 보관 -> 재시도에 사용
     private var pendingRequest: AlbumCreateRequest?
 
-    init(albumService: AlbumServiceProtocol = AlbumService()) {
+    init(
+        albumService: AlbumServiceProtocol = AlbumService(),
+        analytics: AnalyticsServiceProtocol = FirebaseAnalyticsService()
+    ) {
         self.albumService = albumService
+        self.analytics = analytics
     }
 
     // MARK: - Constants
@@ -294,6 +299,7 @@ final class MakeAlbumViewModel: ObservableObject {
             print("[AlbumCreate][Flow] networkError firstAttempt=\(urlError.code.rawValue)")
             #endif
             // 최초 1회 네트워크 오류만 재시도 허용
+            // 재시도 가능 단계의 네트워크 오류 -> 사용자 재시도 흐름에서 fail 카운트 중복 방지를 위해 전송 X
             let retryAction: () -> Void = { [weak self] in
                 guard let self, let req = self.pendingRequest else { return }
                 Task {
@@ -311,6 +317,11 @@ final class MakeAlbumViewModel: ObservableObject {
             #if DEBUG
             print("[AlbumCreate][Flow] fatalError isRetry=\(isRetry) error=\(error)")
             #endif
+            // 앨범 생성 API 단계의 최종 실패 추적 (네트워크 재시도 실패 / 서버 오류 / 디코딩 오류 / 기타)
+            analytics.log(.albumCreateFail, parameters: [
+                .step: AnalyticsStep.albumRequest.rawValue,
+                .errorType: String(describing: type(of: error))
+            ])
             // networkError 재시도 실패 or serverError or decodingFailed or unknown
             onFatalError()
         }

@@ -483,4 +483,41 @@ final class MainPageViewModelTests: XCTestCase {
 
         XCTAssertEqual(stub.callCount, 2)       // 재로드로 API 2회 호출
     }
+
+    // MARK: - Analytics
+
+    // 폴링 완료(applyAlbumReady) 시 album_create_complete가 1회 기록되는지 검증
+    func test_polling_complete_logsAlbumCreateComplete() async {
+        let nilAlbum = AlbumCard(id: 10, title: nil, location: "제주", startDate: "2026-01-01", endDate: "2026-01-03", coverImageUrl: nil)
+        let stub = PollingStubAlbumService(albums: [nilAlbum])
+        stub.titleReadyAfterAttempts = 1
+        let analytics = MockAnalyticsService()
+        sut = MainPageViewModel(albumService: stub, pollingInterval: 0,
+                                notificationAuthorizationChecker: { .denied },
+                                analytics: analytics)
+
+        await sut.loadAlbums()
+        try? await Task.sleep(nanoseconds: 10_000_000)
+
+        XCTAssertEqual(analytics.loggedEvents.count, 1)
+        XCTAssertEqual(analytics.loggedEvents.first?.event, .albumCreateComplete)
+    }
+
+    // 같은 앨범에 대해 FCM과 폴링이 모두 도달해도 album_create_complete는 1회만 기록되는지 검증
+    func test_applyAlbumReady_duplicateInvocation_logsOnce() async {
+        let nilAlbum = AlbumCard(id: 10, title: nil, location: "제주", startDate: "2026-01-01", endDate: "2026-01-03", coverImageUrl: nil)
+        let stub = PollingStubAlbumService(albums: [nilAlbum])
+        stub.titleReadyAfterAttempts = 1
+        let analytics = MockAnalyticsService()
+        sut = MainPageViewModel(albumService: stub, pollingInterval: 0,
+                                notificationAuthorizationChecker: { .denied },
+                                analytics: analytics)
+
+        await sut.loadAlbums()
+        try? await Task.sleep(nanoseconds: 10_000_000)
+        // FCM이 뒤늦게 도착해도 readyAlbumIds 가드에 의해 추가 기록 없음
+        await sut.handleAlbumCompleted(albumId: 10)
+
+        XCTAssertEqual(analytics.loggedEvents.count, 1)
+    }
 }

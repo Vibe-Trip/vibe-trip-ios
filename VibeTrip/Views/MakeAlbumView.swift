@@ -498,8 +498,10 @@ private struct MakeAlbumRequiredInputContent: View {
                 bottomSpacing: keyboardHeight > 0 ? 20 : 0
             )
         }
+        // 앨범 생성 1단계(사진/필수 입력) 화면 진입 추적
+        .trackScreen("AlbumCreate_Step1")
     }
-    
+
     // 섹션 헤더 빌더
     private func albumSectionHeader(
         title: String,
@@ -590,7 +592,7 @@ private struct MakeAlbumOptionalInputContent: View {
                                     GridItem(.flexible(), spacing: 4)
                                 ],
                                 alignment: .leading,
-                                spacing: 8
+                                spacing: 12
                             ) {
                                 ForEach(viewModel.displayedGenres) { genre in
                                     Button(action: {
@@ -633,7 +635,7 @@ private struct MakeAlbumOptionalInputContent: View {
                         }
                         
                         // MARK: - 앨범 코멘터리
-                        
+
                         VStack(alignment: .leading, spacing: 8) {
                             HStack(alignment: .firstTextBaseline, spacing: 4) {
                                 Text("앨범 코멘터리")
@@ -660,7 +662,7 @@ private struct MakeAlbumOptionalInputContent: View {
                                 .scrollContentBackground(.hidden)
                                 .padding(.horizontal, 12)
                                 .padding(.top, 8)
-                                .frame(height: 220)
+                                .frame(height: 240)
                                 .background(Color.fieldBackground)
                                 .clipShape(RoundedRectangle(cornerRadius: 8))
                                 .overlay(
@@ -709,11 +711,12 @@ private struct MakeAlbumOptionalInputContent: View {
                                             .padding(.bottom, 14)
                                     }
                                 }
-                                .frame(height: 220)
+                                .frame(height: 240)
                                 // 터치 비활성화
                                 .allowsHitTesting(false)
                             }
                         }
+                        .padding(.top, 40)
                         .id(ScrollTarget.commentary)
                     }
                     .padding(.horizontal, 20)
@@ -739,6 +742,8 @@ private struct MakeAlbumOptionalInputContent: View {
                 bottomSpacing: keyboardHeight > 0 ? 44 : 0
             )
         }
+        // 앨범 생성 2단계(장르/코멘터리) 화면 진입 추적
+        .trackScreen("AlbumCreate_Step2")
     }
 }
 
