@@ -17,6 +17,8 @@ import KakaoSDKAuth
 class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDelegate {
     private enum Constants {
         static let notificationKey = "isNotificationEnabled"
+        // Firebase Analytics 내부 디버그 모드 토글 키 -> Xcode 실행/TestFlight 빌드에서 DebugView 활성화
+        static let firebaseDebugModeKey = "/google/measurement/debug_mode"
     }
 
     // appState 설정 전에 수신된 콜백 신호를 버퍼링하기 위한 프로퍼티
@@ -56,6 +58,11 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
         try? AVAudioSession.sharedInstance().setActive(true)
 
         // Firebase 초기화
+        // Xcode 실행 / TestFlight 빌드(sandboxReceipt): DebugView 자동 활성화
+        // App Store 정식 빌드(receipt): 자동 비활성화
+        let isSandboxReceipt = Bundle.main.appStoreReceiptURL?.lastPathComponent == "sandboxReceipt"
+        UserDefaults.standard.set(isSandboxReceipt, forKey: Constants.firebaseDebugModeKey)
+
         FirebaseApp.configure()
         Analytics.setAnalyticsCollectionEnabled(true)
         UNUserNotificationCenter.current().delegate = self
