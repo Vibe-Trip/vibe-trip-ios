@@ -19,7 +19,12 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
         static let notificationKey = "isNotificationEnabled"
         // Firebase Analytics 내부 디버그 모드 토글 키 -> Xcode 실행/TestFlight 빌드에서 DebugView 활성화
         static let firebaseDebugModeKey = "/google/measurement/debug_mode"
+        // 음악 생성 실패 식별용 error_type 값 -> FCM FAILED 수신 시
+        static let musicGenerationFailedErrorType = "music_generation_failed"
     }
+
+    // FCM FAILED 수신 시 음악 생성 실패 추적용
+    private let analytics: AnalyticsServiceProtocol = FirebaseAnalyticsService()
 
     // appState 설정 전에 수신된 콜백 신호를 버퍼링하기 위한 프로퍼티
     private struct PendingReceivePayload {
@@ -112,6 +117,13 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
                                 withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void) {
         let userInfo = notification.request.content.userInfo
         let payload = FCMPayload.decode(from: userInfo)
+        // 음악 생성 단계 실패 추적 -> Suno API 결과 FCM FAILED 수신
+        if payload?.type == "FAILED" {
+            analytics.log(.albumCreateFail, parameters: [
+                .step: AnalyticsStep.musicGeneration.rawValue,
+                .errorType: Constants.musicGenerationFailedErrorType
+            ])
+        }
         Task { @MainActor in
             appState?.needsNotificationRefresh = true
             if payload?.type == "FAILED" {
