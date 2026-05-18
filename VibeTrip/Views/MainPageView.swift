@@ -88,6 +88,7 @@ struct MainPageView: View {
             }) { album in
                 AlbumDetailView(
                     displayModel: album.toDisplayModel(),
+                    source: .mainList,
                     onBackTap: { selectedAlbum = nil },
                     onEditSaved: { outcome in
                         // 재생성 저장일 때만 메인 복귀 + 스켈레톤/폴링 흐름으로 전환

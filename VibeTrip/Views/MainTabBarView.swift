@@ -128,6 +128,7 @@ struct MainTabBarView: View {
         }) { presentation in
             AlbumDetailView(
                 displayModel: presentation.displayModel,
+                source: .notification,
                 onBackTap: {
                     appState.pendingCarouselAlbumId = presentation.displayModel.albumId
                     presentedAlbumDetail = nil

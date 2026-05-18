@@ -231,13 +231,17 @@ import Combine
 // contentState에 따라 스크롤 활성화 여부 분기
 
 struct AlbumDetailView: View {
-    
+
     private let displayModel: AlbumDetailDisplayModel
     private let onBackTap: () -> Void
     private let onWriteLogTap: () -> Void
     private let onEditAlbumTap: () -> Void
     private let onEditSaved: (EditAlbumSaveOutcome) -> Void
     private let onDeleteAlbumTap: () -> Void
+    // album_open 이벤트 source 파라미터 (재방문 분석에서 진입 경로 구분에 사용)
+    private let source: AnalyticsSource
+
+    @Environment(\.analytics) private var analytics
     
     @StateObject private var logViewModel: AlbumDetailViewModel
     
@@ -296,6 +300,7 @@ struct AlbumDetailView: View {
     
     init(
         displayModel: AlbumDetailDisplayModel,
+        source: AnalyticsSource = .mainList,
         onBackTap: @escaping () -> Void = {},
         onWriteLogTap: @escaping () -> Void = {},
         onEditAlbumTap: @escaping () -> Void = {},
@@ -303,6 +308,7 @@ struct AlbumDetailView: View {
         onDeleteAlbumTap: @escaping () -> Void = {}
     ) {
         self.displayModel = displayModel
+        self.source = source
         self.onBackTap = onBackTap
         self.onWriteLogTap = onWriteLogTap
         self.onEditAlbumTap = onEditAlbumTap
@@ -560,6 +566,10 @@ struct AlbumDetailView: View {
         }
         // 앨범 상세 화면 진입 추적
         .trackScreen("AlbumDetail")
+        // 앨범 상세 진입 이벤트 (재방문 분석용, source로 진입 경로 구분)
+        .onAppear {
+            analytics.log(.albumOpen, parameters: [.source: source.rawValue])
+        }
     }
 }
 
