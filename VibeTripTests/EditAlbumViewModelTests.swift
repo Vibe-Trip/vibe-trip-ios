@@ -68,8 +68,12 @@ final class EditAlbumViewModelTests: XCTestCase {
 
     // MARK: - 헬퍼
 
-    private func makeSUT(stub: StubAlbumService = StubAlbumService(), onSaved: @escaping (EditAlbumSaveOutcome) -> Void = { _ in }) -> EditAlbumViewModel {
-        EditAlbumViewModel(albumId: 1, albumService: stub, onSaved: onSaved)
+    private func makeSUT(
+        stub: StubAlbumService = StubAlbumService(),
+        analytics: AnalyticsServiceProtocol = MockAnalyticsService(),
+        onSaved: @escaping (EditAlbumSaveOutcome) -> Void = { _ in }
+    ) -> EditAlbumViewModel {
+        EditAlbumViewModel(albumId: 1, albumService: stub, analytics: analytics, onSaved: onSaved)
     }
 
     // 1×1 px 실제 UIImage (jpegData 생성 가능)

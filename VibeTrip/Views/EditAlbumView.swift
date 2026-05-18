@@ -78,7 +78,11 @@ struct EditAlbumView: View {
     // MARK: - Init
 
     init(albumId: Int, onExit: @escaping () -> Void, onSaved: @escaping (EditAlbumSaveOutcome) -> Void) {
-        _viewModel = StateObject(wrappedValue: EditAlbumViewModel(albumId: albumId, onSaved: onSaved))
+        _viewModel = StateObject(wrappedValue: EditAlbumViewModel(
+            albumId: albumId,
+            analytics: FirebaseAnalyticsService(),
+            onSaved: onSaved
+        ))
         self.onExit = onExit
     }
 
