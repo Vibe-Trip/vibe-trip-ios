@@ -42,7 +42,6 @@ enum AnalyticsParam: String {
     case hasLyrics = "has_lyrics"
     case vocalGender = "vocal_gender"
     case hasCommentary = "has_commentary"
-    case durationSec = "duration_sec"
 
     // album_create_fail
     case errorType = "error_type"
@@ -62,7 +61,6 @@ enum AnalyticsParam: String {
 // MARK: - 파라미터 값 
 
 enum AnalyticsStep: String {
-    case photoUpload = "photo_upload"
     case albumRequest = "album_request"
     case musicGeneration = "music_generation"
 }
