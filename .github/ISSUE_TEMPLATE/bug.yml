@@ -21,7 +21,7 @@ body:
         2. 
         3. 
     validations:
-      required: true
+      required: false
 
   - type: textarea
     attributes:
@@ -29,7 +29,7 @@ body:
       description: 버그가 없었다면 어떻게 동작했어야 하는지 작성해주세요.
       placeholder: ex) 로그인 버튼 탭 시 홈 화면으로 이동해야 한다.
     validations:
-      required: true
+      required: false
 
   - type: textarea
     attributes:
