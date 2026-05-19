@@ -26,10 +26,6 @@ body:
   - type: textarea
     attributes:
       label: ✅ to-do-list
-      description: 작업할 내용들에 대해 작성해주세요
-        - type: textarea
-    attributes:
-      label: ✅ to-do-list
       description: 작업할 내용들에 대해 작성해주세요.
       value: |
         - [ ] TODO
