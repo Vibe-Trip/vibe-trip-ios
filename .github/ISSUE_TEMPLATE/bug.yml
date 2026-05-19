@@ -25,12 +25,17 @@ body:
 
   - type: textarea
     attributes:
-      label: ✅ 기대 동작
-      description: 버그가 없었다면 어떻게 동작했어야 하는지 작성해주세요.
-      placeholder: ex) 로그인 버튼 탭 시 홈 화면으로 이동해야 한다.
+      label: ✅ to-do-list
+      description: 작업할 내용들에 대해 작성해주세요
+        - type: textarea
+    attributes:
+      label: ✅ to-do-list
+      description: 작업할 내용들에 대해 작성해주세요.
+      value: |
+        - [ ] TODO
     validations:
       required: false
-
+      
   - type: textarea
     attributes:
       label: 🖼️ 첨부 자료
