@@ -83,6 +83,13 @@ struct GrowingTextEditor: UIViewRepresentable {
         }
     }
 
+    // 화면 너비에 맞춰 자동 줄바꿈 동작 보장
+    func sizeThatFits(_ proposal: ProposedViewSize, uiView: UITextView, context: Context) -> CGSize? {
+        guard let width = proposal.width, width.isFinite, width > 0 else { return nil }
+        let fitting = uiView.sizeThatFits(CGSize(width: width, height: .greatestFiniteMagnitude))
+        return CGSize(width: width, height: fitting.height)
+    }
+
     // MARK: - Helpers
 
     // 폰트/줄간격/색상을 묶은 공통 속성 생성
