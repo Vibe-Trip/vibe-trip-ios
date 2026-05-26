@@ -17,10 +17,10 @@ struct AlbumLogView: View {
     // 저장 완료 시 호출 (목록 재조회 여부 판단에 사용)
     private let onSaved: (() -> Void)?
 
-    // TextEditor 포커스 제어 (scrollDismissesKeyboard 연동)
-    @FocusState private var isFocused: Bool
+    // 로그 입력 포커스 제어 (GrowingTextEditor 양방향 바인딩 + scrollDismissesKeyboard 연동)
+    @State private var isFocused: Bool = false
 
-    // 키보드 높이 추적 (커서 추적 스크롤에 사용)
+    // 키보드 높이 추적 (입력 영역이 키보드 위까지 스크롤 가능하도록 콘텐츠 하단 여백에 반영)
     @State private var keyboardHeight: CGFloat = 0
 
     // 보고 있는 사진 위치 관리
@@ -54,7 +54,6 @@ struct AlbumLogView: View {
         
         static let textEditorMinHeight: CGFloat = 200
         static let textEditorTopPadding: CGFloat = 20
-        static let textEditorInsetCorrection: CGFloat = 5
         // 페이지 인디케이터
         static let dotSize: CGFloat = 6                
         static let dotSpacing: CGFloat = 6
@@ -83,67 +82,47 @@ struct AlbumLogView: View {
     var body: some View {
         ZStack(alignment: .bottom) {
             // 메인 콘텐츠 스크롤 영역
-            ScrollViewReader { proxy in
-                ScrollView {
-                    VStack(spacing: 0) {
-                        dateHeader
+            ScrollView {
+                VStack(spacing: 0) {
+                    dateHeader
 
-                        // 사진이 있을 때만 사진 슬라이드 영역 표시
-                        if !viewModel.selectedPhotos.isEmpty {
-                            photoArea
-                        }
+                    // 사진이 있을 때만 사진 슬라이드 영역 표시
+                    if !viewModel.selectedPhotos.isEmpty {
+                        photoArea
+                    }
 
-                        textEditorArea
-                            .id("textEditor")   // 커서 추적 스크롤 앵커
-                    }
-                    // 빈 영역 탭으로 키보드 비활성화
-                    .contentShape(Rectangle())
-                    // 키보드 높이만큼 여백 추가 -> 커서가 키보드 뒤로 숨지 않게 설정
-                    .padding(.bottom, keyboardHeight)
+                    textEditorArea
                 }
-                .scrollDismissesKeyboard(.interactively)
-                .onTapGesture { isFocused = false }     // 화면 탭 시 키보드 해제
-                .safeAreaInset(edge: .top, spacing: 0) { // bottomToolbar 영역 확보 + 키보드 올라올 때 툴바도 함께 이동
-                    // AppNavigationBar: 상단 safe area에 고정
-                    // trailing에 저장 버튼 주입
-                    AppNavigationBar(title: navTitle, style: .solidWhite, onBackTap: handleBackButton) {
-                        Button {
-                            Task { await viewModel.saveLog() }
-                        } label: {
-                            if viewModel.isSaving {
-                                ProgressView()
-                                    .tint(Color.appPrimary)
-                                    .frame(width: 44, height: 44)
-                            } else {
-                                Text("저장")
-                                    .font(.setPretendard(weight: .semiBold, size: 16))
-                                    .foregroundStyle(Color.appPrimary)
-                            }
-                        }
-                        .disabled(viewModel.isSaving)
-                    }
-                }
-                .safeAreaInset(edge: .bottom, spacing: 0) {
-                    // 하단 툴바
-                    bottomToolbar
-                }
-                // 포커스 진입 시: 키보드 올라오는 시간(350ms)을 기다렸다가 스크롤
-                .onChange(of: isFocused) { _, focused in
-                    guard focused else { return }
-                    Task {
-                        try? await Task.sleep(for: .milliseconds(350))
-                        withAnimation(.easeOut(duration: 0.25)) {
-                            proxy.scrollTo("textEditor", anchor: .bottom)
+                // 빈 영역 탭으로 키보드 비활성화
+                .contentShape(Rectangle())
+                // 키보드 높이만큼 여백 추가 -> 입력 영역이 키보드 위까지 스크롤되도록 콘텐츠 확장
+                .padding(.bottom, keyboardHeight)
+            }
+            .scrollDismissesKeyboard(.interactively)
+            .onTapGesture { isFocused = false }     // 화면 탭 시 키보드 해제
+            .safeAreaInset(edge: .top, spacing: 0) { // bottomToolbar 영역 확보 + 키보드 올라올 때 툴바도 함께 이동
+                // AppNavigationBar: 상단 safe area에 고정
+                // trailing에 저장 버튼 주입
+                AppNavigationBar(title: navTitle, style: .solidWhite, onBackTap: handleBackButton) {
+                    Button {
+                        Task { await viewModel.saveLog() }
+                    } label: {
+                        if viewModel.isSaving {
+                            ProgressView()
+                                .tint(Color.appPrimary)
+                                .frame(width: 44, height: 44)
+                        } else {
+                            Text("저장")
+                                .font(.setPretendard(weight: .semiBold, size: 16))
+                                .foregroundStyle(Color.appPrimary)
                         }
                     }
+                    .disabled(viewModel.isSaving)
                 }
-                // 타이핑/줄바꿈 감지: 키보드가 올라와 있을 때만 즉시 커서 위치로 스크롤
-                .onChange(of: viewModel.logText) { _, _ in
-                    guard isFocused, keyboardHeight > 0 else { return }
-                    withAnimation(.easeOut(duration: 0.1)) {
-                        proxy.scrollTo("textEditor", anchor: .bottom)
-                    }
-                }
+            }
+            .safeAreaInset(edge: .bottom, spacing: 0) {
+                // 하단 툴바
+                bottomToolbar
             }
 
             // 종료 확인 팝업
@@ -276,7 +255,7 @@ private extension AlbumLogView {
         .padding(.vertical, Constants.indicatorPaddingV)
     }
 
-    // TextEditor 입력 필드
+    // 로그 본문 입력 필드 (텍스트 양에 따라 자체 높이가 늘어나며 외곽 ScrollView가 전체 스크롤을 담당)
     var textEditorArea: some View {
         ZStack(alignment: .topLeading) {
             if viewModel.logText.isEmpty {
@@ -288,15 +267,10 @@ private extension AlbumLogView {
                     .padding(.top, Constants.textEditorTopPadding)
             }
 
-            TextEditor(text: $viewModel.logText)
-                .font(.setPretendard(weight: .regular, size: 16))
-                .lineSpacing(8)
-                .focused($isFocused)
-                .scrollContentBackground(.hidden)
-                .background(Color.clear)
-                .padding(.horizontal, Constants.contentHorizontalPadding - Constants.textEditorInsetCorrection)
-                .padding(.top, Constants.textEditorTopPadding - Constants.textEditorInsetCorrection)
+            GrowingTextEditor(text: $viewModel.logText, isFocused: $isFocused)
                 .frame(minHeight: Constants.textEditorMinHeight)
+                .padding(.horizontal, Constants.contentHorizontalPadding)
+                .padding(.top, Constants.textEditorTopPadding)
         }
     }
     
