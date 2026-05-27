@@ -7,6 +7,18 @@
 
 import SwiftUI
 
+// MARK: - SavedLogInfo
+// 저장 완료 시 호출자에게 전달되는 정보 (작성/수정 구분 + 이미지 첨부 여부)
+// AlbumDetailView 가 방금 저장한 로그의 이미지 영역에 스켈레톤을 표시할지 판단할 때 사용
+struct SavedLogInfo {
+    enum SavedMode {
+        case create
+        case edit(logId: Int)
+    }
+    let mode: SavedMode
+    let hasImages: Bool
+}
+
 // MARK: - AlbumLogView
 
 struct AlbumLogView: View {
@@ -14,8 +26,8 @@ struct AlbumLogView: View {
     @StateObject private var viewModel: AlbumLogViewModel
     @Environment(\.dismiss) private var dismiss
 
-    // 저장 완료 시 호출 (목록 재조회 여부 판단에 사용)
-    private let onSaved: (() -> Void)?
+    // 저장 완료 시 호출 (저장 모드/이미지 첨부 여부를 전달해 후속 처리에 사용)
+    private let onSaved: ((SavedLogInfo) -> Void)?
 
     // 로그 입력 포커스 제어 (GrowingTextEditor 양방향 바인딩 + scrollDismissesKeyboard 연동)
     @State private var isFocused: Bool = false
@@ -65,7 +77,7 @@ struct AlbumLogView: View {
     // MARK: - Init
 
     @MainActor
-    init(albumId: String, mode: AlbumLogViewModel.LogViewMode, onSaved: (() -> Void)? = nil) {
+    init(albumId: String, mode: AlbumLogViewModel.LogViewMode, onSaved: ((SavedLogInfo) -> Void)? = nil) {
         self.onSaved = onSaved
         _viewModel = StateObject(
             wrappedValue: AlbumLogViewModel(
@@ -162,7 +174,15 @@ struct AlbumLogView: View {
         }
         .onChange(of: viewModel.isSaved) { _, saved in
             guard saved else { return }
-            onSaved?()
+            // 저장 모드와 이미지 첨부 여부를 호출자에게 넘겨 사후 처리에 활용
+            let savedMode: SavedLogInfo.SavedMode = {
+                switch viewModel.mode {
+                case .create:           return .create
+                case .edit(let entry):  return .edit(logId: entry.id)
+                }
+            }()
+            let info = SavedLogInfo(mode: savedMode, hasImages: !viewModel.selectedPhotos.isEmpty)
+            onSaved?(info)
             dismiss()
         }
         .onChange(of: viewModel.toastMessage) { _, message in
@@ -323,6 +343,11 @@ private extension AlbumLogView {
                 .disabled(viewModel.isSaving)
 
                 Spacer()
+
+                // [DEBUG] 입력 글자 수 카운터 (테스트용)
+                Text("\(viewModel.logText.count)자")
+                    .font(.setPretendard(weight: .regular, size: 12))
+                    .foregroundStyle(Color("GrayScale/300"))
             }
             .padding(.horizontal, Constants.contentHorizontalPadding)
             .frame(height: Constants.toolbarHeight - 1)

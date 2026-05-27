@@ -28,7 +28,8 @@ import Combine
     @Published private(set) var isDownloadingMusic: Bool = false
     @Published private(set) var downloadedMusicFileURL: URL? = nil  // 공유 시트 트리거
     @Published private(set) var isStorageFull: Bool = false
-    
+    @Published private(set) var awaitingImageLogIds: Set<Int> = []  // 방금 저장한 로그 중 이미지 응답이 아직 비어 있는 id 모음 -> 카드 이미지 영역을 스켈레톤으로 표시
+
     private let albumId: String
     private let albumIdInt: Int    // Int 변환값, init에서 1회만 처리
     private var cursor: Int? = nil
@@ -88,6 +89,37 @@ import Combine
         } catch {
             // 실패 시 기존 logs 유지. 사용자 알림은 별도 작업으로 분리됨
         }
+    }
+
+    // 저장 직후 호출: 목록을 재조회하고 이미지가 곧장 안 채워진 경우 짧은 backoff 로 폴링
+    // 대상 로그 카드의 이미지 영역만 스켈레톤으로 표시하고 나머지 영역/카드는 그대로 유지
+    func refreshAfterSave(info: SavedLogInfo) async {
+        await loadInitialLogs()
+        guard info.hasImages else { return }
+
+        // 어떤 id 를 기다릴 것인지 확정
+        let targetId: Int?
+        switch info.mode {
+        case .edit(let id):
+            targetId = id
+        case .create:
+            targetId = logs.first?.id
+        }
+        guard let id = targetId else { return }
+
+        // 이미 이미지가 채워졌으면 폴링 불필요
+        if let entry = logs.first(where: { $0.id == id }), !entry.images.isEmpty { return }
+
+        awaitingImageLogIds.insert(id)
+        defer { awaitingImageLogIds.remove(id) }
+
+        // backoff 폴링: 매 시도마다 첫 페이지 재조회 후 대상 id 의 images 채워졌는지 확인
+        for delay in [0.3, 0.8, 1.5] as [TimeInterval] {
+            try? await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
+            await loadInitialLogs()
+            if let entry = logs.first(where: { $0.id == id }), !entry.images.isEmpty { return }
+        }
+        // 최대 시도 후에도 비어 있으면 스켈레톤만 사라짐 (사용자 재진입/새로고침으로 회복 가능)
     }
     
     // 음악 파일을 임시 폴더에 다운로드 후 공유 시트 트리거
@@ -298,8 +330,8 @@ struct AlbumDetailView: View {
     // 앨범 수정 화면 표시 여부
     @State private var isEditPresented: Bool = false
     
-    // 실제 저장 완료 여부: onDismiss 재조회 조건 판단
-    @State private var didSaveLog: Bool = false
+    // 실제 저장 완료 정보 (nil 이면 저장 없이 dismiss): onDismiss 재조회 + 이미지 영역 스켈레톤 처리에 사용
+    @State private var pendingSavedInfo: SavedLogInfo? = nil
     
     @EnvironmentObject private var musicService: BackgroundMusicService
     @EnvironmentObject private var appState: AppState
@@ -491,20 +523,20 @@ struct AlbumDetailView: View {
         .navigationBarBackButtonHidden(true)
         .toolbar(.hidden, for: .navigationBar)
         .fullScreenCover(item: $logPresentation, onDismiss: {
-            // 목록 재조회: 저장이 발생한 경우만
-            if didSaveLog {
-                Task { await logViewModel.loadInitialLogs() }
+            // 목록 재조회 + 이미지 영역 스켈레톤 처리: 저장이 발생한 경우만
+            if let info = pendingSavedInfo {
+                Task { await logViewModel.refreshAfterSave(info: info) }
                 // 메인 페이지 앨범 카드 미리보기 썸네일 갱신
                 appState.needsAlbumRefresh = true
             }
-            didSaveLog = false
+            pendingSavedInfo = nil
         }) { state in
             switch state {
             case .create:
-                AlbumLogView(albumId: String(displayModel.albumId), mode: .create, onSaved: { didSaveLog = true })
+                AlbumLogView(albumId: String(displayModel.albumId), mode: .create) { info in pendingSavedInfo = info }
                     .environmentObject(musicService)
             case .edit(let entry):
-                AlbumLogView(albumId: String(displayModel.albumId), mode: .edit(entry), onSaved: { didSaveLog = true })
+                AlbumLogView(albumId: String(displayModel.albumId), mode: .edit(entry)) { info in pendingSavedInfo = info }
                     .environmentObject(musicService)
             }
         }
@@ -1424,7 +1456,8 @@ private struct AlbumDetailLogFeedSection: View {
                     onDeleteLog: { logId in
                         viewModel.requestDeleteLog(id: logId)
                     },
-                    onEdit: onEdit
+                    onEdit: onEdit,
+                    awaitingImageLogIds: viewModel.awaitingImageLogIds
                 )
             }
         }
@@ -1445,12 +1478,13 @@ private struct AlbumDetailLogDateGroup: View {
     let onLastAppear: (() async -> Void)?
     let onDeleteLog: (Int) -> Void
     let onEdit: (AlbumLogEntry) -> Void
-    
+    let awaitingImageLogIds: Set<Int>
+
     private enum Constants {
         /// 로그 카드 간 간격
         static let itemSpacing: CGFloat = 20
     }
-    
+
     var body: some View {
         VStack(alignment: .leading, spacing: Constants.itemSpacing) {
             ForEach(entries) { entry in
@@ -1459,7 +1493,8 @@ private struct AlbumDetailLogDateGroup: View {
                     isLast: entry.id == lastEntryId,
                     onLastAppear: onLastAppear,
                     onDeleteLog: onDeleteLog,
-                    onEdit: onEdit
+                    onEdit: onEdit,
+                    showSkeletonIfNoImages: awaitingImageLogIds.contains(entry.id)
                 )
             }
         }
@@ -1475,6 +1510,8 @@ private struct AlbumDetailLogItemCard: View {
     let onLastAppear: (() async -> Void)?
     let onDeleteLog: (Int) -> Void
     let onEdit: (AlbumLogEntry) -> Void
+    // 방금 저장한 로그처럼 이미지 응답이 비어 있을 때 슬라이더 자리에 스켈레톤을 그릴지 여부
+    let showSkeletonIfNoImages: Bool
     
     /// 로그 옵션 팝업 표시 여부
     @State private var isMenuVisible: Bool = false
@@ -1528,9 +1565,12 @@ private struct AlbumDetailLogItemCard: View {
                     .padding(.trailing, -4)
                 }
                 
-                // 이미지 슬라이더 (이미지 있을 때만)
+                // 이미지 슬라이더: 이미지 있을 때 본 슬라이더, 응답 대기 중인 로그는 스켈레톤
                 if !entry.images.isEmpty {
                     AlbumDetailLogImageSlider(images: entry.images)
+                        .padding(.top, Constants.dateToImageSpacing)
+                } else if showSkeletonIfNoImages {
+                    AlbumDetailLogImageSkeleton()
                         .padding(.top, Constants.dateToImageSpacing)
                 }
                 
@@ -1645,6 +1685,27 @@ private struct AlbumDetailLogImageSlider: View {
         }
         .frame(maxWidth: .infinity)
         .frame(height: Constants.sliderHeight)
+    }
+}
+
+// MARK: - AlbumDetailLogImageSkeleton
+// 이미지 응답 대기 중인 로그 카드의 슬라이더 자리에 표시하는 shimmer placeholder
+// 슬라이더와 동일 치수로 그려 카드 레이아웃이 흔들리지 않게 함
+
+private struct AlbumDetailLogImageSkeleton: View {
+    private enum Constants {
+        static let cornerRadius: CGFloat = 16
+        static var sliderHeight: CGFloat {
+            (UIScreen.main.bounds.width - 40) * 3 / 4
+        }
+    }
+
+    var body: some View {
+        RoundedRectangle(cornerRadius: Constants.cornerRadius)
+            .fill(Color.secondary.opacity(0.12))
+            .frame(maxWidth: .infinity)
+            .frame(height: Constants.sliderHeight)
+            .shimmering(shape: RoundedRectangle(cornerRadius: Constants.cornerRadius))
     }
 }
 
