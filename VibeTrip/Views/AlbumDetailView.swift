@@ -34,6 +34,8 @@ import Combine
     private var cursor: Int? = nil
     private let limit = 20
     private let service: AlbumServiceProtocol
+    // 초기 로드 Task: 새 호출 시 이전 진행 중 fetch 를 cancel 해 race 로 인한 조용한 스킵 방지
+    private var loadTask: Task<Void, Never>? = nil
     // 밀리초 포함 ISO8601 파싱
     private static let isoFormatterWithFractionalSeconds: ISO8601DateFormatter = {
         let formatter = ISO8601DateFormatter()
@@ -57,11 +59,35 @@ import Combine
         self.init(albumId: albumId, service: AlbumService())
     }
     
+    // 초기 페이지 로드: 진행 중 fetch 를 cancel 한 뒤 새 fetch 시작 -> race 로 인한 스킵 방지
+    // 실패 시 기존 logs 유지 -> 로그 목록 화면 깜빡임 방지
     func loadInitialLogs() async {
-        guard !isLoading else { return }
-        cursor = nil
-        logs = []
-        await fetchLogs()
+        loadTask?.cancel()
+        let task = Task { await performInitialLoad() }
+        loadTask = task
+        await task.value
+    }
+
+    private func performInitialLoad() async {
+        isLoading = true
+        defer { isLoading = false }
+        do {
+            let payload = try await service.fetchAlbumLogs(albumId: albumId, cursor: nil, limit: limit)
+            try Task.checkCancellation()
+            for log in payload.content {
+                print("[AlbumLog] id:\(log.id) postedAt:\(log.postedAt) parsedDate:\(String(describing: Self.parseISO8601Date(log.postedAt)))")
+                // 저장 직후 사진 미표시 원인 진단용: 응답에 images 가 비어 오는지(케이스 ①) 확인
+                print("[AlbumLog] id:\(log.id) images.count:\(log.images.count) urls:\(log.images.map(\.imageUrl.absoluteString))")
+            }
+            // 성공 시점에만 교체: 사전 클리어 X -> 실패 시 기존 목록 유지
+            cursor = payload.content.last?.id
+            hasNext = payload.hasNext
+            logs = payload.content
+        } catch is CancellationError {
+            return
+        } catch {
+            // 실패 시 기존 logs 유지. 사용자 알림은 별도 작업으로 분리됨
+        }
     }
     
     // 음악 파일을 임시 폴더에 다운로드 후 공유 시트 트리거
