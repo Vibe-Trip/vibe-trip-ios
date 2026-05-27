@@ -49,6 +49,9 @@ struct GrowingTextEditor: UIViewRepresentable {
         textView.delegate = context.coordinator
         // intrinsicContentSize -> 텍스트 양에 따라 늘어남
         textView.isScrollEnabled = false
+        // UITextView는 UIScrollView 서브클래스라 부모 safe area를 contentInset으로 자동 반영 -> 빈 상태에서 캐럿 시작 위치가 아래로 밀리는 원인이라 명시적으로 차단
+        textView.contentInsetAdjustmentBehavior = .never
+        textView.contentInset = .zero
         textView.backgroundColor = .clear
         textView.textContainerInset = textContainerInset
         // 좌우 기본 inset 제거 -> 외부 SwiftUI padding으로 시각 위치 일원화
