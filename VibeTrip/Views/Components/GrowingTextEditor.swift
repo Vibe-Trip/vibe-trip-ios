@@ -22,6 +22,11 @@ struct GrowingTextEditor: UIViewRepresentable {
     let textColor: UIColor
     let textContainerInset: UIEdgeInsets
 
+    // MARK: - Constraints
+
+    // 입력 가능한 최대 글자 수
+    let maxLength: Int?
+
     // MARK: - Init
 
     init(
@@ -30,7 +35,8 @@ struct GrowingTextEditor: UIViewRepresentable {
         font: UIFont = UIFont(name: "Pretendard-Regular", size: 16) ?? .systemFont(ofSize: 16),
         lineSpacing: CGFloat = 8,
         textColor: UIColor = .label,
-        textContainerInset: UIEdgeInsets = .zero
+        textContainerInset: UIEdgeInsets = .zero,
+        maxLength: Int? = nil
     ) {
         _text = text
         _isFocused = isFocused
@@ -38,6 +44,7 @@ struct GrowingTextEditor: UIViewRepresentable {
         self.lineSpacing = lineSpacing
         self.textColor = textColor
         self.textContainerInset = textContainerInset
+        self.maxLength = maxLength
     }
 
     // MARK: - UIViewRepresentable
@@ -116,8 +123,24 @@ struct GrowingTextEditor: UIViewRepresentable {
             self.parent = parent
         }
 
+        // 입력 전 단계에서 maxLength 초과 분량은 차단
+        func textView(_ textView: UITextView, shouldChangeTextIn range: NSRange, replacementText text: String) -> Bool {
+            if textView.markedTextRange != nil { return true }
+            guard let maxLength = parent.maxLength else { return true }
+            let current = textView.text ?? ""
+            guard let swiftRange = Range(range, in: current) else { return true }
+            let after = current.replacingCharacters(in: swiftRange, with: text)
+            return after.count <= maxLength
+        }
+
         // 사용자 입력 -> 외부 text 바인딩 갱신
+        // 조합 종료 시점에 maxLength 초과 상태면 prefix 로 잘라 정합화
         func textViewDidChange(_ textView: UITextView) {
+            if let maxLength = parent.maxLength,
+               textView.markedTextRange == nil,
+               (textView.text?.count ?? 0) > maxLength {
+                textView.text = String((textView.text ?? "").prefix(maxLength))
+            }
             parent.text = textView.text
         }
 

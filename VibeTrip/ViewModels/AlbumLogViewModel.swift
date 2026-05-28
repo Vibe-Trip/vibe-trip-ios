@@ -38,6 +38,9 @@ struct PhotoSlot: Identifiable {
 
 @MainActor final class AlbumLogViewModel: ObservableObject {
 
+    // 입력 가능한 최대 글자 수
+    static let maxDescriptionLength = 500
+
     // MARK: - LogViewMode
 
     // 작성 및 수정 모드 분기

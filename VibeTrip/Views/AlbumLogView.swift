@@ -282,7 +282,11 @@ private extension AlbumLogView {
                     .padding(.top, Constants.textEditorTopPadding)
             }
 
-            GrowingTextEditor(text: $viewModel.logText, isFocused: $isFocused)
+            GrowingTextEditor(
+                text: $viewModel.logText,
+                isFocused: $isFocused,
+                maxLength: AlbumLogViewModel.maxDescriptionLength
+            )
                 .frame(maxWidth: .infinity, minHeight: Constants.textEditorMinHeight, alignment: .top)
                 .padding(.horizontal, Constants.contentHorizontalPadding)
                 .padding(.top, Constants.textEditorTopPadding)
