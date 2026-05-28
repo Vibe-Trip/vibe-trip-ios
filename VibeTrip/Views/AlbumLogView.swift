@@ -345,10 +345,6 @@ private extension AlbumLogView {
 
                 Spacer()
 
-                // [DEBUG] 입력 글자 수 카운터 (테스트용)
-                Text("\(viewModel.logText.count)자")
-                    .font(.setPretendard(weight: .regular, size: 12))
-                    .foregroundStyle(Color("GrayScale/300"))
             }
             .padding(.horizontal, Constants.contentHorizontalPadding)
             .frame(height: Constants.toolbarHeight - 1)
