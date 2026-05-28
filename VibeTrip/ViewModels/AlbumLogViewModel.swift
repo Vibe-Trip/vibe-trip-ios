@@ -9,24 +9,55 @@ import Foundation
 import Combine
 import UIKit
 
+// MARK: - Photo State Types
+
+// 서버에서 받아온 기존 사진
+// image -> 비동기 로딩 중/실패 시 nil 유지
+struct ExistingPhoto: Identifiable {
+    let id: Int64        // 서버 image id
+    let url: URL
+    var image: UIImage?
+}
+
+// 사용자가 이번 편집 세션에서 새로 추가한 사진
+struct NewPhoto: Identifiable {
+    let id: UUID = UUID()
+    let image: UIImage
+}
+
+// View 가 단일 리스트로 다루기 위한 표시 모델 (기존 + 신규 결합)
+struct PhotoSlot: Identifiable {
+    enum Kind {
+        case existing(id: Int64)
+        case new(id: UUID)
+    }
+    let id: String       // "existing-\(id)" / "new-\(uuid)" — ForEach 안정성
+    let kind: Kind
+    let image: UIImage?
+}
+
 @MainActor final class AlbumLogViewModel: ObservableObject {
-    
+
     // MARK: - LogViewMode
-    
+
     // 작성 및 수정 모드 분기
     enum LogViewMode {
         case create /// 작성
         case edit(AlbumLogEntry) /// 수정
     }
-    
+
     // MARK: - Published
-    
+
     // 텍스트 입력 내용
     @Published var logText: String = ""
     // 선택된 사진 목록 (수정 모드: 앞쪽 existingPhotosCount개가 기존 사진, 뒤쪽이 새 사진)
     @Published var selectedPhotos: [UIImage] = []
     // 기존 사진 수 (수정 모드에서 URL 로딩 완료 후 확정) —> 뷰에서 컨텍스트 메뉴 조건 판단에 사용
     @Published private(set) var existingPhotosCount: Int = 0
+    // 기존 사진 (서버 id 보존, 이미지 로딩은 비동기)
+    @Published private(set) var existingPhotos: [ExistingPhoto] = []
+    // 사용자가 이번 세션에서 새로 추가한 사진
+    @Published private(set) var newPhotos: [NewPhoto] = []
     // 하단 토스트 메시지
     @Published private(set) var toastMessage: String?
     // 종료 확인 팝업 표시 여부
@@ -46,6 +77,35 @@ import UIKit
     // 저장 버튼 활성화 조건: 텍스트 1자 이상
     var isSaveEnabled: Bool {
         !logText.isEmpty
+    }
+
+    // 기존 + 신규 사진을 단일 리스트로 표현 (View -> ForEach 용)
+    var photoSlots: [PhotoSlot] {
+        let existing = existingPhotos.map { photo in
+            PhotoSlot(
+                id: "existing-\(photo.id)",
+                kind: .existing(id: photo.id),
+                image: photo.image
+            )
+        }
+        let new = newPhotos.map { photo in
+            PhotoSlot(
+                id: "new-\(photo.id.uuidString)",
+                kind: .new(id: photo.id),
+                image: photo.image
+            )
+        }
+        return existing + new
+    }
+
+    // 총 사진 개수 (5장 제한 계산용)
+    var totalPhotoCount: Int {
+        existingPhotos.count + newPhotos.count
+    }
+
+    // 사진 보유 여부
+    var hasPhotos: Bool {
+        totalPhotoCount > 0
     }
 
     // 변경 감지: 이탈 팝업 노출 판단
@@ -110,6 +170,10 @@ import UIKit
             createdDate = ISO8601DateFormatter().date(from: entry.postedAt) ?? Date()
             existingPhotosCount = entry.images.count
             existingImageIds = entry.images.map(\.id)
+            // 서버 이미지 전체를 image: nil 슬롯으로 즉시 보유 (로딩은 비동기)
+            existingPhotos = entry.images.map {
+                ExistingPhoto(id: $0.id, url: $0.imageUrl, image: nil)
+            }
             Task { await loadExistingPhotos(from: entry.images.map(\.imageUrl)) }
         }
     }
@@ -138,7 +202,10 @@ import UIKit
             showToast(Constants.photoLimitMessage)
             return
         }
-        selectedPhotos.append(contentsOf: validImages.prefix(available))
+        let appended = Array(validImages.prefix(available))
+        selectedPhotos.append(contentsOf: appended)
+        // 신규 자료구조 동기화
+        newPhotos.append(contentsOf: appended.map { NewPhoto(image: $0) })
         if validImages.count > available {
             showToast(Constants.photoLimitMessage)
         }
@@ -148,16 +215,26 @@ import UIKit
     func removePhoto(at index: Int) {
         if index < existingPhotosCount {
             // 기존 사진 삭제: ID를 removedImageIds에 기록 후 existingImageIds에서 제거
-            removedImageIds.append(existingImageIds[index])
+            let removedId = existingImageIds[index]
+            removedImageIds.append(removedId)
             existingImageIds.remove(at: index)
             existingPhotosCount -= 1
             // selectedPhotos는 비동기 로딩 완료 후에만 존재
             if selectedPhotos.indices.contains(index) {
                 selectedPhotos.remove(at: index)
             }
+            // 신규 자료구조 동기화: 같은 id 항목 제거
+            if let idx = existingPhotos.firstIndex(where: { $0.id == removedId }) {
+                existingPhotos.remove(at: idx)
+            }
         } else {
             guard selectedPhotos.indices.contains(index) else { return }
             selectedPhotos.remove(at: index)
+            // 신규 자료구조 동기화: selectedPhotos 의 new 영역 인덱스 = index - existingPhotosCount
+            let newIndex = index - existingPhotosCount
+            if newPhotos.indices.contains(newIndex) {
+                newPhotos.remove(at: newIndex)
+            }
         }
     }
 
@@ -230,6 +307,10 @@ import UIKit
             if let (data, _) = try? await URLSession.shared.data(from: url),
                let image = UIImage(data: data) {
                 loaded.append(image)
+                // 신규 자료구조 동기화: 동일 url 슬롯에 image 채움 (도중 삭제 안전성 위해 재탐색)
+                if let idx = existingPhotos.firstIndex(where: { $0.url == url }) {
+                    existingPhotos[idx].image = image
+                }
             }
         }
         selectedPhotos.insert(contentsOf: loaded, at: 0)
