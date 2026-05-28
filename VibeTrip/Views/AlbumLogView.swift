@@ -166,7 +166,7 @@ struct AlbumLogView: View {
             // OrderedPhotoPicker: 선택 순서 -> 번호로 보여주고 UIImage 배열 반환
             OrderedPhotoPicker(
                 isPresented: $isPhotoPickerPresented,
-                maxSelectionCount: max(1, 5 - viewModel.selectedPhotos.count)
+                maxSelectionCount: max(1, 5 - viewModel.totalPhotoCount)
             ) { images in
                 viewModel.addPhotos(images)
             }
@@ -309,7 +309,7 @@ private extension AlbumLogView {
             HStack(spacing: Constants.toolbarIconSpacing) {
                 // 카메라 아이콘
                 Button {
-                    guard viewModel.selectedPhotos.count < 5 else {
+                    guard viewModel.totalPhotoCount < 5 else {
                         viewModel.showToast("사진은 최대 5장까지 고를 수 있어요")
                         return
                     }
