@@ -211,6 +211,36 @@ struct PhotoSlot: Identifiable {
         }
     }
 
+    // 슬롯 기반 사진 삭제: 서버 id / UUID 로 정확히 매칭해 잘못된 항목 삭제를 방지
+    func removePhoto(slot: PhotoSlot) {
+        switch slot.kind {
+        case .existing(let id):
+            guard let idx = existingPhotos.firstIndex(where: { $0.id == id }) else { return }
+            let hadImage = existingPhotos[idx].image != nil
+            // selectedPhotos 내 existing 영역에서의 위치: 자기보다 앞에 로드된 항목 수
+            let selectedIdx = existingPhotos[0..<idx].reduce(0) { $1.image != nil ? $0 + 1 : $0 }
+            existingPhotos.remove(at: idx)
+            if !removedImageIds.contains(id) {
+                removedImageIds.append(id)
+            }
+            if let oldIdsIdx = existingImageIds.firstIndex(of: id) {
+                existingImageIds.remove(at: oldIdsIdx)
+            }
+            if hadImage, selectedPhotos.indices.contains(selectedIdx) {
+                selectedPhotos.remove(at: selectedIdx)
+                existingPhotosCount = max(0, existingPhotosCount - 1)
+            }
+
+        case .new(let uuid):
+            guard let newIdx = newPhotos.firstIndex(where: { $0.id == uuid }) else { return }
+            newPhotos.remove(at: newIdx)
+            let selectedIdx = existingPhotosCount + newIdx
+            if selectedPhotos.indices.contains(selectedIdx) {
+                selectedPhotos.remove(at: selectedIdx)
+            }
+        }
+    }
+
     // 특정 인덱스 사진 삭제
     func removePhoto(at index: Int) {
         if index < existingPhotosCount {
@@ -268,10 +298,8 @@ struct PhotoSlot: Identifiable {
 
             case .edit:
                 guard let albumLogId else { return }
-                // 기존 사진 이후 인덱스만 새 사진으로 전송
-                let newPhotos = Array(selectedPhotos.dropFirst(existingPhotosCount))
                 let newPhotoDataList = newPhotos.compactMap {
-                    $0.jpegData(compressionQuality: 0.8)
+                    $0.image.jpegData(compressionQuality: 0.8)
                 }
                 let request = AlbumLogUpdateRequest(
                     albumId: albumId,

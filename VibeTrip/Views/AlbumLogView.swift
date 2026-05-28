@@ -99,7 +99,7 @@ struct AlbumLogView: View {
                     dateHeader
 
                     // 사진이 있을 때만 사진 슬라이드 영역 표시
-                    if !viewModel.selectedPhotos.isEmpty {
+                    if viewModel.hasPhotos {
                         photoArea
                     }
 
@@ -181,7 +181,7 @@ struct AlbumLogView: View {
                 case .edit(let entry):  return .edit(logId: entry.id)
                 }
             }()
-            let info = SavedLogInfo(mode: savedMode, hasImages: !viewModel.selectedPhotos.isEmpty)
+            let info = SavedLogInfo(mode: savedMode, hasImages: viewModel.hasPhotos)
             onSaved?(info)
             dismiss()
         }
@@ -218,25 +218,20 @@ private extension AlbumLogView {
     // 사진 슬라이드 영역
     var photoArea: some View {
         TabView(selection: $currentPhotoIndex) {
-            ForEach(viewModel.selectedPhotos.indices, id: \.self) { index in
+            ForEach(Array(viewModel.photoSlots.enumerated()), id: \.element.id) { index, slot in
                 GeometryReader { geometry in
-                    Image(uiImage: viewModel.selectedPhotos[index])
-                        .resizable()
-                        .frame(
-                            width: geometry.size.width,
-                            height: geometry.size.height
-                        )
+                    photoSlotImage(slot: slot, size: geometry.size)
                         // 이미지 영역 전체에서 컨텍스트 메뉴가 열리도록 터치 범위를 지정
                         .contentShape(Rectangle())
                         // 길게 누르면 프리뷰와 삭제 메뉴를 표시
                         .contextMenu {
                             Button(role: .destructive) {
-                                removePhoto(at: index)
+                                removePhoto(slot: slot)
                             } label: {
                                 Label("삭제", systemImage: "trash")
                             }
                         } preview: {
-                            photoPreview(for: index)
+                            photoPreview(for: slot)
                         }
                 }
                 .tag(index)
@@ -246,7 +241,7 @@ private extension AlbumLogView {
         .frame(height: Constants.photoAreaHeight)
         .overlay(alignment: .bottom) {
             // 사진 2장 이상일 때만 커스텀 인디케이터 표시
-            if viewModel.selectedPhotos.count > 1 {
+            if viewModel.totalPhotoCount > 1 {
                 pageIndicator
                     .padding(.bottom, Constants.indicatorBottomPadding)
             }
@@ -265,7 +260,7 @@ private extension AlbumLogView {
     // 커스텀 페이지 인디케이터
     private var pageIndicator: some View {
         HStack(spacing: Constants.dotSpacing) {
-            ForEach(viewModel.selectedPhotos.indices, id: \.self) { i in
+            ForEach(0..<viewModel.totalPhotoCount, id: \.self) { i in
                 Circle()
                     .frame(width: Constants.dotSize, height: Constants.dotSize)
                     .foregroundStyle(i == currentPhotoIndex ? Color.appPrimary : Color.white)
@@ -295,9 +290,9 @@ private extension AlbumLogView {
     }
     
     var placeholderText: String {
-        viewModel.selectedPhotos.isEmpty
-        ? "여행지에서 느꼈던 추억을 기록해보세요."
-        : "여행 기록을 저장하려면 짧은 이야기를 작성해주세요."
+        viewModel.hasPhotos
+        ? "여행 기록을 저장하려면 짧은 이야기를 작성해주세요."
+        : "여행지에서 느꼈던 추억을 기록해보세요."
     }
     
     var toastBottomPaddingFromToolbar: CGFloat {
@@ -414,11 +409,25 @@ private extension AlbumLogView {
         }
     }
 
+    // 슬롯 이미지 (이미지가 아직 로딩 중이면 placeholder)
+    @ViewBuilder
+    func photoSlotImage(slot: PhotoSlot, size: CGSize) -> some View {
+        if let image = slot.image {
+            Image(uiImage: image)
+                .resizable()
+                .frame(width: size.width, height: size.height)
+        } else {
+            Rectangle()
+                .fill(Color.secondary.opacity(0.12))
+                .frame(width: size.width, height: size.height)
+        }
+    }
+
     // 컨텍스트 메뉴 -> 프리뷰
     @ViewBuilder
-    func photoPreview(for index: Int) -> some View {
-        if viewModel.selectedPhotos.indices.contains(index) {
-            Image(uiImage: viewModel.selectedPhotos[index])
+    func photoPreview(for slot: PhotoSlot) -> some View {
+        if let image = slot.image {
+            Image(uiImage: image)
                 .resizable()
                 .scaledToFit()
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -427,13 +436,14 @@ private extension AlbumLogView {
     }
 
     // 선택한 사진을 즉시 제거하고 현재 페이지 인덱스를 보정
-    func removePhoto(at index: Int) {
-        viewModel.removePhoto(at: index)
+    func removePhoto(slot: PhotoSlot) {
+        viewModel.removePhoto(slot: slot)
 
-        if viewModel.selectedPhotos.isEmpty {
+        let remaining = viewModel.totalPhotoCount
+        if remaining == 0 {
             currentPhotoIndex = 0
         } else {
-            currentPhotoIndex = min(currentPhotoIndex, viewModel.selectedPhotos.count - 1)
+            currentPhotoIndex = min(currentPhotoIndex, remaining - 1)
         }
     }
 }
