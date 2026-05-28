@@ -129,13 +129,15 @@ struct AlbumLogView: View {
                                 .foregroundStyle(Color.appPrimary)
                         }
                     }
-                    .disabled(!viewModel.isSaveEnabled || viewModel.isSaving)
+                    .disabled(viewModel.isSaving)
                 }
             }
             .safeAreaInset(edge: .bottom, spacing: 0) {
                 // 하단 툴바
                 bottomToolbar
             }
+            // 저장 중에는 뒤로가기/텍스트/사진 영역까지 모든 입력 차단
+            .allowsHitTesting(!viewModel.isSaving)
 
             // 종료 확인 팝업
             if viewModel.isExitAlertPresented {

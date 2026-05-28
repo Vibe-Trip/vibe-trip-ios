@@ -73,11 +73,6 @@ struct PhotoSlot: Identifiable {
     // 날짜 헤더 표시용 -> 생성: 작성 날짜, 수정: 로그 작성 날짜
     let createdDate: Date
 
-    // 저장 버튼 활성화 조건: 공백/개행 제외 1자 이상
-    var isSaveEnabled: Bool {
-        !logText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
-    }
-
     // 기존 + 신규 사진을 단일 리스트로 표현 (View -> ForEach 용)
     var photoSlots: [PhotoSlot] {
         let existing = existingPhotos.map { photo in
