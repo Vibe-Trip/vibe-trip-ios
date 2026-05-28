@@ -7,6 +7,18 @@
 
 import SwiftUI
 
+// MARK: - SavedLogInfo
+// 저장 완료 시 호출자에게 전달되는 정보 (작성/수정 구분 + 이미지 첨부 여부)
+// AlbumDetailView 가 방금 저장한 로그의 이미지 영역에 스켈레톤을 표시할지 판단할 때 사용
+struct SavedLogInfo {
+    enum SavedMode {
+        case create
+        case edit(logId: Int)
+    }
+    let mode: SavedMode
+    let hasImages: Bool
+}
+
 // MARK: - AlbumLogView
 
 struct AlbumLogView: View {
@@ -14,13 +26,13 @@ struct AlbumLogView: View {
     @StateObject private var viewModel: AlbumLogViewModel
     @Environment(\.dismiss) private var dismiss
 
-    // 저장 완료 시 호출 (목록 재조회 여부 판단에 사용)
-    private let onSaved: (() -> Void)?
+    // 저장 완료 시 호출 (저장 모드/이미지 첨부 여부를 전달해 후속 처리에 사용)
+    private let onSaved: ((SavedLogInfo) -> Void)?
 
-    // TextEditor 포커스 제어 (scrollDismissesKeyboard 연동)
-    @FocusState private var isFocused: Bool
+    // 로그 입력 포커스 제어 (GrowingTextEditor 양방향 바인딩 + scrollDismissesKeyboard 연동)
+    @State private var isFocused: Bool = false
 
-    // 키보드 높이 추적 (커서 추적 스크롤에 사용)
+    // 키보드 높이 추적 (입력 영역이 키보드 위까지 스크롤 가능하도록 콘텐츠 하단 여백에 반영)
     @State private var keyboardHeight: CGFloat = 0
 
     // 보고 있는 사진 위치 관리
@@ -54,7 +66,6 @@ struct AlbumLogView: View {
         
         static let textEditorMinHeight: CGFloat = 200
         static let textEditorTopPadding: CGFloat = 20
-        static let textEditorInsetCorrection: CGFloat = 5
         // 페이지 인디케이터
         static let dotSize: CGFloat = 6                
         static let dotSpacing: CGFloat = 6
@@ -66,7 +77,7 @@ struct AlbumLogView: View {
     // MARK: - Init
 
     @MainActor
-    init(albumId: String, mode: AlbumLogViewModel.LogViewMode, onSaved: (() -> Void)? = nil) {
+    init(albumId: String, mode: AlbumLogViewModel.LogViewMode, onSaved: ((SavedLogInfo) -> Void)? = nil) {
         self.onSaved = onSaved
         _viewModel = StateObject(
             wrappedValue: AlbumLogViewModel(
@@ -83,68 +94,50 @@ struct AlbumLogView: View {
     var body: some View {
         ZStack(alignment: .bottom) {
             // 메인 콘텐츠 스크롤 영역
-            ScrollViewReader { proxy in
-                ScrollView {
-                    VStack(spacing: 0) {
-                        dateHeader
+            ScrollView {
+                VStack(spacing: 0) {
+                    dateHeader
 
-                        // 사진이 있을 때만 사진 슬라이드 영역 표시
-                        if !viewModel.selectedPhotos.isEmpty {
-                            photoArea
-                        }
+                    // 사진이 있을 때만 사진 슬라이드 영역 표시
+                    if viewModel.hasPhotos {
+                        photoArea
+                    }
 
-                        textEditorArea
-                            .id("textEditor")   // 커서 추적 스크롤 앵커
-                    }
-                    // 빈 영역 탭으로 키보드 비활성화
-                    .contentShape(Rectangle())
-                    // 키보드 높이만큼 여백 추가 -> 커서가 키보드 뒤로 숨지 않게 설정
-                    .padding(.bottom, keyboardHeight)
+                    textEditorArea
                 }
-                .scrollDismissesKeyboard(.interactively)
-                .onTapGesture { isFocused = false }     // 화면 탭 시 키보드 해제
-                .safeAreaInset(edge: .top, spacing: 0) { // bottomToolbar 영역 확보 + 키보드 올라올 때 툴바도 함께 이동
-                    // AppNavigationBar: 상단 safe area에 고정
-                    // trailing에 저장 버튼 주입
-                    AppNavigationBar(title: navTitle, style: .solidWhite, onBackTap: handleBackButton) {
-                        Button {
-                            Task { await viewModel.saveLog() }
-                        } label: {
-                            if viewModel.isSaving {
-                                ProgressView()
-                                    .tint(Color.appPrimary)
-                                    .frame(width: 44, height: 44)
-                            } else {
-                                Text("저장")
-                                    .font(.setPretendard(weight: .semiBold, size: 16))
-                                    .foregroundStyle(Color.appPrimary)
-                            }
-                        }
-                        .disabled(viewModel.isSaving)
-                    }
-                }
-                .safeAreaInset(edge: .bottom, spacing: 0) {
-                    // 하단 툴바
-                    bottomToolbar
-                }
-                // 포커스 진입 시: 키보드 올라오는 시간(350ms)을 기다렸다가 스크롤
-                .onChange(of: isFocused) { _, focused in
-                    guard focused else { return }
-                    Task {
-                        try? await Task.sleep(for: .milliseconds(350))
-                        withAnimation(.easeOut(duration: 0.25)) {
-                            proxy.scrollTo("textEditor", anchor: .bottom)
+                // 빈 영역 탭으로 키보드 비활성화
+                .contentShape(Rectangle())
+                // 키보드 높이만큼 여백 추가 -> 입력 영역이 키보드 위까지 스크롤되도록 콘텐츠 확장
+                .padding(.bottom, keyboardHeight)
+            }
+            .scrollDismissesKeyboard(.interactively)
+            .onTapGesture { isFocused = false }     // 화면 탭 시 키보드 해제
+            .safeAreaInset(edge: .top, spacing: 0) { // bottomToolbar 영역 확보 + 키보드 올라올 때 툴바도 함께 이동
+                // AppNavigationBar: 상단 safe area에 고정
+                // trailing에 저장 버튼 주입
+                AppNavigationBar(title: navTitle, style: .solidWhite, onBackTap: handleBackButton) {
+                    Button {
+                        Task { await viewModel.saveLog() }
+                    } label: {
+                        if viewModel.isSaving {
+                            ProgressView()
+                                .tint(Color.appPrimary)
+                                .frame(width: 44, height: 44)
+                        } else {
+                            Text("저장")
+                                .font(.setPretendard(weight: .semiBold, size: 16))
+                                .foregroundStyle(Color.appPrimary)
                         }
                     }
-                }
-                // 타이핑/줄바꿈 감지: 키보드가 올라와 있을 때만 즉시 커서 위치로 스크롤
-                .onChange(of: viewModel.logText) { _, _ in
-                    guard isFocused, keyboardHeight > 0 else { return }
-                    withAnimation(.easeOut(duration: 0.1)) {
-                        proxy.scrollTo("textEditor", anchor: .bottom)
-                    }
+                    .disabled(viewModel.isSaving)
                 }
             }
+            .safeAreaInset(edge: .bottom, spacing: 0) {
+                // 하단 툴바
+                bottomToolbar
+            }
+            // 저장 중에는 뒤로가기/텍스트/사진 영역까지 모든 입력 차단
+            .allowsHitTesting(!viewModel.isSaving)
 
             // 종료 확인 팝업
             if viewModel.isExitAlertPresented {
@@ -175,7 +168,7 @@ struct AlbumLogView: View {
             // OrderedPhotoPicker: 선택 순서 -> 번호로 보여주고 UIImage 배열 반환
             OrderedPhotoPicker(
                 isPresented: $isPhotoPickerPresented,
-                maxSelectionCount: max(1, 5 - viewModel.selectedPhotos.count)
+                maxSelectionCount: max(1, 5 - viewModel.totalPhotoCount)
             ) { images in
                 viewModel.addPhotos(images)
             }
@@ -183,7 +176,15 @@ struct AlbumLogView: View {
         }
         .onChange(of: viewModel.isSaved) { _, saved in
             guard saved else { return }
-            onSaved?()
+            // 저장 모드와 이미지 첨부 여부를 호출자에게 넘겨 사후 처리에 활용
+            let savedMode: SavedLogInfo.SavedMode = {
+                switch viewModel.mode {
+                case .create:           return .create
+                case .edit(let entry):  return .edit(logId: entry.id)
+                }
+            }()
+            let info = SavedLogInfo(mode: savedMode, hasImages: viewModel.hasPhotos)
+            onSaved?(info)
             dismiss()
         }
         .onChange(of: viewModel.toastMessage) { _, message in
@@ -219,25 +220,20 @@ private extension AlbumLogView {
     // 사진 슬라이드 영역
     var photoArea: some View {
         TabView(selection: $currentPhotoIndex) {
-            ForEach(viewModel.selectedPhotos.indices, id: \.self) { index in
+            ForEach(Array(viewModel.photoSlots.enumerated()), id: \.element.id) { index, slot in
                 GeometryReader { geometry in
-                    Image(uiImage: viewModel.selectedPhotos[index])
-                        .resizable()
-                        .frame(
-                            width: geometry.size.width,
-                            height: geometry.size.height
-                        )
+                    photoSlotImage(slot: slot, size: geometry.size)
                         // 이미지 영역 전체에서 컨텍스트 메뉴가 열리도록 터치 범위를 지정
                         .contentShape(Rectangle())
                         // 길게 누르면 프리뷰와 삭제 메뉴를 표시
                         .contextMenu {
                             Button(role: .destructive) {
-                                removePhoto(at: index)
+                                removePhoto(slot: slot)
                             } label: {
                                 Label("삭제", systemImage: "trash")
                             }
                         } preview: {
-                            photoPreview(for: index)
+                            photoPreview(for: slot)
                         }
                 }
                 .tag(index)
@@ -247,7 +243,7 @@ private extension AlbumLogView {
         .frame(height: Constants.photoAreaHeight)
         .overlay(alignment: .bottom) {
             // 사진 2장 이상일 때만 커스텀 인디케이터 표시
-            if viewModel.selectedPhotos.count > 1 {
+            if viewModel.totalPhotoCount > 1 {
                 pageIndicator
                     .padding(.bottom, Constants.indicatorBottomPadding)
             }
@@ -266,7 +262,7 @@ private extension AlbumLogView {
     // 커스텀 페이지 인디케이터
     private var pageIndicator: some View {
         HStack(spacing: Constants.dotSpacing) {
-            ForEach(viewModel.selectedPhotos.indices, id: \.self) { i in
+            ForEach(0..<viewModel.totalPhotoCount, id: \.self) { i in
                 Circle()
                     .frame(width: Constants.dotSize, height: Constants.dotSize)
                     .foregroundStyle(i == currentPhotoIndex ? Color.appPrimary : Color.white)
@@ -276,7 +272,7 @@ private extension AlbumLogView {
         .padding(.vertical, Constants.indicatorPaddingV)
     }
 
-    // TextEditor 입력 필드
+    // 로그 본문 입력 필드 (텍스트 양에 따라 자체 높이가 늘어나며 외곽 ScrollView가 전체 스크롤을 담당)
     var textEditorArea: some View {
         ZStack(alignment: .topLeading) {
             if viewModel.logText.isEmpty {
@@ -288,22 +284,21 @@ private extension AlbumLogView {
                     .padding(.top, Constants.textEditorTopPadding)
             }
 
-            TextEditor(text: $viewModel.logText)
-                .font(.setPretendard(weight: .regular, size: 16))
-                .lineSpacing(8)
-                .focused($isFocused)
-                .scrollContentBackground(.hidden)
-                .background(Color.clear)
-                .padding(.horizontal, Constants.contentHorizontalPadding - Constants.textEditorInsetCorrection)
-                .padding(.top, Constants.textEditorTopPadding - Constants.textEditorInsetCorrection)
-                .frame(minHeight: Constants.textEditorMinHeight)
+            GrowingTextEditor(
+                text: $viewModel.logText,
+                isFocused: $isFocused,
+                maxLength: AlbumLogViewModel.maxDescriptionLength
+            )
+                .frame(maxWidth: .infinity, minHeight: Constants.textEditorMinHeight, alignment: .top)
+                .padding(.horizontal, Constants.contentHorizontalPadding)
+                .padding(.top, Constants.textEditorTopPadding)
         }
     }
     
     var placeholderText: String {
-        viewModel.selectedPhotos.isEmpty
-        ? "여행지에서 느꼈던 추억을 기록해보세요."
-        : "여행 기록을 저장하려면 짧은 이야기를 작성해주세요."
+        viewModel.hasPhotos
+        ? "여행 기록을 저장하려면 짧은 이야기를 작성해주세요."
+        : "여행지에서 느꼈던 추억을 기록해보세요."
     }
     
     var toastBottomPaddingFromToolbar: CGFloat {
@@ -320,7 +315,7 @@ private extension AlbumLogView {
             HStack(spacing: Constants.toolbarIconSpacing) {
                 // 카메라 아이콘
                 Button {
-                    guard viewModel.selectedPhotos.count < 5 else {
+                    guard viewModel.totalPhotoCount < 5 else {
                         viewModel.showToast("사진은 최대 5장까지 고를 수 있어요")
                         return
                     }
@@ -349,6 +344,7 @@ private extension AlbumLogView {
                 .disabled(viewModel.isSaving)
 
                 Spacer()
+
             }
             .padding(.horizontal, Constants.contentHorizontalPadding)
             .frame(height: Constants.toolbarHeight - 1)
@@ -415,11 +411,25 @@ private extension AlbumLogView {
         }
     }
 
+    // 슬롯 이미지 (이미지가 아직 로딩 중이면 placeholder)
+    @ViewBuilder
+    func photoSlotImage(slot: PhotoSlot, size: CGSize) -> some View {
+        if let image = slot.image {
+            Image(uiImage: image)
+                .resizable()
+                .frame(width: size.width, height: size.height)
+        } else {
+            Rectangle()
+                .fill(Color.secondary.opacity(0.12))
+                .frame(width: size.width, height: size.height)
+        }
+    }
+
     // 컨텍스트 메뉴 -> 프리뷰
     @ViewBuilder
-    func photoPreview(for index: Int) -> some View {
-        if viewModel.selectedPhotos.indices.contains(index) {
-            Image(uiImage: viewModel.selectedPhotos[index])
+    func photoPreview(for slot: PhotoSlot) -> some View {
+        if let image = slot.image {
+            Image(uiImage: image)
                 .resizable()
                 .scaledToFit()
                 .frame(maxWidth: .infinity, maxHeight: .infinity)
@@ -428,13 +438,14 @@ private extension AlbumLogView {
     }
 
     // 선택한 사진을 즉시 제거하고 현재 페이지 인덱스를 보정
-    func removePhoto(at index: Int) {
-        viewModel.removePhoto(at: index)
+    func removePhoto(slot: PhotoSlot) {
+        viewModel.removePhoto(slot: slot)
 
-        if viewModel.selectedPhotos.isEmpty {
+        let remaining = viewModel.totalPhotoCount
+        if remaining == 0 {
             currentPhotoIndex = 0
         } else {
-            currentPhotoIndex = min(currentPhotoIndex, viewModel.selectedPhotos.count - 1)
+            currentPhotoIndex = min(currentPhotoIndex, remaining - 1)
         }
     }
 }
