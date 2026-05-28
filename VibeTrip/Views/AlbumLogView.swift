@@ -129,7 +129,7 @@ struct AlbumLogView: View {
                                 .foregroundStyle(Color.appPrimary)
                         }
                     }
-                    .disabled(viewModel.isSaving)
+                    .disabled(!viewModel.isSaveEnabled || viewModel.isSaving)
                 }
             }
             .safeAreaInset(edge: .bottom, spacing: 0) {

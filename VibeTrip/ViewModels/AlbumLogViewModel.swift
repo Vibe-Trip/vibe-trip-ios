@@ -73,9 +73,9 @@ struct PhotoSlot: Identifiable {
     // 날짜 헤더 표시용 -> 생성: 작성 날짜, 수정: 로그 작성 날짜
     let createdDate: Date
 
-    // 저장 버튼 활성화 조건: 텍스트 1자 이상
+    // 저장 버튼 활성화 조건: 공백/개행 제외 1자 이상
     var isSaveEnabled: Bool {
-        !logText.isEmpty
+        !logText.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
     }
 
     // 기존 + 신규 사진을 단일 리스트로 표현 (View -> ForEach 용)
@@ -178,7 +178,10 @@ struct PhotoSlot: Identifiable {
         let formatter = DateFormatter()
         formatter.locale = Locale(identifier: "ko_KR")
         formatter.dateFormat = Constants.timeFormat
-        logText += "\(formatter.string(from: Date())) "
+        let stamp = "\(formatter.string(from: Date())) "
+        // 글자 수 제한 초과 시, 타임스탬프 입력 제한
+        guard logText.count + stamp.count <= Self.maxDescriptionLength else { return }
+        logText += stamp
     }
 
     // 사진 추가 -> 기존 + 신규 합산 5장 초과 시 토스트 표시
@@ -219,6 +222,7 @@ struct PhotoSlot: Identifiable {
 
     // 로그 저장 (작성: POST, 수정: PUT)
     func saveLog() async {
+        guard !isSaving else { return }
         let trimmedLogText = logText.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmedLogText.isEmpty else {
             showToast(Constants.saveValidationMessage)
