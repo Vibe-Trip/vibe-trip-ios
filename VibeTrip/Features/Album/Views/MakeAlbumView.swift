@@ -372,7 +372,7 @@ private struct MakeAlbumRequiredInputContent: View {
                             .textInputAutocapitalization(.never)
                             .padding(.horizontal, 16)
                             .frame(maxWidth: .infinity, minHeight: 48, maxHeight: 48, alignment: .leading)
-                            .background(Color.fieldBackground)
+                            .background(Color("Grayscale/50"))
                             .clipShape(RoundedRectangle(cornerRadius: 8))
                             .submitLabel(.done)
                             .overlay(
@@ -421,7 +421,7 @@ private struct MakeAlbumRequiredInputContent: View {
                             }
                             .padding(.horizontal, 16)
                             .frame(maxWidth: .infinity, minHeight: 48, maxHeight: 48, alignment: .leading)
-                            .background(Color.fieldBackground)
+                            .background(Color("Grayscale/50"))
                             .clipShape(RoundedRectangle(cornerRadius: 8))
                             .overlay(
                                 RoundedRectangle(cornerRadius: 8)
@@ -663,7 +663,7 @@ private struct MakeAlbumOptionalInputContent: View {
                                 .padding(.horizontal, 12)
                                 .padding(.top, 8)
                                 .frame(height: 240)
-                                .background(Color.fieldBackground)
+                                .background(Color("Grayscale/50"))
                                 .clipShape(RoundedRectangle(cornerRadius: 8))
                                 .overlay(
                                     RoundedRectangle(cornerRadius: 8)
@@ -764,7 +764,7 @@ private struct MakeAlbumPhotoBox: View {
         ZStack {
             // 배경 컨테이너
             RoundedRectangle(cornerRadius: 12)
-                .fill(Color.fieldBackground)
+                .fill(Color("Grayscale/50"))
                 .frame(height: Layout.containerHeight)
                 .overlay(
                     RoundedRectangle(cornerRadius: 12)

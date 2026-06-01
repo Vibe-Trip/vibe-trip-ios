@@ -129,7 +129,7 @@ struct EditAlbumView: View {
                                     .foregroundColor(Color.text)
                                     .padding(.horizontal, 16)
                                     .frame(maxWidth: .infinity, minHeight: 48, maxHeight: 48, alignment: .leading)
-                                    .background(Color.fieldBackground)
+                                    .background(Color("Grayscale/50"))
                                     .clipShape(RoundedRectangle(cornerRadius: 8))
                                     .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.fieldBorder, lineWidth: 1))
                                     .appShadow(.buttonTextField)
@@ -151,7 +151,7 @@ struct EditAlbumView: View {
                                 .foregroundColor(Color.text)
                                 .padding(.horizontal, 16)
                                 .frame(maxWidth: .infinity, minHeight: 48, maxHeight: 48, alignment: .leading)
-                                .background(Color.fieldBackground)
+                                .background(Color("Grayscale/50"))
                                 .clipShape(RoundedRectangle(cornerRadius: 8))
                                 .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.fieldBorder, lineWidth: 1))
                                 .appShadow(.buttonTextField)
@@ -190,7 +190,7 @@ struct EditAlbumView: View {
                                 }
                                 .padding(.horizontal, 16)
                                 .frame(maxWidth: .infinity, minHeight: 48, maxHeight: 48, alignment: .leading)
-                                .background(Color.fieldBackground)
+                                .background(Color("Grayscale/50"))
                                 .clipShape(RoundedRectangle(cornerRadius: 8))
                                 .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.fieldBorder, lineWidth: 1))
                                 .appShadow(.buttonTextField)
@@ -490,7 +490,7 @@ private struct EditAlbumPhotoBox: View {
     var body: some View {
         ZStack {
             RoundedRectangle(cornerRadius: 12)
-                .fill(Color.fieldBackground)
+                .fill(Color("Grayscale/50"))
                 .frame(height: Layout.containerHeight)
                 .overlay(
                     RoundedRectangle(cornerRadius: 12)
@@ -590,7 +590,7 @@ private struct CommentarySection: View {
                     .padding(.horizontal, 12)
                     .padding(.top, 8)
                     .frame(height: 240)
-                    .background(Color.fieldBackground)
+                    .background(Color("Grayscale/50"))
                     .clipShape(RoundedRectangle(cornerRadius: 8))
                     .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.fieldBorder, lineWidth: 1))
                     .appShadow(.buttonTextField)
