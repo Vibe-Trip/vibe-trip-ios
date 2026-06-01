@@ -263,7 +263,7 @@ struct EditAlbumView: View {
                                     Button(action: { isGenreDescriptionPresented = true }) {
                                         Image(systemName: "info.circle")
                                             .font(.system(size: 18))
-                                            .foregroundStyle(Color.appPrimary.opacity(0.6))
+                                            .foregroundStyle(Color("appPrimary/500").opacity(0.6))
                                     }
                                     .buttonStyle(.plain)
                                 }
@@ -291,7 +291,7 @@ struct EditAlbumView: View {
                                                     RoundedRectangle(cornerRadius: 8)
                                                         .fill(
                                                             viewModel.selectedGenre == genre
-                                                            ? Color("appPrimary50")
+                                                            ? Color("appPrimary/50")
                                                             : Color("GrayScale/50")
                                                         )
                                                         .appShadow(.buttonTextField)
@@ -300,7 +300,7 @@ struct EditAlbumView: View {
                                                     RoundedRectangle(cornerRadius: 8)
                                                         .stroke(
                                                             viewModel.selectedGenre == genre
-                                                            ? Color.appPrimary.opacity(0.35)
+                                                            ? Color("appPrimary/500").opacity(0.35)
                                                             : Color("GrayScale/100"),
                                                             lineWidth: 1
                                                         )
@@ -643,7 +643,7 @@ private struct EditAlbumBottomButton: View {
                 .foregroundStyle(isEnabled ? .white : Color("GrayScale/50"))
                 .frame(maxWidth: .infinity)
                 .frame(height: 52)
-                .background(isEnabled ? Color.appPrimary : Color("GrayScale/300"))
+                .background(isEnabled ? Color("appPrimary/500") : Color("GrayScale/300"))
                 .clipShape(RoundedRectangle(cornerRadius: 12))
         }
         .buttonStyle(.plain)

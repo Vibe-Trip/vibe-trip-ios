@@ -131,7 +131,7 @@ struct MakeAlbumLoadingView: View {
                             .foregroundStyle(Color("GrayScale/50"))
                             .frame(maxWidth: .infinity)
                             .padding(.vertical, Layout.buttonVerticalPadding)
-                            .background(isCreating ? Color("GrayScale/100") : Color.appPrimary)
+                            .background(isCreating ? Color("GrayScale/100") : Color("appPrimary/500"))
                             .cornerRadius(Layout.buttonCornerRadius)
                     }
                     .padding(.horizontal, Layout.buttonHorizontalPadding)

@@ -354,7 +354,7 @@ extension AppNavigationBar where Leading == EmptyView, Trailing == EmptyView {
     AppNavigationBar(title: "로그 작성", style: .solidWhite, onBackTap: {}) {
         Button("저장") {}
             .font(.setPretendard(weight: .semiBold, size: 16))
-            .foregroundStyle(Color.appPrimary)
+            .foregroundStyle(Color("appPrimary/500"))
     }
 }
 

@@ -65,13 +65,13 @@ struct ExitPopupView: View {
                             ZStack {
                                 Circle()
                                     .stroke(
-                                        binding.wrappedValue ? Color.appPrimary : Color("GrayScale/300"),
+                                        binding.wrappedValue ? Color("appPrimary/500") : Color("GrayScale/300"),
                                         lineWidth: 1
                                     )
                                     .frame(width: 16, height: 16)
                                 if binding.wrappedValue {
                                     Circle()
-                                        .fill(Color.appPrimary)
+                                        .fill(Color("appPrimary/500"))
                                         .frame(width: 8, height: 8)
                                 }
                             }
@@ -119,13 +119,13 @@ struct ExitPopupView: View {
                 .foregroundStyle(isCancelStyle ? Color("GrayScale/400") : Color.white)
                 .frame(maxWidth: .infinity)
                 .frame(minHeight: 48, maxHeight: 48)
-                .background(isCancelStyle ? Color("GrayScale/100") : Color.appPrimary)
+                .background(isCancelStyle ? Color("GrayScale/100") : Color("appPrimary/500"))
                 .clipShape(RoundedRectangle(cornerRadius: 8))
                 .overlay(
                     RoundedRectangle(cornerRadius: 8)
                         .inset(by: 0.5)
                         .stroke(
-                            isCancelStyle ? Color("Grayscale/100") : Color("appPrimary500"),
+                            isCancelStyle ? Color("Grayscale/100") : Color("appPrimary/500"),
                             lineWidth: 1
                         )
                 )

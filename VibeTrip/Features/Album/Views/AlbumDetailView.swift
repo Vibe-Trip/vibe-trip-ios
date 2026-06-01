@@ -852,7 +852,7 @@ private extension AlbumDetailView {
             AlbumDetailActionButton(
                 title: "로그 작성",
                 systemImageName: "pencil.line",
-                iconColor: Color("appPrimary500"),
+                iconColor: Color("appPrimary/500"),
                 action: { logPresentation = .create }
             )
         }
@@ -922,7 +922,7 @@ private extension AlbumDetailView {
                         AlbumDetailActionButton(
                             title: "로그 작성",
                             systemImageName: "pencil.line",
-                            iconColor: Color("appPrimary500"),
+                            iconColor: Color("appPrimary/500"),
                             action: { logPresentation = .create }
                         )
                         .background(Color.white, in: RoundedRectangle(cornerRadius: 28))
@@ -980,7 +980,7 @@ private extension AlbumDetailView {
                 height: Constants.scrollToTopButtonSize,
                 alignment: .center
             )
-            .background(Color("appPrimary500"))
+            .background(Color("appPrimary/500"))
             .cornerRadius(Constants.scrollToTopButtonSize / 2)
             // 최상단이동버튼 -> buttonTextField shadow
             .appShadow(.buttonTextField)
@@ -1195,7 +1195,7 @@ private struct AlbumDetailActionButton: View {
     let title: String
     let systemImageName: String
     var isAssetImage: Bool = false
-    var iconColor: Color = .appPrimary400
+    var iconColor: Color = Color("appPrimary/400")
     var referenceTitle: String? = nil
     let action: () -> Void
     
@@ -1235,11 +1235,11 @@ private struct AlbumDetailActionButton: View {
                 }
                 .font(.setPretendard(weight: .medium, size: Constants.fontSize))
             }
-            .foregroundStyle(Color("appPrimary500"))
+            .foregroundStyle(Color("appPrimary/500"))
             .padding(.horizontal, Constants.horizontalPadding)
             .padding(.vertical, Constants.verticalPadding)
             .frame(maxWidth: .infinity, minHeight: Constants.height)
-            .background(Color.appPrimary400.opacity(0.12))
+            .background(Color("appPrimary/400").opacity(0.12))
             .clipShape(RoundedRectangle(cornerRadius: Constants.cornerRadius))
         }
         .buttonStyle(.plain)
@@ -1672,7 +1672,7 @@ private struct AlbumDetailLogImageSlider: View {
                         Circle()
                             .frame(width: Constants.dotSize, height: Constants.dotSize)
                             .foregroundStyle(
-                                index == currentIndex ? Color.appPrimary400 : Color.white
+                                index == currentIndex ? Color("appPrimary/400") : Color.white
                             )
                         // 페이지컨트롤dot -> pageControl shadow
                             .appShadow(.pageControl)
