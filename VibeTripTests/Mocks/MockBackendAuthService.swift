@@ -8,6 +8,7 @@
 // 테스트용(성공 case)
 
 import Foundation
+@testable import VibeTrip
 
 #if DEBUG
 final class MockBackendAuthService: BackendAuthServiceProtocol {

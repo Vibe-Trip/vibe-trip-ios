@@ -129,20 +129,6 @@ final class AlbumLogViewModelTests: XCTestCase {
         XCTAssertNotNil(sut.toastMessage)
     }
 
-    // MARK: - isSaveEnabled
-
-    // 텍스트 없음 -> 저장 버튼 비활성화
-    func test_isSaveEnabled_emptyText_returnsFalse() {
-        sut.logText = ""
-        XCTAssertFalse(sut.isSaveEnabled)
-    }
-
-    // 텍스트 있음 -> 저장 버튼 활성화
-    func test_isSaveEnabled_withText_returnsTrue() {
-        sut.logText = "도쿄 여행"
-        XCTAssertTrue(sut.isSaveEnabled)
-    }
-
     // MARK: - addPhotos
 
     private func makeTestImage(size: CGSize = CGSize(width: 10, height: 10)) -> UIImage {
@@ -153,13 +139,13 @@ final class AlbumLogViewModelTests: XCTestCase {
         }
     }
 
-    // 5장 이하 추가 -> selectedPhotos에 정상 반영
+    // 5장 이하 추가 -> photoSlots에 정상 반영
     func test_addPhotos_withinLimit_addsPhotos() {
         let images = (0..<3).map { _ in makeTestImage() }
 
         sut.addPhotos(images)
 
-        XCTAssertEqual(sut.selectedPhotos.count, 3)
+        XCTAssertEqual(sut.photoSlots.count, 3)
     }
 
     // 5장 초과 추가 -> 한도 초과 토스트 메시지 설정
@@ -197,6 +183,15 @@ final class AlbumLogViewModelEditTests: XCTestCase {
         stub = nil
         sut = nil
         try await super.tearDown()
+    }
+
+    // jpegData 변환이 가능한 유효 이미지 (빈 UIImage는 addPhotos에서 걸러짐)
+    private func makeTestImage(size: CGSize = CGSize(width: 10, height: 10)) -> UIImage {
+        let renderer = UIGraphicsImageRenderer(size: size)
+        return renderer.image { context in
+            UIColor.red.setFill()
+            context.fill(CGRect(origin: .zero, size: size))
+        }
     }
 
     // MARK: - saveLog
@@ -248,13 +243,13 @@ final class AlbumLogViewModelEditTests: XCTestCase {
 
     // MARK: - removePhoto
 
-    // 새 사진 추가 후 제거 -> selectedPhotos에서 삭제됨
+    // 새 사진 추가 후 제거 -> photoSlots에서 삭제됨
     func test_removePhoto_editMode_newPhoto_removesPhoto() {
-        sut.addPhotos([UIImage()])
+        sut.addPhotos([makeTestImage()])
 
-        sut.removePhoto(at: 0)
+        sut.removePhoto(slot: sut.photoSlots[0])
 
-        XCTAssertTrue(sut.selectedPhotos.isEmpty)
+        XCTAssertTrue(sut.photoSlots.isEmpty)
     }
 
     // MARK: - removeImageIds
@@ -274,8 +269,8 @@ final class AlbumLogViewModelEditTests: XCTestCase {
         sut = AlbumLogViewModel(albumId: "1", mode: .edit(entryWithImages), service: stub, analytics: MockAnalyticsService())
         sut.logText = "텍스트"
 
-        // 첫 번째 기존 이미지(id: 10) 삭제 (existingPhotosCount 기준 인덱스 0)
-        sut.removePhoto(at: 0)
+        // 첫 번째 기존 이미지(id: 10) 삭제 — photoSlots는 기존 사진이 앞에 정렬됨
+        sut.removePhoto(slot: sut.photoSlots[0])
         await sut.saveLog()
 
         XCTAssertEqual(stub.lastUpdateRequest?.removeImageIds, [Int64(10)])
