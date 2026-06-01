@@ -129,9 +129,9 @@ struct EditAlbumView: View {
                                     .foregroundColor(Color.text)
                                     .padding(.horizontal, 16)
                                     .frame(maxWidth: .infinity, minHeight: 48, maxHeight: 48, alignment: .leading)
-                                    .background(Color("Grayscale/50"))
+                                    .background(Color("GrayScale/50"))
                                     .clipShape(RoundedRectangle(cornerRadius: 8))
-                                    .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.fieldBorder, lineWidth: 1))
+                                    .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color("GrayScale/100"), lineWidth: 1))
                                     .appShadow(.buttonTextField)
                                     .onChange(of: viewModel.albumTitle) { _, newValue in
                                         let limited = String(newValue.prefix(15))
@@ -151,9 +151,9 @@ struct EditAlbumView: View {
                                 .foregroundColor(Color.text)
                                 .padding(.horizontal, 16)
                                 .frame(maxWidth: .infinity, minHeight: 48, maxHeight: 48, alignment: .leading)
-                                .background(Color("Grayscale/50"))
+                                .background(Color("GrayScale/50"))
                                 .clipShape(RoundedRectangle(cornerRadius: 8))
-                                .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.fieldBorder, lineWidth: 1))
+                                .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color("GrayScale/100"), lineWidth: 1))
                                 .appShadow(.buttonTextField)
                                 .onChange(of: viewModel.destination) { _, newValue in
                                     let limited = String(newValue.prefix(25))
@@ -190,9 +190,9 @@ struct EditAlbumView: View {
                                 }
                                 .padding(.horizontal, 16)
                                 .frame(maxWidth: .infinity, minHeight: 48, maxHeight: 48, alignment: .leading)
-                                .background(Color("Grayscale/50"))
+                                .background(Color("GrayScale/50"))
                                 .clipShape(RoundedRectangle(cornerRadius: 8))
-                                .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.fieldBorder, lineWidth: 1))
+                                .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color("GrayScale/100"), lineWidth: 1))
                                 .appShadow(.buttonTextField)
                             }
                             .buttonStyle(.plain)
@@ -292,7 +292,7 @@ struct EditAlbumView: View {
                                                         .fill(
                                                             viewModel.selectedGenre == genre
                                                             ? Color("appPrimary50")
-                                                            : Color("Grayscale/50")
+                                                            : Color("GrayScale/50")
                                                         )
                                                         .appShadow(.buttonTextField)
                                                 )
@@ -301,7 +301,7 @@ struct EditAlbumView: View {
                                                         .stroke(
                                                             viewModel.selectedGenre == genre
                                                             ? Color.appPrimary.opacity(0.35)
-                                                            : Color.fieldBorder,
+                                                            : Color("GrayScale/100"),
                                                             lineWidth: 1
                                                         )
                                                 )
@@ -490,12 +490,12 @@ private struct EditAlbumPhotoBox: View {
     var body: some View {
         ZStack {
             RoundedRectangle(cornerRadius: 12)
-                .fill(Color("Grayscale/50"))
+                .fill(Color("GrayScale/50"))
                 .frame(height: Layout.containerHeight)
                 .overlay(
                     RoundedRectangle(cornerRadius: 12)
                         .inset(by: 0.5)
-                        .stroke(Color.fieldBorder, lineWidth: 1)
+                        .stroke(Color("GrayScale/100"), lineWidth: 1)
                 )
                 .appShadow(.buttonTextField)
 
@@ -590,9 +590,9 @@ private struct CommentarySection: View {
                     .padding(.horizontal, 12)
                     .padding(.top, 8)
                     .frame(height: 240)
-                    .background(Color("Grayscale/50"))
+                    .background(Color("GrayScale/50"))
                     .clipShape(RoundedRectangle(cornerRadius: 8))
-                    .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color.fieldBorder, lineWidth: 1))
+                    .overlay(RoundedRectangle(cornerRadius: 8).stroke(Color("GrayScale/100"), lineWidth: 1))
                     .appShadow(.buttonTextField)
                     .focused($isFocused)
                     .onChange(of: commentary) { _, newValue in

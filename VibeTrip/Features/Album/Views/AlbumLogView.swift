@@ -212,7 +212,7 @@ private extension AlbumLogView {
 
             // 섹션 구분선
             Rectangle()
-                .fill(Color.fieldBorder)
+                .fill(Color("GrayScale/100"))
                 .frame(height: 1)
         }
     }
@@ -309,7 +309,7 @@ private extension AlbumLogView {
     var bottomToolbar: some View {
         VStack(spacing: 0) {
             Rectangle()
-                .fill(Color.fieldBorder)
+                .fill(Color("GrayScale/100"))
                 .frame(height: 1)
 
             HStack(spacing: Constants.toolbarIconSpacing) {

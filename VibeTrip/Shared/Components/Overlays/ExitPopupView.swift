@@ -100,7 +100,7 @@ struct ExitPopupView: View {
             .clipShape(RoundedRectangle(cornerRadius: 12))
             .overlay(
                 RoundedRectangle(cornerRadius: 12)
-                    .stroke(Color.fieldBorder, lineWidth: 1)
+                    .stroke(Color("GrayScale/100"), lineWidth: 1)
             )
             .padding(.horizontal, 20)
         }

@@ -372,12 +372,12 @@ private struct MakeAlbumRequiredInputContent: View {
                             .textInputAutocapitalization(.never)
                             .padding(.horizontal, 16)
                             .frame(maxWidth: .infinity, minHeight: 48, maxHeight: 48, alignment: .leading)
-                            .background(Color("Grayscale/50"))
+                            .background(Color("GrayScale/50"))
                             .clipShape(RoundedRectangle(cornerRadius: 8))
                             .submitLabel(.done)
                             .overlay(
                                 RoundedRectangle(cornerRadius: 8)
-                                    .stroke(Color.fieldBorder, lineWidth: 1)
+                                    .stroke(Color("GrayScale/100"), lineWidth: 1)
                             )
                             .appShadow(.buttonTextField)
                             .onAppear {
@@ -421,11 +421,11 @@ private struct MakeAlbumRequiredInputContent: View {
                             }
                             .padding(.horizontal, 16)
                             .frame(maxWidth: .infinity, minHeight: 48, maxHeight: 48, alignment: .leading)
-                            .background(Color("Grayscale/50"))
+                            .background(Color("GrayScale/50"))
                             .clipShape(RoundedRectangle(cornerRadius: 8))
                             .overlay(
                                 RoundedRectangle(cornerRadius: 8)
-                                    .stroke(Color.fieldBorder, lineWidth: 1)
+                                    .stroke(Color("GrayScale/100"), lineWidth: 1)
                             )
                             .appShadow(.buttonTextField)
                         }
@@ -663,11 +663,11 @@ private struct MakeAlbumOptionalInputContent: View {
                                 .padding(.horizontal, 12)
                                 .padding(.top, 8)
                                 .frame(height: 240)
-                                .background(Color("Grayscale/50"))
+                                .background(Color("GrayScale/50"))
                                 .clipShape(RoundedRectangle(cornerRadius: 8))
                                 .overlay(
                                     RoundedRectangle(cornerRadius: 8)
-                                        .stroke(Color.fieldBorder, lineWidth: 1)
+                                        .stroke(Color("GrayScale/100"), lineWidth: 1)
                                 )
                                 .appShadow(.buttonTextField)
                                 // 키보드 비활성화
@@ -764,7 +764,7 @@ private struct MakeAlbumPhotoBox: View {
         ZStack {
             // 배경 컨테이너
             RoundedRectangle(cornerRadius: 12)
-                .fill(Color("Grayscale/50"))
+                .fill(Color("GrayScale/50"))
                 .frame(height: Layout.containerHeight)
                 .overlay(
                     RoundedRectangle(cornerRadius: 12)

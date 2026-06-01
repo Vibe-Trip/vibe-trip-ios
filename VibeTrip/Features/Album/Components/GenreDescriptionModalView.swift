@@ -78,7 +78,7 @@ struct GenreDescriptionModalView: View {
             .clipShape(RoundedRectangle(cornerRadius: Layout.modalCornerRadius))
             .overlay(
                 RoundedRectangle(cornerRadius: Layout.modalCornerRadius)
-                    .stroke(Color.fieldBorder, lineWidth: 1)
+                    .stroke(Color.white, lineWidth: 1)
             )
             .appShadow(.buttonTextField)
             .padding(.horizontal, 20)
