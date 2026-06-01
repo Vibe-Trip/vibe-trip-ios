@@ -291,8 +291,8 @@ struct EditAlbumView: View {
                                                     RoundedRectangle(cornerRadius: 8)
                                                         .fill(
                                                             viewModel.selectedGenre == genre
-                                                            ? Color.chipSelectedBackground
-                                                            : Color.chipUnselectedBackground
+                                                            ? Color("appPrimary50")
+                                                            : Color("Grayscale/50")
                                                         )
                                                         .appShadow(.buttonTextField)
                                                 )
