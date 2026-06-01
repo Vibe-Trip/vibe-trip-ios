@@ -110,7 +110,7 @@ struct NotificationView: View {
         VStack(alignment: .center, spacing: Layout.emptySymbolTitleSpacing) {
 
             // 빈 상태 심볼
-            Image("Alarm_Placeholder")
+            Image("Placeholders/Alarm")
                 .resizable()
                 .scaledToFit()
                 .frame(width: Layout.emptySymbolWidth, height: Layout.emptySymbolHeight)

@@ -129,7 +129,7 @@ struct LoginView: View {
     // MARK: - Background
     private var backgroundView: some View {
         Group {
-            if let image = UIImage(named: "LoginViewBG") {
+            if let image = UIImage(named: "Backgrounds/Login") {
                 Image(uiImage: image)
                     .resizable()
                     .scaledToFill()
@@ -160,7 +160,7 @@ struct LoginView: View {
     
     // MARK: - Logo Placeholder
     private var logoPlaceholder: some View {
-        Image("AppLogo_Login")
+        Image("Logos/Login")
             .resizable()
             .scaledToFit()
             .frame(width: 160, height: 46)
@@ -182,7 +182,7 @@ struct LoginView: View {
             // Kakao Login Button
             Button { viewModel.loginWithKakao() } label: {
                 HStack(spacing: 16) {
-                    Image("KaKaoLogo")
+                    Image("Logos/Kakao")
                         .resizable()
                         .scaledToFit()
                         .frame(width: 20, height: 20)

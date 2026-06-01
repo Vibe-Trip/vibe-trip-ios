@@ -12,7 +12,7 @@ struct SplashView: View {
         ZStack {
             Color(.systemBackground)
                 .ignoresSafeArea()
-            Image("Splash_Logo")
+            Image("Logos/Splash")
         }
     }
 }

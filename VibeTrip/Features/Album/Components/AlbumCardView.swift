@@ -71,7 +71,7 @@ struct AlbumCardView: View, Equatable {
                 image
                     .resizable()    /// 비율 유지 채택 시  ->  .scaledToFill()
             default:
-                Image("AlbumCard_Placeholder")
+                Image("Placeholders/AlbumCard")
                     .resizable()
                     .scaledToFill()
             }

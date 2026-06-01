@@ -810,7 +810,7 @@ private extension AlbumDetailView {
                     .resizable()
                     .scaledToFill()
             default:
-                Image("AlbumDetail_Placeholder")
+                Image("Placeholders/AlbumDetail")
                     .resizable()
                     .scaledToFill()
             }
@@ -837,7 +837,7 @@ private extension AlbumDetailView {
             /// 재생/일시정지
             AlbumDetailActionButton(
                 title: musicService.isPlaying ? "일시정지" : "재생",
-                systemImageName: musicService.isPlaying ? "Pause" : "Play",
+                systemImageName: musicService.isPlaying ? "Controls/Pause" : "Controls/Play",
                 isAssetImage: true,
                 referenceTitle: "일시정지",
                 action: {
@@ -907,7 +907,7 @@ private extension AlbumDetailView {
                     HStack(spacing: Constants.actionButtonSpacing) {
                         AlbumDetailActionButton(
                             title: musicService.isPlaying ? "일시정지" : "재생",
-                            systemImageName: musicService.isPlaying ? "Pause" : "Play",
+                            systemImageName: musicService.isPlaying ? "Controls/Pause" : "Controls/Play",
                             isAssetImage: true,
                             referenceTitle: "일시정지",
                             action: {

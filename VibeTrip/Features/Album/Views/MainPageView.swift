@@ -198,7 +198,7 @@ struct MainPageView: View {
                     .frame(maxWidth: .infinity, maxHeight: .infinity, alignment: .topLeading)
 
                 AppNavigationBar(style: .transparent) {
-                    Image("AppLogo_Home")
+                    Image("Logos/Home")
                         .resizable()
                         .scaledToFit()
                         .frame(width: 120, height: 35)
@@ -219,7 +219,7 @@ struct MainPageView: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity)
 
             AppNavigationBar(style: .transparent) {
-                Image("AppLogo_Home")
+                Image("Logos/Home")
                     .resizable()
                     .scaledToFit()
                     .frame(width: 120, height: 35)
@@ -232,7 +232,7 @@ struct MainPageView: View {
     private var emptyStateView: some View {
         VStack(alignment: .center, spacing: 12) {
             // 빈 상태 아이콘
-            Image("Main_Placeholder")
+            Image("Placeholders/Main")
                 .resizable()
                 .scaledToFit()
                 .frame(width: 120, height: 120)
@@ -352,7 +352,7 @@ struct MainPageView: View {
                 )
 
                 AppNavigationBar(style: .transparent) {
-                    Image("AppLogo_Home")
+                    Image("Logos/Home")
                         .resizable()
                         .scaledToFit()
                         .frame(width: 120, height: 35)
