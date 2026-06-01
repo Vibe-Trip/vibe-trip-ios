@@ -94,7 +94,7 @@ struct ReportBottomSheetView: View {
                     .frame(maxWidth: .infinity)
                     .padding(.vertical, Layout.buttonVerticalPadding)
             }
-            .background(Color.appPrimary)
+            .background(Color("appPrimary/500"))
             .cornerRadius(Layout.buttonCornerRadius)
             .padding(.bottom, Layout.bottomPadding)
         }
@@ -113,13 +113,13 @@ struct ReportBottomSheetView: View {
             ZStack {
                 Circle()
                     .stroke(
-                        isSelected ? Color.appPrimary : Color("GrayScale/300"),
+                        isSelected ? Color("appPrimary/500") : Color("GrayScale/300"),
                         lineWidth: 1
                     )
                     .frame(width: Layout.radioSize, height: Layout.radioSize)
                 if isSelected {
                     Circle()
-                        .fill(Color.appPrimary)
+                        .fill(Color("appPrimary/500"))
                         .frame(width: Layout.radioDotSize, height: Layout.radioDotSize)
                 }
             }

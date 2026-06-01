@@ -88,7 +88,7 @@ struct DateRangePickerSheetView: View {
                     .foregroundStyle(.white)
                     .frame(maxWidth: .infinity)
                     .frame(height: 52)
-                    .background(Color.appPrimary)
+                    .background(Color("appPrimary/500"))
                     .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
             }
         }
@@ -304,7 +304,7 @@ private struct DayCellView: View {
 
             if visualState.showsSelectedCircle {
                 Circle()
-                    .fill(Color.appPrimary)
+                    .fill(Color("appPrimary/500"))
                     .frame(width: Layout.circleSize, height: Layout.circleSize)
             }
 
@@ -358,7 +358,7 @@ private struct DayCellView: View {
             ),
             style: .continuous
         )
-        .fill(Color("appPrimary100"))
+        .fill(Color("appPrimary/100"))
     }
 }
 

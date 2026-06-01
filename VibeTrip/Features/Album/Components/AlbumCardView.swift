@@ -166,7 +166,7 @@ struct AlbumCardView: View, Equatable {
             // +N 배지: 전체 이미지 수가 4개 이상일 때 항상 표시 (이미지 3개 제외한 나머지)
             if album.logImageCount >= 4 {
                 ZStack {
-                    Circle().fill(Color.appPrimary)
+                    Circle().fill(Color("appPrimary/500"))
                     Text("+\(album.logImageCount - 3)")
                         .font(Font.setPretendard(weight: .semiBold, size: 12))
                         .foregroundStyle(Color.white)

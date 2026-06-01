@@ -693,7 +693,7 @@ struct LiquidGlassTabBar: View {
         // 선택: appPrimary / 미선택: secondaryLabel
         .foregroundStyle(
             isSelected
-                ? AnyShapeStyle(Color.appPrimary)
+                ? AnyShapeStyle(Color("appPrimary/500"))
                 : AnyShapeStyle(Color("GrayScale/500"))
         )
         .frame(width: tabW, height: Layout.barHeight)

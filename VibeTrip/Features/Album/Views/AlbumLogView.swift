@@ -121,12 +121,12 @@ struct AlbumLogView: View {
                     } label: {
                         if viewModel.isSaving {
                             ProgressView()
-                                .tint(Color.appPrimary)
+                                .tint(Color("appPrimary/500"))
                                 .frame(width: 44, height: 44)
                         } else {
                             Text("저장")
                                 .font(.setPretendard(weight: .semiBold, size: 16))
-                                .foregroundStyle(Color.appPrimary)
+                                .foregroundStyle(Color("appPrimary/500"))
                         }
                     }
                     .disabled(viewModel.isSaving)
@@ -212,7 +212,7 @@ private extension AlbumLogView {
 
             // 섹션 구분선
             Rectangle()
-                .fill(Color.fieldBorder)
+                .fill(Color("GrayScale/100"))
                 .frame(height: 1)
         }
     }
@@ -265,7 +265,7 @@ private extension AlbumLogView {
             ForEach(0..<viewModel.totalPhotoCount, id: \.self) { i in
                 Circle()
                     .frame(width: Constants.dotSize, height: Constants.dotSize)
-                    .foregroundStyle(i == currentPhotoIndex ? Color.appPrimary : Color.white)
+                    .foregroundStyle(i == currentPhotoIndex ? Color("appPrimary/500") : Color.white)
             }
         }
         .padding(.horizontal, Constants.indicatorPaddingH)
@@ -309,7 +309,7 @@ private extension AlbumLogView {
     var bottomToolbar: some View {
         VStack(spacing: 0) {
             Rectangle()
-                .fill(Color.fieldBorder)
+                .fill(Color("GrayScale/100"))
                 .frame(height: 1)
 
             HStack(spacing: Constants.toolbarIconSpacing) {

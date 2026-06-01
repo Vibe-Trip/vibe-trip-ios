@@ -207,7 +207,7 @@ struct MyPageView: View {
         VStack(spacing: 6) {
             Text("\(count)")
                 .font(Font.setPretendard(weight: .semiBold, size: 22))
-                .foregroundStyle(Color.appPrimary)
+                .foregroundStyle(Color("appPrimary/500"))
             Text(label)
                 .font(Font.setPretendard(weight: .medium, size: 12))
                 .foregroundStyle(Color("GrayScale/400"))
@@ -222,7 +222,7 @@ struct MyPageView: View {
         )
         .overlay(
             RoundedRectangle(cornerRadius: Constants.statCardCornerRadius)
-                .stroke(Color("appPrimary50"), lineWidth: 1)
+                .stroke(Color("appPrimary/50"), lineWidth: 1)
         )
     }
     
@@ -244,7 +244,7 @@ struct MyPageView: View {
                         set: { viewModel.setNotificationEnabled($0) }
                     )
                 )
-                    .tint(Color.appPrimary)
+                    .tint(Color("appPrimary/500"))
                     .labelsHidden()
             }
             .frame(height: Constants.rowHeight)

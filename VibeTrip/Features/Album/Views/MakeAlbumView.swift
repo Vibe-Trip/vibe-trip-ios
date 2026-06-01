@@ -372,12 +372,12 @@ private struct MakeAlbumRequiredInputContent: View {
                             .textInputAutocapitalization(.never)
                             .padding(.horizontal, 16)
                             .frame(maxWidth: .infinity, minHeight: 48, maxHeight: 48, alignment: .leading)
-                            .background(Color.fieldBackground)
+                            .background(Color("GrayScale/50"))
                             .clipShape(RoundedRectangle(cornerRadius: 8))
                             .submitLabel(.done)
                             .overlay(
                                 RoundedRectangle(cornerRadius: 8)
-                                    .stroke(Color.fieldBorder, lineWidth: 1)
+                                    .stroke(Color("GrayScale/100"), lineWidth: 1)
                             )
                             .appShadow(.buttonTextField)
                             .onAppear {
@@ -421,11 +421,11 @@ private struct MakeAlbumRequiredInputContent: View {
                             }
                             .padding(.horizontal, 16)
                             .frame(maxWidth: .infinity, minHeight: 48, maxHeight: 48, alignment: .leading)
-                            .background(Color.fieldBackground)
+                            .background(Color("GrayScale/50"))
                             .clipShape(RoundedRectangle(cornerRadius: 8))
                             .overlay(
                                 RoundedRectangle(cornerRadius: 8)
-                                    .stroke(Color.fieldBorder, lineWidth: 1)
+                                    .stroke(Color("GrayScale/100"), lineWidth: 1)
                             )
                             .appShadow(.buttonTextField)
                         }
@@ -518,7 +518,7 @@ private struct MakeAlbumRequiredInputContent: View {
                 if showsIndicator {
                     // 필수 항목 dot
                     Circle()
-                        .fill(Color("appPrimary"))
+                        .fill(Color("appPrimary/500"))
                         .frame(width: 5, height: 5)
                         .offset(y: 2)
                 }
@@ -579,7 +579,7 @@ private struct MakeAlbumOptionalInputContent: View {
                                 }) {
                                     Image(systemName: "info.circle")
                                         .font(.system(size: 18))
-                                        .foregroundStyle(Color("appPrimary500"))
+                                        .foregroundStyle(Color("appPrimary/500"))
                                 }
                                 .buttonStyle(.plain)
                             }
@@ -614,7 +614,7 @@ private struct MakeAlbumOptionalInputContent: View {
                                                 RoundedRectangle(cornerRadius: 8)
                                                     .fill(
                                                         viewModel.album.selectedGenre == genre
-                                                        ? Color("appPrimary50")
+                                                        ? Color("appPrimary/50")
                                                         : Color("GrayScale/50")
                                                     )
                                                     .appShadow(.buttonTextField)
@@ -623,7 +623,7 @@ private struct MakeAlbumOptionalInputContent: View {
                                                 RoundedRectangle(cornerRadius: 8)
                                                     .stroke(
                                                         viewModel.album.selectedGenre == genre
-                                                        ? Color("appPrimary100")
+                                                        ? Color("appPrimary/100")
                                                         : Color("GrayScale/100"),
                                                         lineWidth: 1
                                                     )
@@ -663,11 +663,11 @@ private struct MakeAlbumOptionalInputContent: View {
                                 .padding(.horizontal, 12)
                                 .padding(.top, 8)
                                 .frame(height: 240)
-                                .background(Color.fieldBackground)
+                                .background(Color("GrayScale/50"))
                                 .clipShape(RoundedRectangle(cornerRadius: 8))
                                 .overlay(
                                     RoundedRectangle(cornerRadius: 8)
-                                        .stroke(Color.fieldBorder, lineWidth: 1)
+                                        .stroke(Color("GrayScale/100"), lineWidth: 1)
                                 )
                                 .appShadow(.buttonTextField)
                                 // 키보드 비활성화
@@ -682,7 +682,7 @@ private struct MakeAlbumOptionalInputContent: View {
                                             Image(systemName: "keyboard.chevron.compact.down")  // 키보드 비활성화 심볼
                                                 .font(.system(size: 18, weight: .light))
                                         }
-                                        .tint(Color("appPrimary400"))
+                                        .tint(Color("appPrimary/400"))
                                     }
                                 }
                                 
@@ -764,7 +764,7 @@ private struct MakeAlbumPhotoBox: View {
         ZStack {
             // 배경 컨테이너
             RoundedRectangle(cornerRadius: 12)
-                .fill(Color.fieldBackground)
+                .fill(Color("GrayScale/50"))
                 .frame(height: Layout.containerHeight)
                 .overlay(
                     RoundedRectangle(cornerRadius: 12)
@@ -833,7 +833,7 @@ private struct MakeAlbumBottomButton: View {
                 .frame(maxWidth: .infinity)
                 .frame(height: 52)
                 /// 배경색 조정
-                .background(isEnabled ? Color.appPrimary : Color("GrayScale/300"))
+                .background(isEnabled ? Color("appPrimary/500") : Color("GrayScale/300"))
                 .clipShape(RoundedRectangle(cornerRadius: 12, style: .continuous))
         }
         .buttonStyle(.plain)
