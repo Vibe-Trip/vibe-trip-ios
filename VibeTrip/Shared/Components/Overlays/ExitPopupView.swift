@@ -125,7 +125,7 @@ struct ExitPopupView: View {
                     RoundedRectangle(cornerRadius: 8)
                         .inset(by: 0.5)
                         .stroke(
-                            isCancelStyle ? Color.fieldBorder : Color.dialogConfirmBorder,
+                            isCancelStyle ? Color("Grayscale/100") : Color("appPrimary500"),
                             lineWidth: 1
                         )
                 )
