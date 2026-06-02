@@ -196,7 +196,7 @@ final class MainPageViewModel: ObservableObject {
         }
         if let detail = try? await albumService.fetchAlbum(albumId: albumId),
            detail.musicUrl != nil {
-            applyAlbumReady(detail: detail, for: albumId)
+            await finalizeCompletion(detail: detail, for: albumId)
             return
         }
         // 단건 확인 실패: 반복 폴링으로 폴백
@@ -214,7 +214,7 @@ final class MainPageViewModel: ObservableObject {
         pollingTasks[albumId] = nil
         if let detail = try? await albumService.fetchAlbum(albumId: albumId),
            detail.musicUrl != nil {
-            applyAlbumReady(detail: detail, for: albumId)
+            await finalizeCompletion(detail: detail, for: albumId)
             return
         }
         // 단건 확인 실패: 반복 폴링으로 폴백
@@ -232,10 +232,22 @@ final class MainPageViewModel: ObservableObject {
             guard !Task.isCancelled else { return }
             guard let detail = try? await albumService.fetchAlbum(albumId: albumId),
                   detail.musicUrl != nil else { continue }
-            applyAlbumReady(detail: detail, for: albumId)
+            await finalizeCompletion(detail: detail, for: albumId)
             return
         }
         pollingTasks[albumId] = nil
+    }
+
+    // FCM·폴링·1회 확인 세 경로의 완료 처리를 모으는 단일 진입점
+    private func finalizeCompletion(detail: AlbumDetail, for albumId: Int) async {
+        applyAlbumReady(detail: detail, for: albumId)
+
+        // 목록에 없는 신규 완료 앨범(서버 반영 지연 등)은 카드가 생기지 않으므로 서버 목록을 1회 재조회
+        // refreshAlbumsWithoutClearing 내부의 cancelAllPolling이 현재 폴링 Task를 취소하지 않도록 별도 Task로 실행
+        guard !albums.contains(where: { $0.id == albumId }) else { return }
+        Task { [weak self] in
+            await self?.refreshAlbumsWithoutClearing()
+        }
     }
 
     // 음악 생성 완료 시: title 업데이트 + readyAlbumIds 등록 + 폴링 Task 정리
