@@ -34,22 +34,37 @@ RETRIP은 사진, 여행지, 장르를 입력하면 AI가 사진의 색감과 �
 ```
 vibe-trip-ios/
 ├── VibeTrip/
-│   ├── VibeTripApp.swift
-│   ├── Extensions/
-│   ├── Models/
-│   ├── Resources/
-│   ├── Services/
-│   ├── ViewModels/
-│   ├── Views/
-│   ├── Assets.xcassets/
+│   ├── App/                      # 앱 진입점·전역 상태
+│   ├── Core/                     # 전역 인프라
+│   │   ├── Network/              # APIClient
+│   │   ├── Config/               # AppConfig
+│   │   ├── Storage/              # KeychainService
+│   │   ├── Auth/                 # 인증 서비스 
+│   │   ├── Analytics/            # 분석 서비스 + AnalyticsEvent
+│   │   ├── Media/                # 음악재생 서비스
+│   │   └── Models/               # 공통 모델 
+│   ├── Features/                 # 기능별 모듈
+│   │   ├── Auth/                 
+│   │   ├── Album/                
+│   │   ├── MyPage/               
+│   │   └── Notification/         
+│   ├── Shared/                   # 범용 요소
+│   │   ├── Components/           # 공통 UI
+│   │   │   ├── Modifiers/        # ViewModifier·View 확장
+│   │   │   ├── Representables/   # UIKit 래퍼
+│   │   │   ├── Overlays/         # 토스트·팝업·배너
+│   │   │   └── NavigationBar/    
+│   │   └── Extensions/           # 공통 확장 (Font+Pretendard 등)
+│   ├── Resources/                
+│   ├── Assets.xcassets/          
 │   ├── Info.plist
 │   ├── GoogleService-Info.plist  # gitignore 처리
 │   ├── PrivacyInfo.xcprivacy
 │   └── VibeTrip.entitlements
-├── VibeTripTests/
+├── VibeTripTests/                
 ├── VibeTripUITests/
-├── Config/
-├── ci_scripts/
+├── Config/                       # 빌드 설정 (xcconfig, Firebase Debug/Release)
+└── ci_scripts/                   
 ```
 
 ## 📌 브랜치 전략
