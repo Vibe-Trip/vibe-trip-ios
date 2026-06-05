@@ -1720,6 +1720,7 @@ private struct AlbumDetailLogTextSection: View {
     @State private var contentWidth: CGFloat = 0
     
     private enum Constants {
+        static let fontName: String = "Pretendard-Regular"
         static let fontSize: CGFloat = 16
         static let lineLimit: Int = 2
         static let moreButtonText: String = "더 보기"
@@ -1728,12 +1729,13 @@ private struct AlbumDetailLogTextSection: View {
         static let reservedGap: CGFloat = 8     // "더 보기" 버튼과 본문 사이 간격
         static let animationDuration: CGFloat = 0.2
     }
-    
-    private var textFont: Font { .setPretendard(weight: .regular, size: Constants.fontSize) }
+
+    // 접힌 본문(UITextView)과 동일하게 Dynamic Type 비스케일 고정 크기 사용
+    private var textFont: Font { .custom(Constants.fontName, fixedSize: Constants.fontSize) }
     private let actionColor = Color("GrayScale/400")
-    
+
     private var uiFont: UIFont {
-        UIFont(name: "Pretendard-Regular", size: Constants.fontSize)
+        UIFont(name: Constants.fontName, size: Constants.fontSize)
         ?? UIFont.systemFont(ofSize: Constants.fontSize)
     }
     
