@@ -1722,11 +1722,11 @@ private struct AlbumDetailLogTextSection: View {
     private enum Constants {
         static let fontSize: CGFloat = 16
         static let lineLimit: Int = 2
-        static let widthBuffer: CGFloat = 1
-        static let truncationToken: String = "..."
         static let moreButtonText: String = "더 보기"
         static let foldButtonText: String = "접기"
         static let foldSpacer: String = "  "    /// 접기 버튼과 본문 텍스트 사이 공간 예약용
+        static let reservedGap: CGFloat = 8     // "더 보기" 버튼과 본문 사이 간격
+        static let animationDuration: CGFloat = 0.2
     }
     
     private var textFont: Font { .setPretendard(weight: .regular, size: Constants.fontSize) }
@@ -1737,71 +1737,29 @@ private struct AlbumDetailLogTextSection: View {
         ?? UIFont.systemFont(ofSize: Constants.fontSize)
     }
     
-    // NSLayoutManager 기반 줄 수 측정 (접힌 상태 prefix 이진 탐색용)
-    private func lineCount(_ value: String, width: CGFloat) -> Int {
-        guard width > 0, !value.isEmpty else { return 0 }
-        
-        let storage = NSTextStorage(
-            string: value,
-            attributes: [.font: uiFont]
-        )
-        let container = NSTextContainer(size: CGSize(width: width, height: .greatestFiniteMagnitude))
-        container.lineFragmentPadding = 0
-        container.lineBreakMode = .byWordWrapping
-        container.maximumNumberOfLines = 0
-        
-        let manager = NSLayoutManager()
-        manager.addTextContainer(container)
-        storage.addLayoutManager(manager)
-        _ = manager.glyphRange(for: container)
-        
-        var count = 0
-        manager.enumerateLineFragments(
-            forGlyphRange: NSRange(location: 0, length: manager.numberOfGlyphs)
-        ) { _, _, _, _, _ in
-            count += 1
-        }
-        return count
+    private var textUIColor: UIColor { UIColor(named: "text") ?? .label }
+
+    // "더 보기" 버튼 폭 + 간격 = 마지막 줄 우측에 비워둘 예약 폭
+    private var reservedTextWidth: CGFloat {
+        (Constants.moreButtonText as NSString)
+            .size(withAttributes: [.font: uiFont]).width
     }
-    
-    // 접힌 상태: 이진 탐색 계산으로 ... 더 보기 표시
-    // 원문이 2줄 이내일 경우 nil 반환 -> truncation 불필요
-    private func collapsedPrefix(for width: CGFloat) -> String? {
-        guard width > 0 else { return nil }
-        
-        let measureWidth = max(0, width - Constants.widthBuffer)
-        guard measureWidth > 0 else { return nil }
-        
-        if lineCount(text, width: measureWidth) <= Constants.lineLimit { return nil }
-        
-        let tail = Constants.truncationToken + Constants.moreButtonText
-        
-        func fits(_ candidate: String) -> Bool {
-            lineCount(candidate + tail, width: measureWidth) <= Constants.lineLimit
-        }
-        
-        let chars = Array(text)
-        var lo = 0, hi = chars.count
-        while lo < hi {
-            let mid = (lo + hi + 1) / 2
-            if fits(String(chars.prefix(mid))) { lo = mid } else { hi = mid - 1 }
-        }
-        return String(chars.prefix(lo))
-    }
+    private var reservedTailWidth: CGFloat { reservedTextWidth + Constants.reservedGap }
     
     var body: some View {
-        let cutPrefix = collapsedPrefix(for: contentWidth)
-        
+        let truncation = LogTextTruncationAnalyzer.analyze(
+            text: text,
+            font: uiFont,
+            width: contentWidth,
+            reservedTailWidth: reservedTailWidth,
+            lineLimit: Constants.lineLimit
+        )
+
         Group {
             if isExpanded {
                 expandedContent
-            } else if let cutPrefix {
-                collapsedContent(cutPrefix: cutPrefix)
             } else {
-                Text(text)
-                    .font(textFont)
-                    .foregroundStyle(Color.text)
-                    .frame(maxWidth: .infinity, alignment: .leading)
+                collapsedContent(truncation: truncation)
             }
         }
         // 콘텐츠 너비 측정
@@ -1826,7 +1784,7 @@ private struct AlbumDetailLogTextSection: View {
         .frame(maxWidth: .infinity, alignment: .leading)
         .overlay(alignment: .bottomTrailing) {  /// 접기 버튼 배치
             Button(Constants.foldButtonText) {
-                withAnimation(.easeInOut(duration: 0.2)) { isExpanded = false }
+                withAnimation(.easeInOut(duration: Constants.animationDuration)) { isExpanded = false }
             }
             .font(textFont)
             .foregroundStyle(actionColor)
@@ -1834,22 +1792,33 @@ private struct AlbumDetailLogTextSection: View {
         }
     }
     
-    // 접힌 상태:  cut + "..." + "더 보기" 를 Text concat 으로 한 줄로 이어 렌더
-    // prefix 이진 탐색: 2줄에 맞게 잘라줌
-    private func collapsedContent(cutPrefix: String) -> some View {
-        (
-            Text(cutPrefix + Constants.truncationToken)
-            + Text(Constants.moreButtonText)
-                .foregroundColor(actionColor)
-        )
-        .font(textFont)
-        .foregroundStyle(Color.text)
-        .lineLimit(Constants.lineLimit)
-        .fixedSize(horizontal: false, vertical: true)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .contentShape(Rectangle())
-        .onTapGesture {
-            withAnimation(.easeInOut(duration: 0.2)) { isExpanded = true }
+    // 접힌 상태: 2줄로 접고, 잘릴 때만 우측에 "더 보기" 버튼 표시
+    private func collapsedContent(truncation: LogTextTruncationAnalyzer.Result) -> some View {
+        ZStack(alignment: .bottomTrailing) {
+            CollapsibleLogTextView(
+                text: text,
+                font: uiFont,
+                textColor: textUIColor,
+                lineLimit: Constants.lineLimit,
+                reservedTailWidth: truncation.isTruncated ? reservedTailWidth : 0,
+                showsEllipsis: truncation.isTruncated && !truncation.lastVisibleLineEndsWithNewline
+            )
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .contentShape(Rectangle())
+            .onTapGesture {
+                guard truncation.isTruncated else { return }
+                withAnimation(.easeInOut(duration: Constants.animationDuration)) { isExpanded = true }
+            }
+
+            if truncation.isTruncated {
+                Button(Constants.moreButtonText) {
+                    withAnimation(.easeInOut(duration: Constants.animationDuration)) { isExpanded = true }
+                }
+                .font(textFont)
+                .foregroundStyle(actionColor)
+                .buttonStyle(.plain)
+                .frame(width: reservedTextWidth, alignment: .trailing)
+            }
         }
     }
 }

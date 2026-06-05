@@ -78,14 +78,17 @@ enum LogTextTruncationAnalyzer {
         width: CGFloat,
         exclusion: CGRect?
     ) -> Int {
-        let (manager, _) = makeLayoutManager(text: text, font: font, width: width, exclusion: exclusion)
-        var count = 0
-        manager.enumerateLineFragments(
-            forGlyphRange: NSRange(location: 0, length: manager.numberOfGlyphs)
-        ) { _, _, _, _, _ in
-            count += 1
+        let (manager, storage) = makeLayoutManager(text: text, font: font, width: width, exclusion: exclusion)
+        // NSLayoutManager는 storage를 강참조하지 않으므로 측정 동안 수명 유지
+        return withExtendedLifetime(storage) {
+            var count = 0
+            manager.enumerateLineFragments(
+                forGlyphRange: NSRange(location: 0, length: manager.numberOfGlyphs)
+            ) { _, _, _, _, _ in
+                count += 1
+            }
+            return count
         }
-        return count
     }
 
     // lineLimit번째 줄의 문자 범위 마지막 글자가 개행인지 검사
