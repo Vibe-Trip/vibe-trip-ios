@@ -59,13 +59,16 @@ private final class PollingStubAlbumService: AlbumServiceProtocol {
     // 앨범별 폴링 완료 타이틀 오버라이드(없으면 기존 카드 타이틀 유지)
     var resolvedTitleByAlbumId: [Int: String] = [:]
     private(set) var titleFetchCounts: [Int: Int] = [:]
+    // fetchAlbums(목록) 호출 횟수
+    private(set) var listFetchCount: Int = 0
 
     init(albums: [AlbumCard]) {
         self.albums = albums
     }
 
     func fetchAlbums(cursor: Int?, limit: Int) async throws -> AlbumListPayload {
-        AlbumListPayload(content: albums, totalCount: albums.count, hasNext: false)
+        listFetchCount += 1
+        return AlbumListPayload(content: albums, totalCount: albums.count, hasNext: false)
     }
 
     func fetchAlbum(albumId: Int) async throws -> AlbumDetail {
@@ -402,19 +405,42 @@ final class MainPageViewModelTests: XCTestCase {
         XCTAssertNotNil(stub.titleFetchCounts[1])
     }
 
-    // albums에 없는 albumId -> 크래시 없이 종료, 기존 albums 변경 없음
-    func test_handleAlbumCompleted_notInAlbums_noEffect() async {
-        let album = AlbumCard(id: 1, title: "기존 타이틀", location: "서울", startDate: "2026-01-01", endDate: "2026-01-02", coverImageUrl: nil)
+    // albums에 없는 albumId 완료(서버 목록 반영 지연) -> 목록 재조회로 신규 카드 노출
+    func test_handleAlbumCompleted_notInAlbums_triggersListRefresh() async {
+        let existing = AlbumCard(id: 1, title: "기존 타이틀", location: "서울", startDate: "2026-01-01", endDate: "2026-01-02", coverImageUrl: nil)
+        let stub = PollingStubAlbumService(albums: [existing])
+        stub.titleReadyAfterAttempts = 1
+        sut = MainPageViewModel(albumService: stub, pollingInterval: 0,
+                                notificationAuthorizationChecker: { .authorized })
+
+        await sut.loadAlbums()                          // albums = [1]
+
+        // 서버가 신규 앨범을 뒤늦게 목록에 반영한 상황 시뮬레이션
+        let newAlbum = AlbumCard(id: 999, title: "새 앨범", location: "부산", startDate: "2026-02-01", endDate: "2026-02-02", coverImageUrl: nil)
+        stub.albums = [existing, newAlbum]
+
+        await sut.handleAlbumCompleted(albumId: 999)    // 목록에 없는 완료 신호
+        try? await Task.sleep(nanoseconds: 20_000_000)  // 폴백 재조회 Task 완료 대기
+
+        XCTAssertTrue(sut.albums.contains(where: { $0.id == 999 }))  // 신규 카드 추가됨
+        XCTAssertTrue(sut.isReady(for: 999))
+    }
+
+    // albums에 있는 albumId 완료 -> 추가 목록 재조회 없음(회귀 방지)
+    func test_handleAlbumCompleted_inAlbums_noListRefetch() async {
+        let album = AlbumCard(id: 1, title: nil, location: "서울", startDate: "2026-01-01", endDate: "2026-01-02", coverImageUrl: nil)
         let stub = PollingStubAlbumService(albums: [album])
         stub.titleReadyAfterAttempts = 1
         sut = MainPageViewModel(albumService: stub, pollingInterval: 0,
                                 notificationAuthorizationChecker: { .authorized })
 
         await sut.loadAlbums()
-        await sut.handleAlbumCompleted(albumId: 999)    // 존재하지 않는 albumId
+        let baseline = stub.listFetchCount
 
-        XCTAssertEqual(sut.albums.count, 1)
-        XCTAssertEqual(sut.albums.first?.title, "기존 타이틀")  // 변경 없음
+        await sut.handleAlbumCompleted(albumId: 1)      // 이미 목록에 있는 albumId
+        try? await Task.sleep(nanoseconds: 20_000_000)
+
+        XCTAssertEqual(stub.listFetchCount, baseline)   // 폴백 재조회 미발생
     }
 
     // MARK: - startPollingIfNeeded 권한 분기

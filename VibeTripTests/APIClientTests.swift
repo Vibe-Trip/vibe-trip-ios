@@ -32,37 +32,6 @@ final class MockURLSession: URLSessionProtocol {
     }
 }
 
-// MARK: - MockKeychainService
-
-// 메모리 기반 Keychain Mock — 실제 Keychain 접근 없이 토큰 저장/조회
-final class MockKeychainService: KeychainServiceProtocol {
-    
-    var accessToken: String? = "mock-access-token"
-    var refreshToken: String? = "mock-refresh-token"
-    var shouldThrow = false
-    
-    func save(accessToken: String, refreshToken: String) throws {
-        if shouldThrow { throw KeychainError.saveFailed(-1) }
-        self.accessToken = accessToken
-        self.refreshToken = refreshToken
-    }
-    
-    func getAccessToken() throws -> String {
-        guard let token = accessToken else { throw KeychainError.notFound }
-        return token
-    }
-    
-    func getRefreshToken() throws -> String {
-        guard let token = refreshToken else { throw KeychainError.notFound }
-        return token
-    }
-    
-    func clear() throws {
-        accessToken = nil
-        refreshToken = nil
-    }
-}
-
 // MARK: - 헬퍼
 
 // 딕셔너리를 APIClient용 ApiResponse<T> JSON으로 래핑
