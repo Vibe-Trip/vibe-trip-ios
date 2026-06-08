@@ -48,13 +48,18 @@ enum LogTextTruncationAnalyzer {
 
     // MARK: Layout helpers
 
+    // 편집 페이지(GrowingTextEditor)와 동일한 문단 스타일 -> 한글 줄바꿈 규칙 일치
+    static func paragraphStyle() -> NSParagraphStyle {
+        NSMutableParagraphStyle()
+    }
+
     private static func makeLayoutManager(
         text: String,
         font: UIFont,
         width: CGFloat,
         exclusion: CGRect?
     ) -> (manager: NSLayoutManager, storage: NSTextStorage) {
-        let storage = NSTextStorage(string: text, attributes: [.font: font])
+        let storage = NSTextStorage(string: text, attributes: [.font: font, .paragraphStyle: paragraphStyle()])
         let container = NSTextContainer(
             size: CGSize(width: width, height: .greatestFiniteMagnitude)
         )
@@ -145,9 +150,36 @@ struct CollapsibleLogTextView: UIViewRepresentable {
     let text: String
     let font: UIFont
     let textColor: UIColor
-    let lineLimit: Int
+    let lineLimit: Int              // 0이면 전체 표시(펼침)
     let reservedTailWidth: CGFloat // 마지막 줄 우측에 비워둘 버튼 예약 폭 (0이면 예약/절단 없음)
     let showsEllipsis: Bool        // 예약 영역에 닿아 잘릴 때 말줄임(…)을 붙일지
+    // 펼침 상태에서 "접기" 버튼 자리를 마지막 줄에 확보하기 위한 투명 예약 텍스트
+    var trailingReserveText: String = ""
+
+    // 예약 영역에 닿아 잘릴 때만 말줄임, 줄바꿈으로 끝난 경우는 그냥 클립
+    private var lineBreakMode: NSLineBreakMode {
+        (reservedTailWidth > 0 && showsEllipsis) ? .byTruncatingTail : .byWordWrapping
+    }
+
+    // 편집 페이지(GrowingTextEditor)와 동일한 문단 스타일로 한글 줄바꿈 규칙을 맞춘다.
+    // (줄간격은 줄바꿈 위치와 무관하므로 적용하지 않음)
+    private func makeAttributedText() -> NSAttributedString {
+        let paragraph = NSMutableParagraphStyle()
+        paragraph.lineBreakMode = lineBreakMode
+        let result = NSMutableAttributedString(string: text, attributes: [
+            .font: font,
+            .foregroundColor: textColor,
+            .paragraphStyle: paragraph
+        ])
+        if !trailingReserveText.isEmpty {
+            result.append(NSAttributedString(string: trailingReserveText, attributes: [
+                .font: font,
+                .foregroundColor: UIColor.clear,
+                .paragraphStyle: paragraph
+            ]))
+        }
+        return result
+    }
 
     // MARK: - UIViewRepresentable
 
@@ -168,11 +200,10 @@ struct CollapsibleLogTextView: UIViewRepresentable {
     }
 
     func updateUIView(_ uiView: UITextView, context: Context) {
-        // 기본 속성만 갱신 -> 너비 의존적인 예약/줄바꿈 설정은 sizeThatFits에서 처리
-        if uiView.text != text { uiView.text = text }
-        uiView.font = font
-        uiView.textColor = textColor
+        // 기본 속성만 갱신 -> 너비 의존적인 예약 영역은 sizeThatFits에서 처리
+        uiView.attributedText = makeAttributedText()
         uiView.textContainer.maximumNumberOfLines = lineLimit
+        uiView.textContainer.lineBreakMode = lineBreakMode
     }
 
     // 최종 너비를 알 수 있는 시점에 예약 영역/줄바꿈 모드를 확정하고 높이를 계산
@@ -186,14 +217,12 @@ struct CollapsibleLogTextView: UIViewRepresentable {
     // MARK: - Helpers
 
     private func configure(_ textView: UITextView, width: CGFloat) {
-        if textView.text != text { textView.text = text }
-        textView.font = font
-        textView.textColor = textColor
+        textView.attributedText = makeAttributedText()
         textView.textContainer.maximumNumberOfLines = lineLimit
+        textView.textContainer.lineBreakMode = lineBreakMode
 
         guard reservedTailWidth > 0 else {
             textView.textContainer.exclusionPaths = []
-            textView.textContainer.lineBreakMode = .byWordWrapping
             return
         }
 
@@ -205,8 +234,6 @@ struct CollapsibleLogTextView: UIViewRepresentable {
             height: lineHeight
         )
         textView.textContainer.exclusionPaths = [UIBezierPath(rect: reservedRect)]
-        // 예약 영역에 닿아 잘릴 때만 말줄임, 줄바꿈으로 끝난 경우는 그냥 클립
-        textView.textContainer.lineBreakMode = showsEllipsis ? .byTruncatingTail : .byWordWrapping
     }
 }
 

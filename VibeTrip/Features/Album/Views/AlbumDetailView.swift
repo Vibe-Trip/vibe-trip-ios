@@ -1772,19 +1772,21 @@ private struct AlbumDetailLogTextSection: View {
         }
     }
     
-    // 펼친 상태: SwiftUI 레이아웃에 공간 예약을 맡겨 접기 버튼 배치
+    // 펼친 상태: 접힘과 같은 UITextView 엔진으로 전체 표시 (편집 페이지와 줄바꿈 일치)
+    // 마지막 줄 끝에 투명 "접기" 예약 텍스트로 공간을 비우고 그 위에 접기 버튼 배치
     private var expandedContent: some View {
-        (
-            Text(text)
-            + Text(Constants.foldSpacer + Constants.foldButtonText)
-                .foregroundColor(.clear)
-        )
-        .font(textFont)
-        .foregroundStyle(Color.text)
-        .lineLimit(nil)
-        .fixedSize(horizontal: false, vertical: true)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .overlay(alignment: .bottomTrailing) {  /// 접기 버튼 배치
+        ZStack(alignment: .bottomTrailing) {
+            CollapsibleLogTextView(
+                text: text,
+                font: uiFont,
+                textColor: textUIColor,
+                lineLimit: 0,
+                reservedTailWidth: 0,
+                showsEllipsis: false,
+                trailingReserveText: Constants.foldSpacer + Constants.foldButtonText
+            )
+            .frame(maxWidth: .infinity, alignment: .leading)
+
             Button(Constants.foldButtonText) {
                 withAnimation(.easeInOut(duration: Constants.animationDuration)) { isExpanded = false }
             }
