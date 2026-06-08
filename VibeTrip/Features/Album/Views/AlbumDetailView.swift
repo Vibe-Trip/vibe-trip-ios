@@ -409,8 +409,14 @@ struct AlbumDetailView: View {
                         
                         coverImageSection
                         actionButtonsSection
-                        contentSection
+                        contentSection(proxy: proxy)
                     }
+                    // 카드의 콘텐츠 기준 위치 측정용 좌표계 -> 가림 판단
+                    .coordinateSpace(.named(albumDetailScrollSpace))
+                }
+                // 플로팅 버튼 영역만큼 하단을 비워 콘텐츠가 버튼 위에 위치
+                .safeAreaInset(edge: .bottom, spacing: 0) {
+                    Color.clear.frame(height: Constants.floatingButtonSafeInset)
                 }
                 .scrollDisabled(logViewModel.logs.isEmpty)
                 .ignoresSafeArea(edges: .top)
@@ -937,9 +943,25 @@ private extension AlbumDetailView {
     
     // ViewModel 상태에 따라 빈 상태 / 로딩 / 로그 피드 표시
     @ViewBuilder
-    var contentSection: some View {
+    func contentSection(proxy: ScrollViewProxy) -> some View {
         if !logViewModel.logs.isEmpty {
-            AlbumDetailLogFeedSection(viewModel: logViewModel, onEdit: { logPresentation = .edit($0) })
+            AlbumDetailLogFeedSection(
+                viewModel: logViewModel,
+                onEdit: { logPresentation = .edit($0) },
+                onRevealCard: { cardId, cardContentMaxY in
+                    // 플로팅 버튼이 표시 중일 때만
+                    guard showScrollToTop else { return }
+                    // 접기 버튼이 플로팅 버튼 영역에 들어올 때만 스크롤
+                    if let scrollView = observedScrollView {
+                        let onScreenBottom = cardContentMaxY - scrollView.contentOffset.y
+                        let safeBottom = scrollView.bounds.height - Constants.floatingButtonSafeInset
+                        guard onScreenBottom > safeBottom else { return }
+                    }
+                    withAnimation(.easeInOut(duration: Constants.scrollToTopAnimationDuration)) {
+                        proxy.scrollTo(cardId, anchor: .bottom)
+                    }
+                }
+            )
         } else if logViewModel.isLoading {
             ProgressView()
                 .frame(maxWidth: .infinity)
@@ -966,7 +988,7 @@ private extension AlbumDetailView {
             proxy.scrollTo("scrollTop", anchor: .top)
         }
     }
-    
+
     func scrollToTopButton(action: @escaping () -> Void) -> some View {
         Button(action: action) {
             HStack(alignment: .center, spacing: 0) {
@@ -1111,6 +1133,8 @@ private extension AlbumDetailView {
         static let scrollToTopTrailingPadding: CGFloat = 20
         static let scrollToTopBottomPadding: CGFloat = 40
         static let scrollToTopAnimationDuration: Double = 0.2
+        // 플로팅 버튼이 차지하는 화면 하단 영역
+        static let floatingButtonSafeInset: CGFloat = scrollToTopBottomPadding + scrollToTopButtonSize + 16
     }
 }
 
@@ -1426,17 +1450,24 @@ private struct AlbumDetailLogMenuPopup: View {
     }
 }
 
+// 가림 판단용: 콘텐츠 좌표계 이름 + 카드 하단 위치 보관
+private let albumDetailScrollSpace = "albumDetailScroll"
+
+private final class CardBottomTracker {
+    var contentMaxY: CGFloat = 0   // 카드 하단의 콘텐츠 좌표계 기준 y
+}
+
 // MARK: - AlbumDetailLogFeedSection
 
 private struct AlbumDetailLogFeedSection: View {
-    
+
     @ObservedObject var viewModel: AlbumDetailViewModel
     let onEdit: (AlbumLogEntry) -> Void
+    let onRevealCard: (Int, CGFloat) -> Void // (카드 id, 카드 하단 콘텐츠 y) — 가릴 때만 스크롤
     
     private enum Constants {
         static let horizontalPadding: CGFloat = 20
         static let topPadding: CGFloat = 4
-        static let bottomPadding: CGFloat = 40
     }
     
     var body: some View {
@@ -1457,13 +1488,13 @@ private struct AlbumDetailLogFeedSection: View {
                         viewModel.requestDeleteLog(id: logId)
                     },
                     onEdit: onEdit,
-                    awaitingImageLogIds: viewModel.awaitingImageLogIds
+                    awaitingImageLogIds: viewModel.awaitingImageLogIds,
+                    onRevealCard: onRevealCard
                 )
             }
         }
         .padding(.horizontal, Constants.horizontalPadding)
         .padding(.top, Constants.topPadding)
-        .padding(.bottom, Constants.bottomPadding)
         .frame(maxWidth: .infinity, alignment: .leading)
     }
 }
@@ -1479,6 +1510,7 @@ private struct AlbumDetailLogDateGroup: View {
     let onDeleteLog: (Int) -> Void
     let onEdit: (AlbumLogEntry) -> Void
     let awaitingImageLogIds: Set<Int>
+    let onRevealCard: (Int, CGFloat) -> Void
 
     private enum Constants {
         /// 로그 카드 간 간격
@@ -1494,8 +1526,10 @@ private struct AlbumDetailLogDateGroup: View {
                     onLastAppear: onLastAppear,
                     onDeleteLog: onDeleteLog,
                     onEdit: onEdit,
-                    showSkeletonIfNoImages: awaitingImageLogIds.contains(entry.id)
+                    showSkeletonIfNoImages: awaitingImageLogIds.contains(entry.id),
+                    onRevealCard: onRevealCard
                 )
+                .id(entry.id)   // 펼침 시 이 카드로 scrollTo 하기 위한 앵커
             }
         }
     }
@@ -1512,10 +1546,13 @@ private struct AlbumDetailLogItemCard: View {
     let onEdit: (AlbumLogEntry) -> Void
     // 방금 저장한 로그처럼 이미지 응답이 비어 있을 때 슬라이더 자리에 스켈레톤을 그릴지 여부
     let showSkeletonIfNoImages: Bool
-    
-    /// 로그 옵션 팝업 표시 여부
+    let onRevealCard: (Int, CGFloat) -> Void
+
+    // 로그 옵션 팝업 표시 여부
     @State private var isMenuVisible: Bool = false
-    
+    // 카드 하단의 콘텐츠 좌표계 기준 y (가림 판단용)
+    @State private var bottomTracker = CardBottomTracker()
+
     private enum Constants {
         static let dateFontSize: CGFloat = 14
         static let menuIconSize: CGFloat = 16
@@ -1526,6 +1563,8 @@ private struct AlbumDetailLogItemCard: View {
         static let menuTopOffset: CGFloat = 26
         static let menuTrailingPadding: CGFloat = 17
         static let labelColor = Color(red: 0.74, green: 0.75, blue: 0.76)
+        // 펼침 애니메이션이 끝나 카드 높이가 확정된 뒤 스크롤하도록 약간 지연
+        static let expandScrollDelay: Double = 0.3
     }
     
     /// postedAt ISO8601 → "yyyy년 M월 d일" 포맷
@@ -1575,8 +1614,13 @@ private struct AlbumDetailLogItemCard: View {
                 }
                 
                 // 텍스트 + 더보기/접기
-                AlbumDetailLogTextSection(text: entry.description)
-                    .padding(.top, Constants.contentSpacing)
+                AlbumDetailLogTextSection(text: entry.description, onExpand: {
+                    // 펼침 레이아웃이 잡힌 뒤, 카드 하단 위치와 함께 자동 스크롤 요청
+                    DispatchQueue.main.asyncAfter(deadline: .now() + Constants.expandScrollDelay) {
+                        onRevealCard(entry.id, bottomTracker.contentMaxY)
+                    }
+                })
+                .padding(.top, Constants.contentSpacing)
             }
             
             // 팝업 표시 시: 외부 탭 dismiss 영역 + 팝업
@@ -1606,6 +1650,12 @@ private struct AlbumDetailLogItemCard: View {
                 .padding(.top, Constants.menuTopOffset)
                 .padding(.trailing, Constants.menuTrailingPadding)
             }
+        }
+        // 카드 하단의 콘텐츠 기준 y 추적 (가림 판단용)
+        .onGeometryChange(for: CGFloat.self) { proxy in
+            proxy.frame(in: .named(albumDetailScrollSpace)).maxY
+        } action: { newValue in
+            bottomTracker.contentMaxY = newValue
         }
         .onAppear {
             guard isLast else { return }
@@ -1714,94 +1764,60 @@ private struct AlbumDetailLogImageSkeleton: View {
 
 private struct AlbumDetailLogTextSection: View {
     let text: String
-    
+    /// 더보기로 펼쳐질 때 호출 
+    var onExpand: (() -> Void)? = nil
+
     @State private var isExpanded: Bool = false
     /// GeometryReader로 측정한 실제 콘텐츠 너비
     @State private var contentWidth: CGFloat = 0
     
     private enum Constants {
+        static let fontName: String = "Pretendard-Regular"
         static let fontSize: CGFloat = 16
         static let lineLimit: Int = 2
-        static let widthBuffer: CGFloat = 1
-        static let truncationToken: String = "..."
         static let moreButtonText: String = "더 보기"
         static let foldButtonText: String = "접기"
         static let foldSpacer: String = "  "    /// 접기 버튼과 본문 텍스트 사이 공간 예약용
+        static let reservedGap: CGFloat = 8         // "더 보기"/"접기" 버튼과 본문 사이 간격
+        static let buttonTrailingInset: CGFloat = 8 // 버튼과 우측 끝 사이 간격
+        static let animationDuration: CGFloat = 0.2
     }
-    
-    private var textFont: Font { .setPretendard(weight: .regular, size: Constants.fontSize) }
+
+    // 접힌 본문(UITextView)과 동일하게 Dynamic Type 비스케일 고정 크기 사용
+    private var textFont: Font { .custom(Constants.fontName, fixedSize: Constants.fontSize) }
     private let actionColor = Color("GrayScale/400")
-    
+
     private var uiFont: UIFont {
-        UIFont(name: "Pretendard-Regular", size: Constants.fontSize)
+        UIFont(name: Constants.fontName, size: Constants.fontSize)
         ?? UIFont.systemFont(ofSize: Constants.fontSize)
     }
     
-    // NSLayoutManager 기반 줄 수 측정 (접힌 상태 prefix 이진 탐색용)
-    private func lineCount(_ value: String, width: CGFloat) -> Int {
-        guard width > 0, !value.isEmpty else { return 0 }
-        
-        let storage = NSTextStorage(
-            string: value,
-            attributes: [.font: uiFont]
-        )
-        let container = NSTextContainer(size: CGSize(width: width, height: .greatestFiniteMagnitude))
-        container.lineFragmentPadding = 0
-        container.lineBreakMode = .byWordWrapping
-        container.maximumNumberOfLines = 0
-        
-        let manager = NSLayoutManager()
-        manager.addTextContainer(container)
-        storage.addLayoutManager(manager)
-        _ = manager.glyphRange(for: container)
-        
-        var count = 0
-        manager.enumerateLineFragments(
-            forGlyphRange: NSRange(location: 0, length: manager.numberOfGlyphs)
-        ) { _, _, _, _, _ in
-            count += 1
-        }
-        return count
+    private var textUIColor: UIColor { UIColor(named: "text") ?? .label }
+
+    // "더 보기" 버튼 폭 + 간격 = 마지막 줄 우측에 비워둘 예약 폭
+    private var reservedTextWidth: CGFloat {
+        (Constants.moreButtonText as NSString)
+            .size(withAttributes: [.font: uiFont]).width
     }
-    
-    // 접힌 상태: 이진 탐색 계산으로 ... 더 보기 표시
-    // 원문이 2줄 이내일 경우 nil 반환 -> truncation 불필요
-    private func collapsedPrefix(for width: CGFloat) -> String? {
-        guard width > 0 else { return nil }
-        
-        let measureWidth = max(0, width - Constants.widthBuffer)
-        guard measureWidth > 0 else { return nil }
-        
-        if lineCount(text, width: measureWidth) <= Constants.lineLimit { return nil }
-        
-        let tail = Constants.truncationToken + Constants.moreButtonText
-        
-        func fits(_ candidate: String) -> Bool {
-            lineCount(candidate + tail, width: measureWidth) <= Constants.lineLimit
-        }
-        
-        let chars = Array(text)
-        var lo = 0, hi = chars.count
-        while lo < hi {
-            let mid = (lo + hi + 1) / 2
-            if fits(String(chars.prefix(mid))) { lo = mid } else { hi = mid - 1 }
-        }
-        return String(chars.prefix(lo))
+    // 마지막 줄 우측 공간
+    private var reservedTailWidth: CGFloat {
+        reservedTextWidth + Constants.reservedGap + Constants.buttonTrailingInset
     }
     
     var body: some View {
-        let cutPrefix = collapsedPrefix(for: contentWidth)
-        
+        let truncation = LogTextTruncationAnalyzer.analyze(
+            text: text,
+            font: uiFont,
+            width: contentWidth,
+            reservedTailWidth: reservedTailWidth,
+            lineLimit: Constants.lineLimit
+        )
+
         Group {
             if isExpanded {
                 expandedContent
-            } else if let cutPrefix {
-                collapsedContent(cutPrefix: cutPrefix)
             } else {
-                Text(text)
-                    .font(textFont)
-                    .foregroundStyle(Color.text)
-                    .frame(maxWidth: .infinity, alignment: .leading)
+                collapsedContent(truncation: truncation)
             }
         }
         // 콘텐츠 너비 측정
@@ -1812,44 +1828,64 @@ private struct AlbumDetailLogTextSection: View {
         }
     }
     
-    // 펼친 상태: SwiftUI 레이아웃에 공간 예약을 맡겨 접기 버튼 배치
+    // 펼친 상태: 접힘과 같은 UITextView 엔진으로 전체 표시 (편집 페이지와 줄바꿈 일치)
+    // 마지막 줄 끝에 투명 "접기" 예약 텍스트로 공간을 비우고 그 위에 접기 버튼 배치
     private var expandedContent: some View {
-        (
-            Text(text)
-            + Text(Constants.foldSpacer + Constants.foldButtonText)
-                .foregroundColor(.clear)
-        )
-        .font(textFont)
-        .foregroundStyle(Color.text)
-        .lineLimit(nil)
-        .fixedSize(horizontal: false, vertical: true)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .overlay(alignment: .bottomTrailing) {  /// 접기 버튼 배치
+        ZStack(alignment: .bottomTrailing) {
+            CollapsibleLogTextView(
+                text: text,
+                font: uiFont,
+                textColor: textUIColor,
+                lineLimit: 0,
+                reservedTailWidth: 0,
+                showsEllipsis: false,
+                trailingReserveText: Constants.foldSpacer + Constants.foldButtonText
+            )
+            .frame(maxWidth: .infinity, alignment: .leading)
+
             Button(Constants.foldButtonText) {
-                withAnimation(.easeInOut(duration: 0.2)) { isExpanded = false }
+                withAnimation(.easeInOut(duration: Constants.animationDuration)) { isExpanded = false }
             }
             .font(textFont)
             .foregroundStyle(actionColor)
             .buttonStyle(.plain)
+            .padding(.trailing, Constants.buttonTrailingInset)
         }
     }
     
-    // 접힌 상태:  cut + "..." + "더 보기" 를 Text concat 으로 한 줄로 이어 렌더
-    // prefix 이진 탐색: 2줄에 맞게 잘라줌
-    private func collapsedContent(cutPrefix: String) -> some View {
-        (
-            Text(cutPrefix + Constants.truncationToken)
-            + Text(Constants.moreButtonText)
-                .foregroundColor(actionColor)
-        )
-        .font(textFont)
-        .foregroundStyle(Color.text)
-        .lineLimit(Constants.lineLimit)
-        .fixedSize(horizontal: false, vertical: true)
-        .frame(maxWidth: .infinity, alignment: .leading)
-        .contentShape(Rectangle())
-        .onTapGesture {
-            withAnimation(.easeInOut(duration: 0.2)) { isExpanded = true }
+    private func expand() {
+        withAnimation(.easeInOut(duration: Constants.animationDuration)) { isExpanded = true }
+        onExpand?()
+    }
+
+    // 접힌 상태: 2줄로 접고, 잘릴 때만 우측에 "더 보기" 버튼 표시
+    private func collapsedContent(truncation: LogTextTruncationAnalyzer.Result) -> some View {
+        ZStack(alignment: .bottomTrailing) {
+            CollapsibleLogTextView(
+                text: text,
+                font: uiFont,
+                textColor: textUIColor,
+                lineLimit: Constants.lineLimit,
+                reservedTailWidth: truncation.isTruncated ? reservedTailWidth : 0,
+                showsEllipsis: truncation.isTruncated && !truncation.lastVisibleLineEndsWithNewline
+            )
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .contentShape(Rectangle())
+            .onTapGesture {
+                guard truncation.isTruncated else { return }
+                expand()
+            }
+
+            if truncation.isTruncated {
+                Button(Constants.moreButtonText) {
+                    expand()
+                }
+                .font(textFont)
+                .foregroundStyle(actionColor)
+                .buttonStyle(.plain)
+                .frame(width: reservedTextWidth, alignment: .trailing)
+                .padding(.trailing, Constants.buttonTrailingInset)
+            }
         }
     }
 }
