@@ -58,6 +58,8 @@ final class MainPageViewModel: ObservableObject {
     private var pollingTasks: [Int: Task<Void, Never>] = [:]
     // 음악 생성 완료된 앨범 ID 집합 (재조회 시 유지 -> 이미 준비된 앨범 스켈레톤 방지)
     private var readyAlbumIds: Set<Int> = []
+    // 이번 실행에서 생성 요청한 앨범 ID 집합 (album_create_complete 전송 대상 한정)
+    private var pendingCreateAlbumIds: Set<Int> = []
     // 폴링 간격 (기본 5초, 테스트 시 0으로 주입 가능)
     private let pollingInterval: UInt64
 
@@ -130,6 +132,11 @@ final class MainPageViewModel: ObservableObject {
     // 음악 생성 완료 여부
     func isReady(for albumId: Int) -> Bool {
         readyAlbumIds.contains(albumId)
+    }
+
+    // 생성 요청한 앨범 등록 -> 해당 앨범 준비 완료 시에만 album_create_complete 전송
+    func markPendingCreate(albumId: Int) {
+        pendingCreateAlbumIds.insert(albumId)
     }
 
     // 결과: albums 배열에 누적, 완료 후 musicUrl 미준비 앨범 폴링 시작
@@ -251,10 +258,7 @@ final class MainPageViewModel: ObservableObject {
     }
 
     // 음악 생성 완료 시: title 업데이트 + readyAlbumIds 등록 + 폴링 Task 정리
-    // FCM + 폴링이 모두 도달해도 album_create_complete가 한 번만 전송되도록 readyAlbumIds 가드 사용
     private func applyAlbumReady(detail: AlbumDetail, for albumId: Int) {
-        let alreadyReady = readyAlbumIds.contains(albumId)
-
         if let title = detail.title, let idx = albums.firstIndex(where: { $0.id == albumId }) {
             let old = albums[idx]
             albums[idx] = AlbumCard(
@@ -272,8 +276,9 @@ final class MainPageViewModel: ObservableObject {
         pollingTasks[albumId] = nil
         lastCompletedAlbumId = albumId
 
-        // 앨범 생성 완료 추적 (FCM + 폴링 양 경로의 수렴점, albumId 단위 1회 전송)
-        guard !alreadyReady else { return }
+        // 앨범 생성 완료 추적: 이번 실행에서 생성 요청한 앨범만 1회 전송
+        // 앱 재시작 후 기존 완료 앨범 재감지·수정 후 음악 재생성 완료는 제외
+        guard pendingCreateAlbumIds.remove(albumId) != nil else { return }
         analytics.log(.albumCreateComplete, parameters: [
             .genre: detail.genre?.serverValue ?? "unknown",
             .hasLyrics: detail.withLyrics,
