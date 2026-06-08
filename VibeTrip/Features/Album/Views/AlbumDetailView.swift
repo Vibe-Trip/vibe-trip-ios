@@ -1726,7 +1726,8 @@ private struct AlbumDetailLogTextSection: View {
         static let moreButtonText: String = "더 보기"
         static let foldButtonText: String = "접기"
         static let foldSpacer: String = "  "    /// 접기 버튼과 본문 텍스트 사이 공간 예약용
-        static let reservedGap: CGFloat = 8     // "더 보기" 버튼과 본문 사이 간격
+        static let reservedGap: CGFloat = 8         // "더 보기"/"접기" 버튼과 본문 사이 간격
+        static let buttonTrailingInset: CGFloat = 8 // 버튼과 우측 끝 사이 간격
         static let animationDuration: CGFloat = 0.2
     }
 
@@ -1746,7 +1747,10 @@ private struct AlbumDetailLogTextSection: View {
         (Constants.moreButtonText as NSString)
             .size(withAttributes: [.font: uiFont]).width
     }
-    private var reservedTailWidth: CGFloat { reservedTextWidth + Constants.reservedGap }
+    // 마지막 줄 우측 공간
+    private var reservedTailWidth: CGFloat {
+        reservedTextWidth + Constants.reservedGap + Constants.buttonTrailingInset
+    }
     
     var body: some View {
         let truncation = LogTextTruncationAnalyzer.analyze(
@@ -1793,6 +1797,7 @@ private struct AlbumDetailLogTextSection: View {
             .font(textFont)
             .foregroundStyle(actionColor)
             .buttonStyle(.plain)
+            .padding(.trailing, Constants.buttonTrailingInset)
         }
     }
     
@@ -1822,6 +1827,7 @@ private struct AlbumDetailLogTextSection: View {
                 .foregroundStyle(actionColor)
                 .buttonStyle(.plain)
                 .frame(width: reservedTextWidth, alignment: .trailing)
+                .padding(.trailing, Constants.buttonTrailingInset)
             }
         }
     }
