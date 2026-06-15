@@ -29,9 +29,12 @@ extension EnvironmentValues {
 private struct ScreenViewModifier: ViewModifier {
     let screenName: String
     @Environment(\.analytics) private var analytics
+    @State private var hasLogged = false
 
     func body(content: Content) -> some View {
         content.onAppear {
+            guard !hasLogged else { return }
+            hasLogged = true
             analytics.log(.screenView, parameters: [.screenName: screenName])
         }
     }
