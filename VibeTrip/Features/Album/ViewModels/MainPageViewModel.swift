@@ -127,6 +127,7 @@ final class MainPageViewModel: ObservableObject {
     // 앨범 수정 완료 후 해당 앨범을 미준비 상태로 전환 -> 폴링 재시작 대상
     func markAlbumNotReady(albumId: Int) {
         readyAlbumIds.remove(albumId)
+        pendingCreateAlbumIds.remove(albumId)
     }
 
     // 음악 생성 완료 여부
