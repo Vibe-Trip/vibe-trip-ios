@@ -512,7 +512,7 @@ final class MainPageViewModelTests: XCTestCase {
 
     // MARK: - Analytics
 
-    // 폴링 완료(applyAlbumReady) 시 album_create_complete가 1회 기록되는지 검증
+    // 생성 요청 등록 후 폴링 완료 시 album_create_complete가 1회 전송되는지 검증
     func test_polling_complete_logsAlbumCreateComplete() async {
         let nilAlbum = AlbumCard(id: 10, title: nil, location: "제주", startDate: "2026-01-01", endDate: "2026-01-03", coverImageUrl: nil)
         let stub = PollingStubAlbumService(albums: [nilAlbum])
@@ -521,6 +521,7 @@ final class MainPageViewModelTests: XCTestCase {
         sut = MainPageViewModel(albumService: stub, pollingInterval: 0,
                                 notificationAuthorizationChecker: { .denied },
                                 analytics: analytics)
+        sut.markPendingCreate(albumId: 10)
 
         await sut.loadAlbums()
         try? await Task.sleep(nanoseconds: 10_000_000)
@@ -529,8 +530,26 @@ final class MainPageViewModelTests: XCTestCase {
         XCTAssertEqual(analytics.loggedEvents.first?.event, .albumCreateComplete)
     }
 
-    // 같은 앨범에 대해 FCM과 폴링이 모두 도달해도 album_create_complete는 1회만 기록되는지 검증
+    // 같은 앨범에 대해 FCM과 폴링이 모두 도달해도 album_create_complete는 1회만 전송되는지 검증
     func test_applyAlbumReady_duplicateInvocation_logsOnce() async {
+        let nilAlbum = AlbumCard(id: 10, title: nil, location: "제주", startDate: "2026-01-01", endDate: "2026-01-03", coverImageUrl: nil)
+        let stub = PollingStubAlbumService(albums: [nilAlbum])
+        stub.titleReadyAfterAttempts = 1
+        let analytics = MockAnalyticsService()
+        sut = MainPageViewModel(albumService: stub, pollingInterval: 0,
+                                notificationAuthorizationChecker: { .denied },
+                                analytics: analytics)
+        sut.markPendingCreate(albumId: 10)
+
+        await sut.loadAlbums()
+        try? await Task.sleep(nanoseconds: 10_000_000)
+        await sut.handleAlbumCompleted(albumId: 10)
+
+        XCTAssertEqual(analytics.loggedEvents.count, 1)
+    }
+
+    // 생성 요청 미등록 시 완료돼도 album_create_complete 미전송 (앱 재시작 시나리오)
+    func test_albumReady_withoutPendingCreate_doesNotLog() async {
         let nilAlbum = AlbumCard(id: 10, title: nil, location: "제주", startDate: "2026-01-01", endDate: "2026-01-03", coverImageUrl: nil)
         let stub = PollingStubAlbumService(albums: [nilAlbum])
         stub.titleReadyAfterAttempts = 1
@@ -541,9 +560,47 @@ final class MainPageViewModelTests: XCTestCase {
 
         await sut.loadAlbums()
         try? await Task.sleep(nanoseconds: 10_000_000)
-        // FCM이 뒤늦게 도착해도 readyAlbumIds 가드에 의해 추가 기록 없음
+
+        XCTAssertTrue(analytics.loggedEvents.isEmpty)
+    }
+
+    // 전송 후 재완료(수정 재생성) 시 추가 전송 없음
+    func test_albumReady_afterAlreadyFired_doesNotLogAgain() async {
+        let nilAlbum = AlbumCard(id: 10, title: nil, location: "제주", startDate: "2026-01-01", endDate: "2026-01-03", coverImageUrl: nil)
+        let stub = PollingStubAlbumService(albums: [nilAlbum])
+        stub.titleReadyAfterAttempts = 1
+        let analytics = MockAnalyticsService()
+        sut = MainPageViewModel(albumService: stub, pollingInterval: 0,
+                                notificationAuthorizationChecker: { .denied },
+                                analytics: analytics)
+        sut.markPendingCreate(albumId: 10)
+
+        await sut.loadAlbums()
+        try? await Task.sleep(nanoseconds: 10_000_000)
+        XCTAssertEqual(analytics.loggedEvents.count, 1)
+
+        // 수정 재생성 시뮬레이션: 미준비 전환 후 재완료
+        sut.markAlbumNotReady(albumId: 10)
         await sut.handleAlbumCompleted(albumId: 10)
 
         XCTAssertEqual(analytics.loggedEvents.count, 1)
+    }
+
+    // markAlbumNotReady 호출 후 완료 시 album_create_complete 미전송
+    func test_markAlbumNotReady_removesPendingCreate() async {
+        let nilAlbum = AlbumCard(id: 10, title: nil, location: "제주", startDate: "2026-01-01", endDate: "2026-01-03", coverImageUrl: nil)
+        let stub = PollingStubAlbumService(albums: [nilAlbum])
+        stub.titleReadyAfterAttempts = 1
+        let analytics = MockAnalyticsService()
+        sut = MainPageViewModel(albumService: stub, pollingInterval: 0,
+                                notificationAuthorizationChecker: { .denied },
+                                analytics: analytics)
+        sut.markPendingCreate(albumId: 10)
+        sut.markAlbumNotReady(albumId: 10)
+
+        await sut.loadAlbums()
+        try? await Task.sleep(nanoseconds: 10_000_000)
+
+        XCTAssertTrue(analytics.loggedEvents.isEmpty)
     }
 }

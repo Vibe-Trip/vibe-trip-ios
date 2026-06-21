@@ -25,6 +25,8 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
 
     // FCM FAILED 수신 시 음악 생성 실패 추적용
     private let analytics: AnalyticsServiceProtocol = FirebaseAnalyticsService()
+    // album_create_fail 이중 전송 방지 (willPresent + didReceive 동일 알림 수신 시)
+    private var firedCreateFailAlbumIds: Set<Int> = []
 
     // appState 설정 전에 수신된 콜백 신호를 버퍼링하기 위한 프로퍼티
     private struct PendingReceivePayload {
@@ -119,10 +121,7 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
         let payload = FCMPayload.decode(from: userInfo)
         // 음악 생성 단계 실패 추적 -> Suno API 결과 FCM FAILED 수신
         if payload?.type == "FAILED" {
-            analytics.log(.albumCreateFail, parameters: [
-                .step: AnalyticsStep.musicGeneration.rawValue,
-                .errorType: Constants.musicGenerationFailedErrorType
-            ])
+            logAlbumCreateFailIfNeeded(payload: payload)
         }
         Task { @MainActor in
             appState?.needsNotificationRefresh = true
@@ -141,7 +140,11 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
                                 didReceive response: UNNotificationResponse,
                                 withCompletionHandler completionHandler: @escaping () -> Void) {
         let userInfo = response.notification.request.content.userInfo
-        let navigationAction = FCMPayload.decode(from: userInfo)?.toNavigationAction()
+        let payload = FCMPayload.decode(from: userInfo)
+        if payload?.type == "FAILED" {
+            logAlbumCreateFailIfNeeded(payload: payload)
+        }
+        let navigationAction = payload?.toNavigationAction()
         if let appState {
             Task { @MainActor in
                 appState.needsNotificationRefresh = true
@@ -151,6 +154,21 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
             pendingReceivePayload = PendingReceivePayload(navigationAction: navigationAction)
         }
         completionHandler()
+    }
+
+    // MARK: - Analytics
+
+    // 음악 생성 실패 이벤트 전송 (albumId 기반 이중 전송 방지)
+    private func logAlbumCreateFailIfNeeded(payload: FCMPayload?) {
+        let albumId = payload?.error?.data?.albumId ?? payload?.data?.albumId
+        if let albumId {
+            guard !firedCreateFailAlbumIds.contains(albumId) else { return }
+            firedCreateFailAlbumIds.insert(albumId)
+        }
+        analytics.log(.albumCreateFail, parameters: [
+            .step: AnalyticsStep.musicGeneration.rawValue,
+            .errorType: Constants.musicGenerationFailedErrorType
+        ])
     }
 }
 
