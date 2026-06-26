@@ -280,6 +280,8 @@ struct MainTabBarView: View {
                         isAlbumCreating = false
                         albumLoadingError = nil
                         creatingAlbumId = albumId
+                        // 생성 요청한 앨범으로 등록 -> 준비 완료 시 album_create_complete 전송 대상
+                        mainPageViewModel.markPendingCreate(albumId: albumId)
                         // 푸시 미수신/지연 대비: 생성 요청한 앨범 완료 감시 바로 시작
                         Task { await mainPageViewModel.handleAlbumCompleted(albumId: albumId) }
                     },
