@@ -99,8 +99,10 @@ final class LoginViewModel: ObservableObject {
                     .compactMap { $0 }
                 let fullName: String? = nameParts.isEmpty ? nil : nameParts.joined(separator: " ")
 
+                #if DEBUG
                 print("애플 identityToken: \(identityToken)")
                 print("애플 fullName: \(fullName ?? "null")")
+                #endif
 
                 try await performBackendAuth(token: identityToken, provider: .apple, fullName: fullName)
 
@@ -154,7 +156,9 @@ final class LoginViewModel: ObservableObject {
         do {
             /// 카카오 토큰 획득
             let token = try await kakaoAuthService.login()
+            #if DEBUG
             print("카카오 accessToken: \(token)")
+            #endif
             try await performBackendAuth(token: token, provider: .kakao)
         } catch let loginError as LoginError {
             if case .cancelled = loginError { return }
@@ -171,8 +175,10 @@ final class LoginViewModel: ObservableObject {
 
         do {
             let (identityToken, fullName) = try await appleAuthService.login()
+            #if DEBUG
             print("애플 identityToken: \(identityToken)")
             print("애플 fullName: \(fullName ?? "null")")
+            #endif
             try await performBackendAuth(token: identityToken, provider: .apple, fullName: fullName)
         } catch let loginError as LoginError {
             /// 취소: 에러 UI 없이 그대로 로그인 화면 유지
@@ -192,9 +198,11 @@ final class LoginViewModel: ObservableObject {
     private func performBackendAuth(token: String, provider: LoginProvider, fullName: String? = nil) async throws {
         let deviceId = UIDevice.current.identifierForVendor?.uuidString ?? ""
         let fcmToken = await fetchFCMToken()
+        #if DEBUG
         print("deviceId: \(deviceId)")
         print("fcmToken: \(fcmToken)")
         print("백엔드 요청. provider: \(provider.rawValue)")
+        #endif
 
         let authToken = try await backendAuthService.authenticate(
             token: token,
