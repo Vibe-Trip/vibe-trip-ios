@@ -17,6 +17,27 @@ RETRIP은 사진, 여행지, 장르를 입력하면 AI가 사진의 색감과 �
 음악과 사진, 기록이 하나의 앨범으로 아카이빙되어 언제든 다시 꺼내 들을 수 있습니다.
 
 
+## 화면 구성
+<p align="center">
+  <table>
+    <tr>
+      <td><img src="https://github.com/user-attachments/assets/647c7f01-4793-45d6-adf5-5381d5b32234" width="180" alt="1.홈"></td>
+      <td><img src="https://github.com/user-attachments/assets/7294bc49-3e48-4ebf-801f-76e168b23ae6" width="180" alt="2.앨범상세"></td>
+      <td><img src="https://github.com/user-attachments/assets/9b58a74e-76da-4c17-9a81-c737964ce5ee" width="180" alt="3.로그"></td>
+      <td><img src="https://github.com/user-attachments/assets/f20dfa50-19fc-4e6a-9712-cbb10b1ab1b5" width="180" alt="4.앨범생성(필수)"></td>
+      <td><img src="https://github.com/user-attachments/assets/72a9f225-ef75-409c-8099-adb7aa49ef13" width="180" alt="5.앨범생성(선택)"></td>
+      <td><img src="https://github.com/user-attachments/assets/1ae93065-f172-4669-bcd0-be66e5bf7894" width="180" alt="6.생성대기"></td>
+    </tr>
+  </table>
+</p>
+
+
+
+
+
+
+
+
 ## ⚒️ 기술 스택
 
 | 분류 | 기술 |
