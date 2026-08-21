@@ -1,4 +1,4 @@
-# Vibe-Trip iOS App
+# RETRIP iOS App
 > 사진이 음악이 되는 여행 아카이브 iOS App
 
 [![App Store](https://img.shields.io/badge/App_Store-0D96F6?style=for-the-badge&logo=app-store&logoColor=white)](https://apps.apple.com/kr/app/retrip-%EB%8B%A4%EC%8B%9C-%EB%93%A3%EB%8A%94-%EB%82%98%EC%9D%98-%EC%97%AC%ED%96%89-%EA%B8%B0%EB%A1%9D/id6760816556)
