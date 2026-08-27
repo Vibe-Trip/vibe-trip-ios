@@ -61,6 +61,7 @@ final class BackgroundMusicService: ObservableObject {
         player = nil
         currentMusicUrl = nil
         isPlaying = false
+        deactivateSession()
     }
 
     // MARK: - Private
@@ -71,6 +72,12 @@ final class BackgroundMusicService: ObservableObject {
         let session = AVAudioSession.sharedInstance()
         try? session.setCategory(.playback, mode: .default)
         try? session.setActive(true)
+    }
+
+    // 재생 정지 후 세션 반납 -> 중단됐던 타 앱 오디오 재개
+    // notifyOthersOnDeactivation: 타 앱에 재생 재개 가능 신호 전달
+    private func deactivateSession() {
+        try? AVAudioSession.sharedInstance().setActive(false, options: .notifyOthersOnDeactivation)
     }
 
     private func addLoopObserver() {
