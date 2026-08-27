@@ -24,6 +24,7 @@ final class BackgroundMusicService: ObservableObject {
 
     // musicUrl 세팅 + 자동 재생
     func play(url: URL) {
+        activateSession()
         if currentMusicUrl == url {
             player?.play()
         } else {
@@ -63,6 +64,14 @@ final class BackgroundMusicService: ObservableObject {
     }
 
     // MARK: - Private
+
+    // 재생 시작 시점에만 오디오 세션 점유 -> 이 시점부터 타 앱 오디오 중단
+    // .playback: 무음 모드에서도 배경음악 재생
+    private func activateSession() {
+        let session = AVAudioSession.sharedInstance()
+        try? session.setCategory(.playback, mode: .default)
+        try? session.setActive(true)
+    }
 
     private func addLoopObserver() {
         loopObserver = NotificationCenter.default.addObserver(
