@@ -60,9 +60,9 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
             diskCapacity: 200 * 1024 * 1024
         )
 
-        // 오디오 세션 설정: 무음 모드에서도 앱 내 배경음악 재생
-        try? AVAudioSession.sharedInstance().setCategory(.playback, mode: .default)
-        try? AVAudioSession.sharedInstance().setActive(true)
+        // 오디오 세션 기본 카테고리: 타 앱 오디오와 믹싱 허용
+        // 배경음악 재생 시점에 .playback으로 전환 + 활성화 -> 앱 실행만으로 타 앱 오디오가 중단되지 않음
+        try? AVAudioSession.sharedInstance().setCategory(.ambient, mode: .default)
 
         // Firebase 초기화
         // Xcode 실행 / TestFlight 빌드(sandboxReceipt): DebugView 자동 활성화
