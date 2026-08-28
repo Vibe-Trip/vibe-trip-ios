@@ -51,7 +51,7 @@ private func makeErrorResponse(code: String = "E400", message: String = "Bad Req
 
 // HTTP 응답 생성 헬퍼
 private func makeHTTPResponse(statusCode: Int) -> HTTPURLResponse {
-    HTTPURLResponse(url: URL(string: "https://dev.retrip.shop")!, statusCode: statusCode, httpVersion: nil, headerFields: nil)!
+    HTTPURLResponse(url: URL(string: "https://example.com")!, statusCode: statusCode, httpVersion: nil, headerFields: nil)!
 }
 
 // MARK: - 테스트 대상 Decodable
